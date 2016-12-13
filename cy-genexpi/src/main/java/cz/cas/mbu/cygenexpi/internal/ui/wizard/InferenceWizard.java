@@ -3,8 +3,8 @@ package cz.cas.mbu.cygenexpi.internal.ui.wizard;
 import java.util.Arrays;
 import java.util.List;
 
-public class GNWizard {
-	public static String TITLE = "GN Wizard";
+public class InferenceWizard {
+	public static String TITLE = "GenExpI Wizard";
 	public static List<WizardStep<GNWizardData>> getSteps()
 	{
 		return Arrays.asList(

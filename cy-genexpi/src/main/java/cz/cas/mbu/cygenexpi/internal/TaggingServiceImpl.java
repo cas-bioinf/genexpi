@@ -8,6 +8,8 @@ import org.cytoscape.model.CyNetwork;
 import org.cytoscape.model.CyRow;
 import org.cytoscape.model.CyTable;
 
+import cz.cas.mbu.cygenexpi.HumanApprovalTags;
+import cz.cas.mbu.cygenexpi.ProfileTags;
 import cz.cas.mbu.cygenexpi.TaggingService;
 
 public class TaggingServiceImpl implements TaggingService {
@@ -68,6 +70,16 @@ public class TaggingServiceImpl implements TaggingService {
 		return network.getDefaultEdgeTable().getAllRows().stream()
 				.filter(row -> getHumanApprovalTag(row).isEmpty())
 				.collect(Collectors.toList());
+	}
+
+	@Override
+	public void clearAllProfileTags(CyTable table) {
+		table.getAllRows().forEach(row -> setProfileTag(row, ProfileTags.NO_TAG));		
+	}
+
+	@Override
+	public void clearAllHumanApprovalTags(CyTable table) {
+		table.getAllRows().forEach(row -> setHumanApprovalTag(row, HumanApprovalTags.NO_TAG));		
 	}
 	
 

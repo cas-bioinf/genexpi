@@ -91,12 +91,13 @@ public class BatchTaggingPanel extends JPanel implements CytoPanelComponent2 {
 		
 		displayGridComboBox = new JComboBox<>(new DefaultComboBoxModel<DisplayFormat>(new DisplayFormat[] {
 				new DisplayFormat(1, 1),
+				new DisplayFormat(1, 2),
 				new DisplayFormat(1, 5),
 				new DisplayFormat(2, 2),				
 				new DisplayFormat(3, 2),				
 				new DisplayFormat(5, 1),				
 				}));
-		displayGridComboBox.setSelectedIndex(3);//TODO - use RememberValueService
+		displayGridComboBox.setSelectedIndex(1);//TODO - use RememberValueService
 		displayGridComboBox.addItemListener(evt -> {
 			if(evt.getStateChange() == ItemEvent.SELECTED)
 			{

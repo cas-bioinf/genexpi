@@ -22,14 +22,14 @@ import cz.cas.mbu.cygenexpi.internal.tasks.StartWizardTask;
 import cz.cas.mbu.cygenexpi.internal.tasks.TagEdgesTask;
 import cz.cas.mbu.cygenexpi.internal.tasks.TagEdgesTaskFactory;
 import cz.cas.mbu.cygenexpi.internal.tasks.TagNodesTask;
-import cz.cas.mbu.cygenexpi.internal.ui.wizard.GNWizard;
+import cz.cas.mbu.cygenexpi.internal.ui.wizard.InferenceWizard;
 
 public class CyActivator extends AbstractCyActivator {
 	
 	protected void registerTaskFactory(BundleContext bc, TaskFactory taskFactory, String title)
 	{
 		Properties properties = new Properties();
-		properties.setProperty(ServiceProperties.PREFERRED_MENU,"Apps.GN GPU");
+		properties.setProperty(ServiceProperties.PREFERRED_MENU,"Apps.GenExpI");
 		properties.setProperty(ServiceProperties.IN_MENU_BAR,"true");		
 		properties.setProperty(ServiceProperties.TITLE, title);
 		
@@ -47,6 +47,8 @@ public class CyActivator extends AbstractCyActivator {
 		registerService(bc, new PredictionServiceImpl(serviceRegistrar), PredictionService.class, new Properties());	
 		
 
+		registerTaskFactory(bc, new NetworkSelectedRegistrarTaskFactory<>(StartWizardTask.class, serviceRegistrar),
+				InferenceWizard.TITLE);
 		registerTaskFactory(bc, new ExpressionDependentRegistrarTaskFactory<>(MarkNoChangeGenesTask.class, serviceRegistrar), 
 				"Mark genes that are approximately constant onver the time range.");		
 		registerTaskFactory(bc, new ExpressionDependentRegistrarTaskFactory<>(MarkConstantSynthesisGenesTask.class, serviceRegistrar),
@@ -57,8 +59,6 @@ public class CyActivator extends AbstractCyActivator {
 				"Tag node profiles");
 		registerTaskFactory(bc, new TagEdgesTaskFactory(serviceRegistrar),
 				"Tag edge profiles");
-		registerTaskFactory(bc, new NetworkSelectedRegistrarTaskFactory<>(StartWizardTask.class, serviceRegistrar),
-				GNWizard.TITLE);
 	
 		//Launch the init task to load the style
 		serviceRegistrar.getService(TaskManager.class).execute(new TaskIterator(new LoadCustomVizmapStyle(serviceRegistrar)));

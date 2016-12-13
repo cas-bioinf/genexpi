@@ -108,6 +108,12 @@ public class PredictAndApproveEdgeTagsStep extends JPanel implements WizardStep<
 
 	@Override
 	public void beforeStep(TaskMonitor taskMonitor) {
+		TaggingService taggingService = registrar.getService(TaggingService.class);
+		CyTable edgeTable = data.selectedNetwork.getDefaultEdgeTable();
+
+		taggingService.clearAllProfileTags(edgeTable);
+		taggingService.clearAllHumanApprovalTags(edgeTable);
+
 		PredictionService predictionService = registrar.getService(PredictionService.class);
 		try {
 			predictionService.predictSingleRegulations(taskMonitor, data.selectedNetwork, data.expressionMappingColumn, GNWizardData.PREDICTION_SERIES_NAME, GNWizardData.PREDICTION_COLUMN_NAME, true, "Prediction_", false, data.errorDef, data.minFitQuality);
@@ -117,8 +123,6 @@ public class PredictAndApproveEdgeTagsStep extends JPanel implements WizardStep<
 		}
 		
 		//count the results stats
-		TaggingService taggingService = registrar.getService(TaggingService.class);
-		CyTable edgeTable = data.selectedNetwork.getDefaultEdgeTable();
 		int numTotal = 0;
 		int numGoodFit = 0;
 		int numNoFit = 0;

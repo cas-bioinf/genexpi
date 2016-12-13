@@ -18,6 +18,7 @@ import cz.cas.mbu.cydataseries.DataSeriesMappingManager;
 import cz.cas.mbu.cygenexpi.PredictionService;
 import cz.cas.mbu.cygenexpi.ProfileTags;
 import cz.cas.mbu.cygenexpi.TaggingService;
+import cz.cas.mbu.cygenexpi.internal.TaggingSeriesDescriptor;
 import cz.cas.mbu.cygenexpi.internal.tasks.MarkNoChangeGenesTask;
 import cz.cas.mbu.cygenexpi.internal.ui.BatchTaggingPanel;
 import cz.cas.mbu.cygenexpi.internal.ui.UITagging;
@@ -110,12 +111,15 @@ public class PredictAndApproveNodeTagsStep extends JPanel implements WizardStep<
 	
 	@Override
 	public void beforeStep(TaskMonitor taskMonitor) {		
-		PredictionService predictionService = registrar.getService(PredictionService.class);
-		
-		predictionService.markNoChangeGenes(data.selectedNetwork, data.expressionMappingColumn, data.errorDef);
-
 		TaggingService taggingService = registrar.getService(TaggingService.class);
 		CyTable nodeTable = data.selectedNetwork.getDefaultNodeTable();
+		
+		taggingService.clearAllProfileTags(nodeTable);
+		taggingService.clearAllHumanApprovalTags(nodeTable);
+		
+		PredictionService predictionService = registrar.getService(PredictionService.class);		
+		predictionService.markNoChangeGenes(data.selectedNetwork, data.expressionMappingColumn, data.errorDef);
+
 		
 		if(data.useConstantSynthesis)
 		{

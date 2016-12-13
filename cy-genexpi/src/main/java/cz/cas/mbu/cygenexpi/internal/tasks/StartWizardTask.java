@@ -16,7 +16,7 @@ import org.cytoscape.work.TaskMonitor;
 
 import cz.cas.mbu.cygenexpi.RememberValueService;
 import cz.cas.mbu.cygenexpi.internal.ui.UIUtils;
-import cz.cas.mbu.cygenexpi.internal.ui.wizard.GNWizard;
+import cz.cas.mbu.cygenexpi.internal.ui.wizard.InferenceWizard;
 import cz.cas.mbu.cygenexpi.internal.ui.wizard.GNWizardData;
 import cz.cas.mbu.cygenexpi.internal.ui.wizard.WizardPanel;
 import cz.cas.mbu.cygenexpi.internal.ui.wizard.WizardStep;
@@ -39,7 +39,7 @@ public class StartWizardTask extends AbstractTask{
 
 		data.selectedNetwork = registrar.getService(CyApplicationManager.class).getCurrentNetwork();
 		
-		WizardPanel<GNWizardData> panel = new WizardPanel<>(registrar, GNWizard.getSteps(), GNWizard.TITLE, data);
+		WizardPanel<GNWizardData> panel = new WizardPanel<>(registrar, InferenceWizard.getSteps(), InferenceWizard.TITLE, data);
 		registrar.registerService(panel, CytoPanelComponent.class, new Properties());
 		
 		UIUtils.ensurePanelVisible(registrar, panel);		

@@ -159,7 +159,7 @@ public class PredictionServiceImpl implements PredictionService {
 				}
 				else if(taggingService.getProfileTag(targetRow).equals(ProfileTags.NO_CHANGE)) 
 				{
-					taggingService.setProfileTag(targetRow, ProfileTags.NO_CHANGE);
+					taggingService.setProfileTag(targetRow, ProfileTags.NO_TAG);
 					taggingService.setHumanApprovalTag(targetRow, HumanApprovalTags.NO_TAG);
 				}
 										

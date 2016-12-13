@@ -66,6 +66,10 @@ public class SelectTimeSeriesStep extends JPanel implements WizardStep<GNWizardD
 				FormSpecs.RELATED_GAP_ROWSPEC,
 				FormSpecs.DEFAULT_ROWSPEC,
 				FormSpecs.RELATED_GAP_ROWSPEC,
+				FormSpecs.DEFAULT_ROWSPEC,
+				FormSpecs.RELATED_GAP_ROWSPEC,
+				FormSpecs.DEFAULT_ROWSPEC,
+				FormSpecs.RELATED_GAP_ROWSPEC,
 				FormSpecs.DEFAULT_ROWSPEC,}));
 		
 		JLabel lblDescription = new JLabel("<html>First we need a time series for the expression data. The time series needs to be mapped to nodes in the network.\r\n</html>");
@@ -77,22 +81,26 @@ public class SelectTimeSeriesStep extends JPanel implements WizardStep<GNWizardD
 		comboBoxTimeSeries = new JComboBox<>();
 		add(comboBoxTimeSeries, "4, 4, fill, default");
 		
+		JButton btnRefreshAvailableMappings = new JButton("Refresh available mappings");
+		add(btnRefreshAvailableMappings, "4, 6");
+		btnRefreshAvailableMappings.addActionListener(evt -> refreshSeriesComboBox());
+		
 		JSeparator separator = new JSeparator();
-		add(separator, "2, 5, 3, 1");
+		add(separator, "2, 8, 3, 1");
 		
 		JLabel lblNewLabel = new JLabel("<html>\r\nIf you have imported the time series, but you do not see it in the selection below, you need to map it to nodes.<br>\r\nIn most cases you also want to smooth the time series, if you have not done that in another software.\r\n</html>");
-		add(lblNewLabel, "2, 6, 3, 1");
+		add(lblNewLabel, "2, 10, 3, 1");
 		
 		JButton btnImportATime = new JButton("Import a Time Series");
-		add(btnImportATime, "4, 8");
+		add(btnImportATime, "4, 12");
 		btnImportATime.addActionListener(evt -> importTimeSeries());
 		
 		JButton btnSmoothATime = new JButton("Smooth a Time Series");
-		add(btnSmoothATime, "4, 10");
+		add(btnSmoothATime, "4, 14");
 		btnSmoothATime.addActionListener(evt -> smoothTimeSeries());
 		
 		JButton btnMapTimeSeries = new JButton("Map Time Series to Nodes");
-		add(btnMapTimeSeries, "4, 12");
+		add(btnMapTimeSeries, "4, 16");
 		btnMapTimeSeries.addActionListener(evt -> mapTimeSeries());
 
 	}

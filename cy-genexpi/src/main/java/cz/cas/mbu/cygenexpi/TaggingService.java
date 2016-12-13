@@ -6,6 +6,7 @@ import org.cytoscape.model.CyEdge;
 import org.cytoscape.model.CyNetwork;
 import org.cytoscape.model.CyNode;
 import org.cytoscape.model.CyRow;
+import org.cytoscape.model.CyTable;
 
 public interface TaggingService {
 	static final String PROFILE_TAG_COLUMN_NAME = "expression_profile_tag";
@@ -23,6 +24,9 @@ public interface TaggingService {
 	void setHumanApprovalTag(CyRow row, String tag);
 	String getHumanApprovalTag(CyRow row);
 	
+	void clearAllProfileTags(CyTable table);
+	void clearAllHumanApprovalTags(CyTable table);
+	
 	List<CyRow> getNodeRowsPendingApproval(CyNetwork network);	
-	List<CyRow> getEdgeRowsPendingApproval(CyNetwork network);
+	List<CyRow> getEdgeRowsPendingApproval(CyNetwork network);		
 }
