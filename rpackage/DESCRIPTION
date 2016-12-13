@@ -1,0 +1,13 @@
+Package: rGenexpi
+Version: 0.1-1
+Date: 2016-05-09
+Title: Genetic Network Inference using Continuous Differential Equations
+Authors@R: c(person("Martin", "Cerny", role = c("aut", "cre"),
+		     email = "cerny.m@gmail.com"))
+Depends: R (>= 3.1.0), rJava, deSolve
+Description: A (one paragraph) description of what
+  the package does and why it may be useful.
+License: LGPL (>= 2)
+SystemRequirements: Java
+URL: https://github.com/martincerny/genexpi
+BugReports: https://github.com/martincerny/genexpi/issues

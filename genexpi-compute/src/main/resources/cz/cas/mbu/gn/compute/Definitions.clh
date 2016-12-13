@@ -1,0 +1,75 @@
+#ifndef __DEFINITIONS_CLH__
+#define __DEFINITIONS_CLH__
+
+#define CTSW(switchName) (1/(switchName) - 1) // if you are coming here because of error it means the macro "switchName" is undefined
+#define CTSW_OFF 1
+#define CTSW_ON 2
+
+//Two level macro to be able to use macro value as string.
+#define STRINGIFY(x) #x
+#define TOSTRING(x) STRINGIFY(x)
+
+#define COMPUTATION_NAME_STRING TOSTRING(COMPUTATION_NAME)
+
+
+#define DEBUG CTSW_OFF
+#define USE_DOUBLE CTSW_OFF
+
+#if CTSW(USE_DOUBLE)
+    typedef double T_Value;
+#else
+    typedef float T_Value;
+#endif
+
+    
+#if defined(USE_LOSS_ABS)
+    #define ERROR_FROM_DIFF(diff) fabs(diff)
+#else
+    #define ERROR_FROM_DIFF(diff) (diff * diff)
+#endif
+    
+#define GET_IDS \
+    const int taskID = get_global_id(0); \
+    const int iterationID = get_global_id(1);
+
+#define CHECK_IDS \
+    if (taskID >= numTasks || iterationID > numIterations)  { \
+        return;\
+    }
+
+#define SQUARE(x) ((x) * (x))
+
+    
+#define GLOBAL_BASE_PARAMS_DEF \
+		global const T_Value *geneProfilesGlobal, global const uint *targetIndicesGlobal
+	
+#define GLOBAL_BASE_PARAMS_PASS \
+		geneProfilesGlobal, targetIndicesGlobal
+    
+#if defined CUSTOM_TIME_STEP
+	#define CTSW_CUSTOM_TIME_STEP CTSW_ON
+#else
+	#define CTSW_CUSTOM_TIME_STEP CTSW_OFF
+#endif
+    
+#define BASE_PARAMS_DEF \
+	local T_Value *targetProfile, \
+    const uint numGenes,   \
+	const uint numTime, const uint numTasks, const uint numIterations
+    
+    
+#define BASE_PARAMS_PASS \
+    targetProfile, \
+    numGenes,   \
+    numTime, numTasks, numIterations
+    
+#define PARAMETER_SPACE_VALUE(i, source) source[((i) * numTasks + taskID) * numIterations + iterationID]
+#define PARAMETER_VALUE(i) PARAMETER_SPACE_VALUE(i, optimizedParams)
+
+#define PARAM_ACCESS_DEBUG(i, source) ((i) >= NUM_PARAMETERS ? NAN : (PARAMETER_SPACE_VALUE(i, source)))
+    
+    
+#define TARGET_VALUE(time) (targetProfile[time])
+
+    
+#endif
