@@ -1,13 +1,11 @@
 package cz.cas.mbu.cygenexpi.internal.ui.wizard;
 
-import java.beans.Transient;
-
 import org.cytoscape.model.CyNetwork;
 
 import cz.cas.mbu.cygenexpi.RememberAllValues;
 import cz.cas.mbu.cygenexpi.RememberValue;
-import cz.cas.mbu.cygenexpi.RememberValueRecursive;
 import cz.cas.mbu.cygenexpi.RememberValue.Type;
+import cz.cas.mbu.cygenexpi.RememberValueRecursive;
 import cz.cas.mbu.cygenexpi.internal.ErrorDef;
 
 @RememberAllValues
@@ -18,7 +16,7 @@ public class GNWizardData {
 	public String expressionMappingColumn = "";
 	
 	@RememberValueRecursive
-	public ErrorDef errorDef = new ErrorDef(0.2, 0.5);
+	public ErrorDef errorDef = ErrorDef.DEFAULT;
 	
 	public double minFitQuality = 0.8;
 	

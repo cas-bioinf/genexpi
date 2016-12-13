@@ -12,14 +12,20 @@ public class ErrorDef {
 	@Tunable(description="Relative error term", groups={"Error"})
 	public double relativeError;
 
-	public ErrorDef(double absoluteError, double relativeError) {
+	@Tunable(description="Minimal error", groups={"Error"})
+	public double minimalError;
+	
+	public static final ErrorDef DEFAULT = new ErrorDef(0, 0.2, 0);
+	
+	public ErrorDef(double absoluteError, double relativeError, double minimalError) {
 		super();
 		this.absoluteError = absoluteError;
 		this.relativeError = relativeError;
+		this.minimalError = minimalError;
 	}
 	
 	public double getErrorMargin(double value)
 	{
-		return value * relativeError + absoluteError;
+		return Math.max(value * relativeError + absoluteError, minimalError);
 	}
 }

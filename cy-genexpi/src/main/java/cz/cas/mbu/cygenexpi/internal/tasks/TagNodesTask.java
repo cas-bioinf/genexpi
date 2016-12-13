@@ -94,7 +94,7 @@ public class TagNodesTask extends AbstractValidatedTask {
 		possibleNoRegulatorColumns.addAll(possibleSourceColumns);
 		noRegulatorTimeSeriesColumn = new ListSingleSelection<>(possibleNoRegulatorColumns);
 		
-		errorDef = new ErrorDef(0f, 0.2f);
+		errorDef = ErrorDef.DEFAULT;
 		
 		registrar.getService(RememberValueService.class).loadProperties(this);		
 		

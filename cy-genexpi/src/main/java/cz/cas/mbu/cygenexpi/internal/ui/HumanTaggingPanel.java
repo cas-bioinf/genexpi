@@ -161,6 +161,7 @@ public class HumanTaggingPanel extends JPanel {
 		Paint[] paintSequence = new Paint[] {
 	            new Color(0xFF, 0x55, 0x55),
 	            new Color(0x55, 0x55, 0xFF),
+	            new Color(116,71,48),
 	            new Color(0x55, 0xFF, 0x55),
 	            new Color(0xFF, 0x55, 0xFF),
 	            new Color(0x55, 0xFF, 0xFF),

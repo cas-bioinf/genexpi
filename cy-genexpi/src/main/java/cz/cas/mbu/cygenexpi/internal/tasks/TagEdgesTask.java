@@ -95,7 +95,7 @@ public class TagEdgesTask extends AbstractValidatedTask {
 		
 		predictionTimeSeriesColumn = new ListSingleSelection<>(possiblePredictionColumns);
 		
-		errorDef = new ErrorDef(0f, 0.2f);
+		errorDef = ErrorDef.DEFAULT;
 		
 		registrar.getService(RememberValueService.class).loadProperties(this);		
 		

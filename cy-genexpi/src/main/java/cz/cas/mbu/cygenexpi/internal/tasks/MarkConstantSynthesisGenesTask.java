@@ -75,7 +75,7 @@ public class MarkConstantSynthesisGenesTask extends AbstractTask {
 				.collect(Collectors.toList());
 		
 		expressionTimeSeriesColumn = new ListSingleSelection<>(possibleSourceColumns);
-		errorDef = new ErrorDef(0f, 0.2f);
+		errorDef = ErrorDef.DEFAULT;
 		
 		registrar.getService(RememberValueService.class).loadProperties(this);		
 	}
