@@ -81,7 +81,7 @@ public class MarkNoChangeGenesTask extends AbstractTask {
 				.collect(Collectors.toList());
 		
 		expressionTimeSeriesColumn = new ListSingleSelection<>(possibleSourceColumns);
-		errorDef = new ErrorDef(0, 0.2, 0);
+		errorDef = ErrorDef.DEFAULT;
 		
 		registrar.getService(RememberValueService.class).loadProperties(this);		
 	}
