@@ -4,7 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 
 public class InferenceWizard {
-	public static String TITLE = "GenExpI Wizard";
+	public static String TITLE = "Genexpi Wizard";
 	public static List<WizardStep<GNWizardData>> getSteps()
 	{
 		return Arrays.asList(

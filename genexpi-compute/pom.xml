@@ -12,7 +12,7 @@
     <artifactId>genexpi-compute</artifactId>
     <packaging>jar</packaging>
 
-    <name>GenExpI-Compute</name>
+    <name>Genexpi-Compute</name>
     <url>https://github.com/martincerny/genexpi</url>
 
     <properties>

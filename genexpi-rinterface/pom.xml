@@ -11,7 +11,7 @@
     <artifactId>genexpi-rinterface</artifactId>
     <packaging>jar</packaging>
 
-    <name>GenExpI R interface</name>
+    <name>Genexpi R interface</name>
 
     <build>
         <plugins>

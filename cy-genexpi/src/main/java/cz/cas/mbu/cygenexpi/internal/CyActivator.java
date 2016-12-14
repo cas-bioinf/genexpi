@@ -29,7 +29,7 @@ public class CyActivator extends AbstractCyActivator {
 	protected void registerTaskFactory(BundleContext bc, TaskFactory taskFactory, String title)
 	{
 		Properties properties = new Properties();
-		properties.setProperty(ServiceProperties.PREFERRED_MENU,"Apps.GenExpI");
+		properties.setProperty(ServiceProperties.PREFERRED_MENU,"Apps.Genexpi");
 		properties.setProperty(ServiceProperties.IN_MENU_BAR,"true");		
 		properties.setProperty(ServiceProperties.TITLE, title);
 		

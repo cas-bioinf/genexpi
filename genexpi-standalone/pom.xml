@@ -11,7 +11,7 @@
     <artifactId>genexpi-standalone</artifactId>
     <packaging>jar</packaging>
 
-    <name>GenExpI Standalone</name>
+    <name>Genexpi Standalone</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

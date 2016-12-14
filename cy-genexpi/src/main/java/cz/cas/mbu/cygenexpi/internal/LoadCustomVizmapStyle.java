@@ -26,7 +26,7 @@ public class LoadCustomVizmapStyle extends AbstractTask {
 	public void run(TaskMonitor taskMonitor) throws Exception {
 		VizmapReaderManager readerManager = registrar.getService(VizmapReaderManager.class);
 		InputStream is = getClass().getResourceAsStream("/cz/cas/mbu/genexpi/defaultStyle.xml");
-		final VizmapReader reader = readerManager.getReader(is, "GN-GPU style");
+		final VizmapReader reader = readerManager.getReader(is, "Genexpi");
 		
 		insertTasksAfterCurrentTask(reader, new AbstractTask() {
 			
