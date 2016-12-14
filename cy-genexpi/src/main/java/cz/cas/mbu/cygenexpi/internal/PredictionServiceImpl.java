@@ -60,14 +60,26 @@ public class PredictionServiceImpl implements PredictionService {
 	}
 
 	protected CLDevice getDeviceFromCyCLPreferred()
-	{				
+	{	
+		//TODO once 3.5.0 is out, revert to the more nice code
+		/*
 		CyCLDevice cyCLPreferredDevice = CyCL.getPreferredDevice();
 		if(cyCLPreferredDevice == null)
 		{
 			return null;
 		}
+		*/
+
+		if (CyCL.getDevices().isEmpty())
+		{
+			return null;
+		}
 		
-		String cyCLPreferredName = cyCLPreferredDevice.openCLName;
+		CyCLDevice cyCLPreferredDevice = CyCL.getDevices().get(0);
+		
+		//TODO once 3.5.0 is out, revert to the more nice code
+		//String cyCLPreferredName = cyCLPreferredDevice.openCLName;
+		String cyCLPreferredName = cyCLPreferredDevice.name;
 		String cyCLPreferredVersion = cyCLPreferredDevice.version;
 
 		CLDevice bestDevice = null;
@@ -87,9 +99,17 @@ public class PredictionServiceImpl implements PredictionService {
 					bestDevice = device;
 				}
 				//Check if tha JavaCL name is the last part of the CyCL name (lowest priority)
-				else if (cyCLPreferredName.endsWith(javaCLName) && bestDevice == null)
+				else if (cyCLPreferredName.endsWith(javaCLName))
 				{
-					bestDevice = device;
+					if(bestDevice == null)
+					{
+						bestDevice = device;
+					}
+					//Override the best device only if it was a partial match and I have a version match
+					else if (!cyCLPreferredName.equals(bestDevice.getName()) && cyCLPreferredVersion.equals(device.getVersion())) 
+					{
+						bestDevice = device;
+					}
 				}
 			}
 		}
@@ -241,7 +261,9 @@ public class PredictionServiceImpl implements PredictionService {
 				GNCompute<Float> compute = new GNCompute<>(Float.class, getContext(), model, method, null /*No error function*/, lossFunction, regularizationWeight, useCustomTimeStep, (float)timeStep);
 				
 				int numIterations = 128;
-				List<InferenceResult> results = compute.computeNoRegulator(geneProfiles, inferenceTasks, numIterations, CyCL.isPreventFullOccupation());
+				//TODO once 3.5.0 is out, revert to the more nice code
+				//List<InferenceResult> results = compute.computeNoRegulator(geneProfiles, inferenceTasks, numIterations, CyCL.isPreventFullOccupation());
+				List<InferenceResult> results = compute.computeNoRegulator(geneProfiles, inferenceTasks, numIterations, false);
 				
 				taskMonitor.setStatusMessage("Processing results");
 			
@@ -489,7 +511,9 @@ public class PredictionServiceImpl implements PredictionService {
 				GNCompute<Float> compute = new GNCompute<>(Float.class, getContext(), model, method, errorFunction, lossFunction, regularizationWeight, useCustomTimeStep, (float)timeStep);
 				
 				int numIterations = 128;
-				List<InferenceResult> results = compute.computeAdditiveRegulation(geneProfiles, inferenceTasks, 1, numIterations, CyCL.isPreventFullOccupation());
+				//TODO once 3.5.0 is out, revert to the more nice code
+				//List<InferenceResult> results = compute.computeAdditiveRegulation(geneProfiles, inferenceTasks, 1, numIterations, CyCL.isPreventFullOccupation());
+				List<InferenceResult> results = compute.computeAdditiveRegulation(geneProfiles, inferenceTasks, 1, numIterations, false);
 				
 				taskMonitor.setStatusMessage("Processing results");
 				

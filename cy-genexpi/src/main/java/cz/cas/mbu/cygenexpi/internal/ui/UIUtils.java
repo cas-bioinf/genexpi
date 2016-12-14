@@ -33,6 +33,8 @@ public class UIUtils {
 	
 	public static void handleSuspectedGPUResetInTask(SuspectGPUResetByOSException ex)
 	{
+		//TODO once 3.5.0 is out, revert to the more nice code
+		/*
 		if (!CyCL.isPreventFullOccupation())
 		{
 			throw new SuspectGPUResetByOSException(ex.getMessage() + "\nSee Edit -> Preferences -> OpenCL Settings.", ex);
@@ -40,6 +42,7 @@ public class UIUtils {
 		else
 		{
 			throw ex;
-		}
+		}*/
+		throw ex;
 	}
 }
