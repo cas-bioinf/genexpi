@@ -4,10 +4,9 @@ import java.util.Properties;
 
 import org.cytoscape.service.util.AbstractCyActivator;
 import org.cytoscape.service.util.CyServiceRegistrar;
+import org.cytoscape.session.events.SessionLoadedListener;
 import org.cytoscape.work.ServiceProperties;
 import org.cytoscape.work.TaskFactory;
-import org.cytoscape.work.TaskIterator;
-import org.cytoscape.work.TaskManager;
 import org.osgi.framework.BundleContext;
 
 import cz.cas.mbu.cygenexpi.PredictionService;
@@ -19,7 +18,6 @@ import cz.cas.mbu.cygenexpi.internal.tasks.MarkNoChangeGenesTask;
 import cz.cas.mbu.cygenexpi.internal.tasks.NetworkSelectedRegistrarTaskFactory;
 import cz.cas.mbu.cygenexpi.internal.tasks.PredictSingleRegulationsTask;
 import cz.cas.mbu.cygenexpi.internal.tasks.StartWizardTask;
-import cz.cas.mbu.cygenexpi.internal.tasks.TagEdgesTask;
 import cz.cas.mbu.cygenexpi.internal.tasks.TagEdgesTaskFactory;
 import cz.cas.mbu.cygenexpi.internal.tasks.TagNodesTask;
 import cz.cas.mbu.cygenexpi.internal.ui.wizard.InferenceWizard;
@@ -59,9 +57,8 @@ public class CyActivator extends AbstractCyActivator {
 				"Tag node profiles");
 		registerTaskFactory(bc, new TagEdgesTaskFactory(serviceRegistrar),
 				"Tag edge profiles");
-	
-		//Launch the init task to load the style
-		serviceRegistrar.getService(TaskManager.class).execute(new TaskIterator(new LoadCustomVizmapStyle(serviceRegistrar)));
+		
+		registerService(bc, new CustomVizmapStyleManager(serviceRegistrar), SessionLoadedListener.class, new Properties());
 	}
 
 }
