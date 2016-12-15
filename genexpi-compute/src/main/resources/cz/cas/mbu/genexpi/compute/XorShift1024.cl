@@ -61,7 +61,7 @@ void XorShiftInit(global int* xorShiftCounters, const int numTasks, const int nu
 	    ulong x_large = XorShiftNext(xorShiftStates, xorShiftCounters, numTasks, numIterations);
 	    uint x = (uint)x_large;
 	    x = 0x7FU << 23 | x >> 9;
-	    float f = *((float *)&x) - 1.0;
+	    float f = *((float *)&x) - 1.0f;
 	    return f;
 	}
 

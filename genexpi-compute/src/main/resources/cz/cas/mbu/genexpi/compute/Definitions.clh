@@ -17,8 +17,10 @@
 
 #if CTSW(USE_DOUBLE)
     typedef double T_Value;
+    #define CONST(x) (x)
 #else
     typedef float T_Value;
+    #define CONST(x) (x ## f)
 #endif
 
     

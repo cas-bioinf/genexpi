@@ -61,21 +61,21 @@
 
 
 #if CTSW(CTSW_CONSTITUTIVE_EXPRESSION)
-	#define ADDITIONAL_PARAMS_IN_BOUNDS if(CONSTITUTIVE_VALUE < 0) CONSTITUTIVE_VALUE = 0.0001;
+	#define ADDITIONAL_PARAMS_IN_BOUNDS if(CONSTITUTIVE_VALUE < 0) CONSTITUTIVE_VALUE = CONST(0.0001);
 #else
 	#define ADDITIONAL_PARAMS_IN_BOUNDS
 #endif
 
 #define FORCE_PARAMS_IN_BOUNDS \
-    if(K1_VALUE < 0) K1_VALUE = 0.1; \
-    if(K2_VALUE < 0) K2_VALUE = 0.0001;\
+    if(K1_VALUE < 0) K1_VALUE = CONST(0.1); \
+    if(K2_VALUE < 0) K2_VALUE = CONST(0.0001);\
     if(weightConstraints != 0)\
 	{ \
     	for(int __regulator = 0; __regulator < NUM_REGULATORS; __regulator++)\
 		{\
     		T_Value combinedSignedValue = weightConstraints[__regulator] * W_VALUE(__regulator);\
     		if(combinedSignedValue < 0) { \
-    			W_VALUE(__regulator) = weightConstraints[__regulator] * 0.0001;\
+    			W_VALUE(__regulator) = weightConstraints[__regulator] * CONST(0.0001);\
     		}\
     	}\
     }\
@@ -124,10 +124,10 @@
 	\
 	__reg_maxRegulatorInput -= B_VALUE;\
 	__reg_minRegulatorInput -= B_VALUE;\
-	if(__reg_maxRegulatorInput < 0.5 || __reg_minRegulatorInput > -0.5)\
+	if(__reg_maxRegulatorInput < CONST(0.5) || __reg_minRegulatorInput > -CONST(0.5))\
 	{\
-		T_Value distanceToBorder = min(fabs(__reg_minRegulatorInput + 0.5),fabs(__reg_maxRegulatorInput - 0.5));\
-		__regValue += RegularizeUniformNormal(distanceToBorder, 3);\
+		T_Value distanceToBorder = min(fabs(__reg_minRegulatorInput + CONST(0.5)),fabs(__reg_maxRegulatorInput - CONST(0.5)));\
+		__regValue += RegularizeUniformNormal(distanceToBorder, CONST(3.0));\
 	}\
 	ADDITIONAL_REGULARIZATION_COMPUTE\
 	__regValue *= regularizationWeight;

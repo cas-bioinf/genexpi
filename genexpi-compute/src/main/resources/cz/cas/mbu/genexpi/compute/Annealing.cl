@@ -32,12 +32,12 @@ kernel void KERNEL_NAME(Annealing)(XORSHIFT_PARAMS_DEF,
     
     FORCE_PARAMS_IN_BOUNDS;
     
-    const T_Value coolMultiplier = 0.8;
-    const T_Value initTemperature = 1;
+    const T_Value coolMultiplier = CONST(0.8);
+    const T_Value initTemperature = CONST(1.0);
     const uint maxConsecutiveRejections = 1000;
     const uint maxSuccesses = 20;
     const uint maxTries = 300;
-    const T_Value stopTemperature = 1e-6;
+    const T_Value stopTemperature = CONST(1e-6);
     
     T_Value selectedParams[NUM_PARAMETERS];
     T_Value bestParams[NUM_PARAMETERS];
@@ -105,11 +105,11 @@ kernel void KERNEL_NAME(Annealing)(XORSHIFT_PARAMS_DEF,
         T_Value randomValue = XORSHIFT_RANDN;
         if (fabs(oldValue) < 1e-5)
         {
-            PARAMETER_VALUE(indexToChange) = oldValue + (randomValue * 1e-5);//(XORSHIFT_NEXT_VALUE - 0.5);                    	
+            PARAMETER_VALUE(indexToChange) = oldValue + (randomValue * CONST(1e-5));                    	
         }
         else
         {
-            PARAMETER_VALUE(indexToChange) = oldValue + (oldValue * randomValue * 0.5);//(XORSHIFT_NEXT_VALUE - 0.5);                    	
+            PARAMETER_VALUE(indexToChange) = oldValue + (oldValue * randomValue * CONST(0.5));                    	
         }
         
 #if CTSW(GRADIENT_UPDATE)        
