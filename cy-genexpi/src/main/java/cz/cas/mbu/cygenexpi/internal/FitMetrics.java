@@ -10,7 +10,7 @@ public class FitMetrics {
 		for(int t = 0; t < predictedProfile.length; t++)
 		{
 			double measuredValue = expressionProfile[t];
-			double errorMargin =  measuredValue * errorDef.relativeError + errorDef.absoluteError;
+			double errorMargin =  errorDef.getErrorMargin(measuredValue);
 			if(Math.abs(measuredValue - predictedProfile[t]) < errorMargin)
 			{
 				numWithinErrorBounds++; 
@@ -27,7 +27,7 @@ public class FitMetrics {
 		for(int t = 0; t < predictedProfile.length; t++)
 		{
 			double measuredValue = expressionProfile.getProfile().get(t).doubleValue();
-			double errorMargin =  measuredValue * errorDef.relativeError + errorDef.absoluteError;
+			double errorMargin =  errorDef.getErrorMargin(measuredValue);
 			if(Math.abs(measuredValue - predictedProfile[t]) < errorMargin)
 			{
 				numWithinErrorBounds++; 

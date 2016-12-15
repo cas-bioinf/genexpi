@@ -181,7 +181,13 @@ public class PredictAndApproveNodeTagsStep extends JPanel implements WizardStep<
 	}
 	
 	
-	
+	@Override
+	public void wizardStarted() {
+	}
+
+	@Override
+	public void wizardClosed() {
+	}	
 	
 
 }

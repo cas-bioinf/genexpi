@@ -157,6 +157,14 @@ public class EnterErrorCheckingStep extends JPanel implements WizardStep<GNWizar
 		this.data = data;
 		this.registrar = registrar;
 	}
+
+	@Override
+	public void wizardStarted() {
+	}
+
+	@Override
+	public void wizardClosed() {
+	}
 	
 	
 	

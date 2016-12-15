@@ -13,4 +13,7 @@ public interface WizardStep<DATA> {
 	ValidationState validate(StringBuilder messageBuilder);
 	void beforeStep(TaskMonitor taskMonitor);
 	void performStep(TaskMonitor taskMonitor);
+	
+	void wizardStarted();
+	void wizardClosed();	
 }

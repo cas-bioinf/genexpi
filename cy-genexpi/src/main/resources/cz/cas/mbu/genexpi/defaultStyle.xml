@@ -93,7 +93,11 @@
         </node>
         <edge>
             <dependency name="arrowColorMatchesEdge" value="true"/>
-            <visualProperty name="EDGE_LINE_TYPE" default="SOLID"/>
+            <visualProperty name="EDGE_LINE_TYPE" default="SOLID">
+                <discreteMapping attributeType="string" attributeName="expression_profile_tag">
+                    <discreteMappingEntry value="DOT" attributeValue="no fit"/>
+                </discreteMapping>
+            </visualProperty>
             <visualProperty name="EDGE_PAINT" default="#808080"/>
             <visualProperty name="EDGE_TARGET_ARROW_SELECTED_PAINT" default="#FFFF00"/>
             <visualProperty name="EDGE_SELECTED" default="false"/>
@@ -116,10 +120,11 @@
             <visualProperty name="EDGE_LABEL_WIDTH" default="200.0"/>
             <visualProperty name="EDGE_UNSELECTED_PAINT" default="#CCCCCC">
                 <discreteMapping attributeType="string" attributeName="expression_profile_tag">
-                    <discreteMappingEntry value="#FFFFFF" attributeValue="no fit"/>
+                    <discreteMappingEntry value="#E0E0E0" attributeValue="no fit"/>
                     <discreteMappingEntry value="#00CC66" attributeValue="good fit"/>
                     <discreteMappingEntry value="#CCFFCC" attributeValue="borderline fit"/>
                     <discreteMappingEntry value="#FFCC99" attributeValue="excluded (constant synth.)"/>
+                    <discreteMappingEntry value="#FFCC99" attributeValue="excluded (no change target)"/>
                 </discreteMapping>
             </visualProperty>
             <visualProperty name="EDGE_TARGET_ARROW_SHAPE" default="ARROW"/>

@@ -66,6 +66,7 @@ public class PredictAndApproveEdgeTagsStep extends JPanel implements WizardStep<
 		add(lblTotalNumberOf, "2, 4, right, default");
 		
 		textFieldNumberOfProfiles = new JTextField();
+		textFieldNumberOfProfiles.setEditable(false);
 		add(textFieldNumberOfProfiles, "4, 4, fill, default");
 		textFieldNumberOfProfiles.setColumns(10);
 		
@@ -73,6 +74,7 @@ public class PredictAndApproveEdgeTagsStep extends JPanel implements WizardStep<
 		add(lblNodesWithNo, "2, 6, right, default");
 		
 		textFieldGoodFit = new JTextField();
+		textFieldGoodFit.setEditable(false);
 		add(textFieldGoodFit, "4, 6, fill, default");
 		textFieldGoodFit.setColumns(10);
 		
@@ -80,6 +82,7 @@ public class PredictAndApproveEdgeTagsStep extends JPanel implements WizardStep<
 		add(lblNodesWithConstant, "2, 8, right, default");
 		
 		textFieldNoFit = new JTextField();
+		textFieldNoFit.setEditable(false);
 		add(textFieldNoFit, "4, 8, fill, default");
 		textFieldNoFit.setColumns(10);
 
@@ -160,9 +163,15 @@ public class PredictAndApproveEdgeTagsStep extends JPanel implements WizardStep<
 	public void setData(GNWizardData data, CyServiceRegistrar registrar) {
 		this.data = data;
 		this.registrar = registrar;
+	}	
+	
+	@Override
+	public void wizardStarted() {
 	}
-	
-	
+
+	@Override
+	public void wizardClosed() {
+	}
 	
 	
 

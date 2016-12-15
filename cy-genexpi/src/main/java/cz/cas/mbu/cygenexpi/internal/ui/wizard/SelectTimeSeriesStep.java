@@ -3,6 +3,7 @@ package cz.cas.mbu.cygenexpi.internal.ui.wizard;
 import java.awt.Component;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -24,6 +25,8 @@ import com.jgoodies.forms.layout.ColumnSpec;
 import com.jgoodies.forms.layout.RowSpec;
 
 import cz.cas.mbu.cydataseries.DataSeriesListener;
+import cz.cas.mbu.cydataseries.DataSeriesMappingEvent;
+import cz.cas.mbu.cydataseries.DataSeriesMappingListener;
 import cz.cas.mbu.cydataseries.DataSeriesMappingManager;
 import cz.cas.mbu.cydataseries.DataSeriesPublicTasks;
 import cz.cas.mbu.cydataseries.MappingDescriptor;
@@ -36,8 +39,10 @@ import javax.swing.JComboBox;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
 import javax.swing.JSeparator;
+import java.awt.Font;
+import javax.swing.SwingConstants;
 
-public class SelectTimeSeriesStep extends JPanel implements WizardStep<GNWizardData> {
+public class SelectTimeSeriesStep extends JPanel implements WizardStep<GNWizardData>, DataSeriesMappingListener {
 
 	private GNWizardData data;
 	
@@ -70,6 +75,16 @@ public class SelectTimeSeriesStep extends JPanel implements WizardStep<GNWizardD
 				FormSpecs.RELATED_GAP_ROWSPEC,
 				FormSpecs.DEFAULT_ROWSPEC,
 				FormSpecs.RELATED_GAP_ROWSPEC,
+				FormSpecs.DEFAULT_ROWSPEC,
+				FormSpecs.RELATED_GAP_ROWSPEC,
+				FormSpecs.DEFAULT_ROWSPEC,
+				FormSpecs.RELATED_GAP_ROWSPEC,
+				FormSpecs.DEFAULT_ROWSPEC,
+				FormSpecs.RELATED_GAP_ROWSPEC,
+				FormSpecs.DEFAULT_ROWSPEC,
+				FormSpecs.RELATED_GAP_ROWSPEC,
+				FormSpecs.DEFAULT_ROWSPEC,
+				FormSpecs.RELATED_GAP_ROWSPEC,
 				FormSpecs.DEFAULT_ROWSPEC,}));
 		
 		JLabel lblDescription = new JLabel("<html>First we need a time series for the expression data. The time series needs to be mapped to nodes in the network.\r\n</html>");
@@ -81,27 +96,39 @@ public class SelectTimeSeriesStep extends JPanel implements WizardStep<GNWizardD
 		comboBoxTimeSeries = new JComboBox<>();
 		add(comboBoxTimeSeries, "4, 4, fill, default");
 		
-		JButton btnRefreshAvailableMappings = new JButton("Refresh available mappings");
-		add(btnRefreshAvailableMappings, "4, 6");
-		btnRefreshAvailableMappings.addActionListener(evt -> refreshSeriesComboBox());
-		
 		JSeparator separator = new JSeparator();
 		add(separator, "2, 8, 3, 1");
 		
-		JLabel lblNewLabel = new JLabel("<html>\r\nIf you have imported the time series, but you do not see it in the selection below, you need to map it to nodes.<br>\r\nIn most cases you also want to smooth the time series, if you have not done that in another software.\r\n</html>");
-		add(lblNewLabel, "2, 10, 3, 1");
+		JLabel lblifYouHave = new JLabel("<html>If you have no time series in your session, you need to import it:</html>");
+		add(lblifYouHave, "2, 10, 3, 1");
 		
-		JButton btnImportATime = new JButton("Import a Time Series");
-		add(btnImportATime, "4, 12");
+		JButton btnImportATime = new JButton("Import From Text File (.CSV,.TSV etc.)");
+		add(btnImportATime, "2, 12, 3, 1");
 		btnImportATime.addActionListener(evt -> importTimeSeries());
 		
-		JButton btnSmoothATime = new JButton("Smooth a Time Series");
-		add(btnSmoothATime, "4, 14");
-		btnSmoothATime.addActionListener(evt -> smoothTimeSeries());
+		JButton btnImportFromSoft = new JButton("Import From SOFT file");
+		add(btnImportFromSoft, "2, 14, 3, 1");
+		btnImportFromSoft.addActionListener(evt -> importFromSoftFile());
+		
+		JSeparator separator_1 = new JSeparator();
+		add(separator_1, "2, 16, 3, 1");
+		
+		JLabel lblNewLabel = new JLabel("<html>\r\nIf you have imported the time series, but you do not see it in the selection below, you need to map it to nodes.\r\n</html>");
+		add(lblNewLabel, "2, 18, 3, 1");
 		
 		JButton btnMapTimeSeries = new JButton("Map Time Series to Nodes");
-		add(btnMapTimeSeries, "4, 16");
+		add(btnMapTimeSeries, "2, 20, 3, 1");
 		btnMapTimeSeries.addActionListener(evt -> mapTimeSeries());
+		
+		JSeparator separator_2 = new JSeparator();
+		add(separator_2, "2, 22, 3, 1");
+		
+		JLabel lblInMostCases = new JLabel("<html>\r\nIn most cases you also want to smooth the time series, if you have not done that in another software.\r\n</html>");
+		add(lblInMostCases, "2, 24, 3, 1");
+		
+		JButton btnSmoothATime = new JButton("Smooth a Time Series");
+		add(btnSmoothATime, "2, 26, 3, 1");
+		btnSmoothATime.addActionListener(evt -> smoothTimeSeries());
 
 	}
 
@@ -181,11 +208,17 @@ public class SelectTimeSeriesStep extends JPanel implements WizardStep<GNWizardD
 	private void importTimeSeries()
 	{
 		DataSeriesPublicTasks dsTasks = registrar.getService(DataSeriesPublicTasks.class);
-		TaskIterator importTaskIterator = dsTasks.getImportDataSeriesTask(TimeSeries.class);
+		TaskIterator importTaskIterator = dsTasks.getImportDataSeriesTabularTask(TimeSeries.class);
 		
-		//End with a refresh of the GUI
-		importTaskIterator.append(new RefreshGUITask());
 		registrar.getService(DialogTaskManager.class).execute(importTaskIterator);
+	}
+	
+	private void importFromSoftFile()
+	{
+		DataSeriesPublicTasks dsTasks = registrar.getService(DataSeriesPublicTasks.class);
+		TaskIterator importTaskIterator = dsTasks.getImportSoftFileTask(TimeSeries.class);
+		
+		registrar.getService(DialogTaskManager.class).execute(importTaskIterator);		
 	}
 	
 	private void mapTimeSeries()
@@ -193,8 +226,6 @@ public class SelectTimeSeriesStep extends JPanel implements WizardStep<GNWizardD
 		DataSeriesPublicTasks dsTasks = registrar.getService(DataSeriesPublicTasks.class);
 		TaskIterator mapTaskIterator = dsTasks.getMapDataSeriesTask();
 		
-		//End with a refresh of the GUI
-		mapTaskIterator.append(new RefreshGUITask());
 		registrar.getService(DialogTaskManager.class).execute(mapTaskIterator);
 		
 	}
@@ -205,12 +236,22 @@ public class SelectTimeSeriesStep extends JPanel implements WizardStep<GNWizardD
 		TaskIterator smoothTaskIterator = dsTasks.getInteractiveSmoothingTask();		
 		registrar.getService(DialogTaskManager.class).execute(smoothTaskIterator);		
 	}
+	
+	
+	
+	@Override
+	public void handleEvent(DataSeriesMappingEvent evt) {
+		refreshSeriesComboBox();
+	}
 
-	private final class RefreshGUITask extends AbstractTask {
-		@Override
-		public void run(TaskMonitor taskMonitor) throws Exception {
-			SwingUtilities.invokeLater(() -> refreshSeriesComboBox());				
-		}
+	@Override
+	public void wizardStarted() {
+		registrar.registerService(this, DataSeriesMappingListener.class, new Properties());
+	}
+
+	@Override
+	public void wizardClosed() {
+		registrar.unregisterAllServices(this);
 	}
 	
 }

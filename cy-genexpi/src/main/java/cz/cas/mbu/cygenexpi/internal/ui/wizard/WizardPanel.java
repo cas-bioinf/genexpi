@@ -89,6 +89,9 @@ public class WizardPanel<DATA> extends JPanel implements CytoPanelComponent {
 		if(!java.beans.Beans.isDesignTime())
 		{
 			registrar.getService(RememberValueService.class).loadProperties(data);			
+			steps.forEach(step -> step.setData(data, registrar));
+			steps.forEach(step -> step.wizardStarted());
+			
 			setShownStepIndex(0, true);
 		}
 	}
@@ -122,7 +125,6 @@ public class WizardPanel<DATA> extends JPanel implements CytoPanelComponent {
 	{
 		remove(getShownStep().getComponent());
 		shownStepIndex = index;
-		getShownStep().setData(data, registrar);
 		add(getShownStep().getComponent(), new CellConstraints(2, 4, 5, 1));
 	
 		revalidate();
@@ -235,6 +237,7 @@ public class WizardPanel<DATA> extends JPanel implements CytoPanelComponent {
 	
 	protected void closeWizard()
 	{
+		steps.forEach(step -> step.wizardClosed());
 		registrar.unregisterAllServices(this);					
 	}
 }
