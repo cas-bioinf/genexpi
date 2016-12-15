@@ -210,8 +210,8 @@ void SampleInitialParams(XORSHIFT_PARAMS_DEF,
     
     
     const T_Value maxK1 = maxTarget;
-    const T_Value maxK2 = 1;
-    const T_Value maxAbsB = 10;
+    const T_Value maxK2 = CONST(1.0);
+    const T_Value maxAbsB = CONST(10.0);
     
     //Initial guess    
     K1_VALUE = XORSHIFT_NEXT_VALUE * maxK1;
@@ -227,13 +227,6 @@ void SampleInitialParams(XORSHIFT_PARAMS_DEF,
 #if CTSW(CTSW_CONSTITUTIVE_EXPRESSION)
     CONSTITUTIVE_VALUE = XORSHIFT_NEXT_VALUE * maxTarget;
 #endif    
-/*    
-    K1_VALUE = 0.113;
-    K2_VALUE = 0.061;
-    B_VALUE = 8.613;
-    W_VALUE(0) = 0;
-    W_VALUE(1) = -5.115;
-   */
 }
 
 
@@ -347,24 +340,24 @@ T_Value ErrorRK4(
         	regulatorSumNext += W_VALUE(regulator) * REGULATOR_VALUE(regulator, time + 1);
 	    }
                          	
-        const T_Value regulatorSumMid = 0.5 * (regulatorSumNow + regulatorSumNext);
+        const T_Value regulatorSumMid = CONST(0.5) * (regulatorSumNow + regulatorSumNext);
        
 #if CTSW(CTSW_CUSTOM_TIME_STEP)        
         //RK4 coefficients, using custom time step
         const T_Value k1 = CALCULATE_DERIVATIVE(regulatorSumNow,  valueEstimate);
-        const T_Value k2 = CALCULATE_DERIVATIVE(regulatorSumMid,  valueEstimate + ((CUSTOM_TIME_STEP) * 0.5 * k1));
-        const T_Value k3 = CALCULATE_DERIVATIVE(regulatorSumMid,  valueEstimate + ((CUSTOM_TIME_STEP) * 0.5 * k2));
+        const T_Value k2 = CALCULATE_DERIVATIVE(regulatorSumMid,  valueEstimate + ((CUSTOM_TIME_STEP) * CONST(0.5) * k1));
+        const T_Value k3 = CALCULATE_DERIVATIVE(regulatorSumMid,  valueEstimate + ((CUSTOM_TIME_STEP) * CONST(0.5) * k2));
         const T_Value k4 = CALCULATE_DERIVATIVE(regulatorSumNext, valueEstimate + ((CUSTOM_TIME_STEP) * k3));
         
         valueEstimate +=  (CUSTOM_TIME_STEP) * (k1 + 2*k2 + 2*k3 + k4) / 6;
 #else
         //RK4 coefficients, using timeStep = 1
         const T_Value k1 = CALCULATE_DERIVATIVE(regulatorSumNow,  valueEstimate);
-        const T_Value k2 = CALCULATE_DERIVATIVE(regulatorSumMid,  valueEstimate + (0.5 * k1));
-        const T_Value k3 = CALCULATE_DERIVATIVE(regulatorSumMid,  valueEstimate + (0.5 * k2));
+        const T_Value k2 = CALCULATE_DERIVATIVE(regulatorSumMid,  valueEstimate + (CONST(0.5) * k1));
+        const T_Value k3 = CALCULATE_DERIVATIVE(regulatorSumMid,  valueEstimate + (CONST(0.5) * k2));
         const T_Value k4 = CALCULATE_DERIVATIVE(regulatorSumNext, valueEstimate + k3);
         
-        valueEstimate +=  (k1 + 2*k2 + 2*k3 + k4) / 6;
+        valueEstimate +=  (k1 + 2*k2 + 2*k3 + k4) / CONST(6.0);
 #endif
 
         const T_Value diff = valueEstimate - TARGET_VALUE(time + 1);
