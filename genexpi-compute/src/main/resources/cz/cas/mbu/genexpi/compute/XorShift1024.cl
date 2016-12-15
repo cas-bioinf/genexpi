@@ -41,24 +41,31 @@ void XorShiftInit(global int* xorShiftCounters, const int numTasks, const int nu
     XORSHIFT_COUNTER = 0;
 }
 
-double XorShiftNextDouble(XORSHIFT_PARAMS_DEF, const int numTasks, const int numIterations)
-{
-    ulong x = XorShiftNext(xorShiftStates, xorShiftCounters, numTasks, numIterations);
-    x = 0x3FFUL << 52 | x >> 12;
-    double d = *((double *)&x) - 1.0;
-    return d;
-}
 
 
-float XorShiftNextFloat(XORSHIFT_PARAMS_DEF, const int numTasks, const int numIterations)
-{
-    //TODO a better way to get float
-    return (float)XorShiftNextDouble(xorShiftStates, xorShiftCounters, numTasks, numIterations);
-}
 
 #if CTSW(USE_DOUBLE)
+	double XorShiftNextDouble(XORSHIFT_PARAMS_DEF, const int numTasks, const int numIterations)
+	{
+	    ulong x = XorShiftNext(xorShiftStates, xorShiftCounters, numTasks, numIterations);
+	    x = 0x3FFUL << 52 | x >> 12;
+	    double d = *((double *)&x) - 1.0;
+	    return d;
+	}
+
+
     #define XORSHIFT_NEXT_VALUE (XorShiftNextDouble(XORSHIFT_PARAMS_PASS, numTasks, numIterations))
 #else
+	float XorShiftNextFloat(XORSHIFT_PARAMS_DEF, const int numTasks, const int numIterations)
+	{
+	    ulong x_large = XorShiftNext(xorShiftStates, xorShiftCounters, numTasks, numIterations);
+	    uint x = (uint)x_large;
+	    x = 0x7FU << 23 | x >> 9;
+	    float f = *((float *)&x) - 1.0;
+	    return f;
+	}
+
+
     #define XORSHIFT_NEXT_VALUE (XorShiftNextFloat(XORSHIFT_PARAMS_PASS, numTasks, numIterations))
 #endif
 
