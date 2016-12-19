@@ -24,7 +24,9 @@ import com.jgoodies.forms.layout.FormLayout;
 import com.jgoodies.forms.layout.ColumnSpec;
 import com.jgoodies.forms.layout.RowSpec;
 
+import cz.cas.mbu.cydataseries.DataSeriesEvent;
 import cz.cas.mbu.cydataseries.DataSeriesListener;
+import cz.cas.mbu.cydataseries.DataSeriesManager;
 import cz.cas.mbu.cydataseries.DataSeriesMappingEvent;
 import cz.cas.mbu.cydataseries.DataSeriesMappingListener;
 import cz.cas.mbu.cydataseries.DataSeriesMappingManager;
@@ -42,13 +44,17 @@ import javax.swing.JSeparator;
 import java.awt.Font;
 import javax.swing.SwingConstants;
 
-public class SelectTimeSeriesStep extends JPanel implements WizardStep<GNWizardData>, DataSeriesMappingListener {
+public class SelectTimeSeriesStep extends JPanel implements WizardStep<GNWizardData>, DataSeriesMappingListener, DataSeriesListener {
 
 	private GNWizardData data;
 	
 	private JComboBox<String> comboBoxTimeSeries;
 	
 	private CyServiceRegistrar registrar;
+
+	private JButton btnMapTimeSeries;
+
+	private JButton btnSmoothTimeSeries;
 	
 	/**
 	 * Create the panel.
@@ -102,9 +108,9 @@ public class SelectTimeSeriesStep extends JPanel implements WizardStep<GNWizardD
 		JLabel lblifYouHave = new JLabel("<html>If you have no time series in your session, you need to import it:</html>");
 		add(lblifYouHave, "2, 10, 3, 1");
 		
-		JButton btnImportATime = new JButton("Import From Text File (.CSV,.TSV etc.)");
-		add(btnImportATime, "2, 12, 3, 1");
-		btnImportATime.addActionListener(evt -> importTimeSeries());
+		JButton btnImportTabular = new JButton("Import From Text File (.CSV,.TSV etc.)");
+		add(btnImportTabular, "2, 12, 3, 1");
+		btnImportTabular.addActionListener(evt -> importTimeSeries());
 		
 		JButton btnImportFromSoft = new JButton("Import From SOFT file");
 		add(btnImportFromSoft, "2, 14, 3, 1");
@@ -116,7 +122,7 @@ public class SelectTimeSeriesStep extends JPanel implements WizardStep<GNWizardD
 		JLabel lblNewLabel = new JLabel("<html>\r\nIf you have imported the time series, but you do not see it in the selection below, you need to map it to nodes.\r\n</html>");
 		add(lblNewLabel, "2, 18, 3, 1");
 		
-		JButton btnMapTimeSeries = new JButton("Map Time Series to Nodes");
+		btnMapTimeSeries = new JButton("Map Time Series to Nodes");
 		add(btnMapTimeSeries, "2, 20, 3, 1");
 		btnMapTimeSeries.addActionListener(evt -> mapTimeSeries());
 		
@@ -126,9 +132,9 @@ public class SelectTimeSeriesStep extends JPanel implements WizardStep<GNWizardD
 		JLabel lblInMostCases = new JLabel("<html>\r\nIn most cases you also want to smooth the time series, if you have not done that in another software.\r\n</html>");
 		add(lblInMostCases, "2, 24, 3, 1");
 		
-		JButton btnSmoothATime = new JButton("Smooth a Time Series");
-		add(btnSmoothATime, "2, 26, 3, 1");
-		btnSmoothATime.addActionListener(evt -> smoothTimeSeries());
+		btnSmoothTimeSeries = new JButton("Smooth a Time Series");
+		add(btnSmoothTimeSeries, "2, 26, 3, 1");
+		btnSmoothTimeSeries.addActionListener(evt -> smoothTimeSeries());
 
 	}
 
@@ -160,7 +166,7 @@ public class SelectTimeSeriesStep extends JPanel implements WizardStep<GNWizardD
 		return ValidationState.OK;
 	}
 
-	protected void refreshSeriesComboBox()
+	protected void refreshUI()
 	{
 		DataSeriesMappingManager mappingManager = registrar.getService(DataSeriesMappingManager.class );
 		Map<String, TimeSeries> mappings = mappingManager.getAllMappings(data.selectedNetwork, CyNode.class, TimeSeries.class);
@@ -174,13 +180,16 @@ public class SelectTimeSeriesStep extends JPanel implements WizardStep<GNWizardD
 		comboBoxTimeSeries.setModel(new DefaultComboBoxModel<>(possibleSourceColumns.toArray( new String[ possibleSourceColumns.size()])));
 		comboBoxTimeSeries.setSelectedItem(data.expressionMappingColumn); //This will not change the selection, if the column is not in the list, because the combo box is uneditable
 		
+		boolean anyTimeSeries = !registrar.getService(DataSeriesManager.class).getDataSeriesByType(TimeSeries.class).isEmpty();
+		btnMapTimeSeries.setEnabled(anyTimeSeries);
+		btnSmoothTimeSeries.setEnabled(anyTimeSeries);
 	}
 
 	
 	@Override
 	public void beforeStep(TaskMonitor taskMonitor)
 	{
-		refreshSeriesComboBox();
+		refreshUI();
 	}
 	
 	@Override
@@ -241,12 +250,20 @@ public class SelectTimeSeriesStep extends JPanel implements WizardStep<GNWizardD
 	
 	@Override
 	public void handleEvent(DataSeriesMappingEvent evt) {
-		refreshSeriesComboBox();
+		refreshUI();
+	}
+	
+	
+
+	@Override
+	public void handleEvent(DataSeriesEvent event) {
+		refreshUI();
 	}
 
 	@Override
 	public void wizardStarted() {
 		registrar.registerService(this, DataSeriesMappingListener.class, new Properties());
+		registrar.registerService(this, DataSeriesListener.class, new Properties());
 	}
 
 	@Override
