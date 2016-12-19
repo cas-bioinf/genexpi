@@ -58,7 +58,9 @@ kernel void KERNEL_NAME(Annealing)(XORSHIFT_PARAMS_DEF,
     
     if (isnan(selectedEnergy))
     {
+#if CTSW(CHECK_NAN)    
     	printf("Initial NaN\n");
+#endif
     	selectedEnergy = INFINITY;
     }
        
@@ -144,7 +146,9 @@ kernel void KERNEL_NAME(Annealing)(XORSHIFT_PARAMS_DEF,
         if (isnan(currentEnergy))
         {
         	currentEnergy = INFINITY;
+#if CTSW(CHECK_NAN)    
         	printf("currentEnergy NaN:" COMPUTATION_NAME_STRING " [%d:%d] Energy: [ %f %f %f %f  %f ]\n", taskID, iterationID, PARAM_ACCESS_DEBUG(0, optimizedParams), PARAM_ACCESS_DEBUG(1, optimizedParams), PARAM_ACCESS_DEBUG(2, optimizedParams), PARAM_ACCESS_DEBUG(3, optimizedParams), PARAM_ACCESS_DEBUG(4, optimizedParams));
+#endif        	
         }
         
         if (selectedEnergy > currentEnergy )
