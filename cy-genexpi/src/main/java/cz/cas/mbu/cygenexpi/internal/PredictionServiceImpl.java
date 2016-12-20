@@ -256,22 +256,24 @@ public class PredictionServiceImpl implements PredictionService {
 				ELossFunction lossFunction = ELossFunction.Squared;
 				float regularizationWeight = 24;
 				
-				taskMonitor.setStatusMessage("Predicting (if running on a GPU, computer may become unresponsive)");
-				
-				GNCompute<Float> compute = new GNCompute<>(Float.class, getContext(), model, method, null /*No error function*/, lossFunction, regularizationWeight, useCustomTimeStep, (float)timeStep);
+				CLContext context = getContext();
+				taskMonitor.setStatusMessage("Predicting, using " + context.getDevices()[0].getName() +  "\n(if running on a GPU, computer may become unresponsive)");
+				GNCompute<Float> compute = new GNCompute<>(Float.class, context, model, method, null /*No error function*/, lossFunction, regularizationWeight, useCustomTimeStep, (float)timeStep);
 				
 				int numIterations = 128;
 				//TODO once 3.5.0 is out, revert to the more nice code
 				//List<InferenceResult> results = compute.computeNoRegulator(geneProfiles, inferenceTasks, numIterations, CyCL.isPreventFullOccupation());
 				List<InferenceResult> results = compute.computeNoRegulator(geneProfiles, inferenceTasks, numIterations, false);
 				
-				taskMonitor.setStatusMessage("Processing results");
 			
 				//Calculate the best profiles + error rate
 				double[][] resultsData = new double[results.size()][geneProfiles.get(0).getProfile().size()]; 
 				double[] timePoints = Arrays.copyOf(expressionSeries.getIndexArray(), expressionSeries.getIndexArray().length);		
 				for(int taskId = 0; taskId < inferenceTasks.size(); taskId++)
 				{
+					taskMonitor.setStatusMessage("Processing results [" + taskId + "/" + inferenceTasks.size() + "]");
+					taskMonitor.setProgress((double)taskId / (double)inferenceTasks.size());
+					
 					NoRegulatorInferenceTask task = inferenceTasks.get(taskId);
 					double[] predictedProfile = IntegrateResults.integrateNoRegulator(results.get(taskId), task, geneProfiles, timePoints[0], timePoints);
 					for(int t = 0; t < predictedProfile.length; t++)
@@ -506,16 +508,16 @@ public class PredictionServiceImpl implements PredictionService {
 				ELossFunction lossFunction = ELossFunction.Squared;
 				float regularizationWeight = 24;
 				
-				taskMonitor.setStatusMessage("Predicting (if running on a GPU, computer may become unresponsive)");
+				CLContext context = getContext();
+				taskMonitor.setStatusMessage("Predicting, using " + context.getDevices()[0].getName() +  "\n(if running on a GPU, computer may become unresponsive)");
 				
-				GNCompute<Float> compute = new GNCompute<>(Float.class, getContext(), model, method, errorFunction, lossFunction, regularizationWeight, useCustomTimeStep, (float)timeStep);
+				GNCompute<Float> compute = new GNCompute<>(Float.class, context, model, method, errorFunction, lossFunction, regularizationWeight, useCustomTimeStep, (float)timeStep);
 				
 				int numIterations = 128;
 				//TODO once 3.5.0 is out, revert to the more nice code
 				//List<InferenceResult> results = compute.computeAdditiveRegulation(geneProfiles, inferenceTasks, 1, numIterations, CyCL.isPreventFullOccupation());
 				List<InferenceResult> results = compute.computeAdditiveRegulation(geneProfiles, inferenceTasks, 1, numIterations, false);
 				
-				taskMonitor.setStatusMessage("Processing results");
 				
 				List<String> rowNames = new ArrayList<>();
 				double[] timePoints = Arrays.copyOf(expressionSeries.getIndexArray(), expressionSeries.getIndexArray().length);		
@@ -523,6 +525,8 @@ public class PredictionServiceImpl implements PredictionService {
 							
 				for(int taskId = 0; taskId < inferenceTasks.size(); taskId++)
 				{
+					taskMonitor.setStatusMessage("Processing results [" + taskId + "/" + inferenceTasks.size() + "]");
+					taskMonitor.setProgress((double)taskId / (double)inferenceTasks.size());
 					AdditiveRegulationInferenceTask task = inferenceTasks.get(taskId);
 					InferenceResult result = results.get(taskId);
 
