@@ -8,6 +8,7 @@
 		<bundle.symbolicName>cz.cas.mbu.cygenexpi</bundle.symbolicName>
 		<bundle.namespace>cz.cas.mbu.cygenexpi</bundle.namespace>
 		<cytoscape.version>3.4.0</cytoscape.version>
+		<cy-dataseries.version>0.9.1</cy-dataseries.version>
 	</properties>
 
 	<modelVersion>4.0.0</modelVersion>
@@ -63,6 +64,7 @@
 						<Embed-Dependency>*;scope=!provided|test;groupId=!org.cytoscape</Embed-Dependency>
 						<Embed-Transitive>true</Embed-Transitive>
 						<Import-Package>*;resolution:=optional</Import-Package>
+						<Cytoscape-App-Dependencies>CyDataSeries;${cy-dataseries.version}</Cytoscape-App-Dependencies>
 					</instructions>
 				</configuration>
 			</plugin>
@@ -147,7 +149,7 @@
 		<dependency>
 			<groupId>cz.cas.mbu.gn</groupId>
 			<artifactId>cy-dataseries</artifactId>
-			<version>0.9.1-SNAPSHOT</version>
+			<version>${cy-dataseries.version}</version>
 			<scope>provided</scope>
 		</dependency>
 
