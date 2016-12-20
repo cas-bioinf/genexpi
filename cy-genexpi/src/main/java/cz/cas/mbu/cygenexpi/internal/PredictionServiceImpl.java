@@ -49,7 +49,8 @@ import cz.cas.mbu.genexpi.compute.SuspectGPUResetByOSException;
 
 public class PredictionServiceImpl implements PredictionService {
 
-	private final CyServiceRegistrar registrar;
+	private static final int MAX_TASKS_PER_EXECUTION = 2048;
+private final CyServiceRegistrar registrar;
 	
 	private final Logger userLogger = Logger.getLogger(CyUserLog.NAME); 
 			
@@ -509,14 +510,22 @@ public class PredictionServiceImpl implements PredictionService {
 				float regularizationWeight = 24;
 				
 				CLContext context = getContext();
-				taskMonitor.setStatusMessage("Predicting, using " + context.getDevices()[0].getName() +  "\n(if running on a GPU, computer may become unresponsive)");
-				
 				GNCompute<Float> compute = new GNCompute<>(Float.class, context, model, method, errorFunction, lossFunction, regularizationWeight, useCustomTimeStep, (float)timeStep);
 				
 				int numIterations = 128;
 				//TODO once 3.5.0 is out, revert to the more nice code
 				//List<InferenceResult> results = compute.computeAdditiveRegulation(geneProfiles, inferenceTasks, 1, numIterations, CyCL.isPreventFullOccupation());
-				List<InferenceResult> results = compute.computeAdditiveRegulation(geneProfiles, inferenceTasks, 1, numIterations, false);
+				List<InferenceResult> results = new ArrayList<>();
+				int numSteps = ((inferenceTasks.size() - 1) / MAX_TASKS_PER_EXECUTION) + 1;
+				for(int step = 0; step < numSteps; step++)
+				{
+					taskMonitor.setStatusMessage("Predicting, using " + context.getDevices()[0].getName() +  "\n(if running on a GPU, computer may become unresponsive)\n" + (step * MAX_TASKS_PER_EXECUTION) + "/" + inferenceTasks.size());					
+					taskMonitor.setProgress((double)step / (double)numSteps);
+					int minIndex = step * MAX_TASKS_PER_EXECUTION;
+					int maxIndex = Math.min((step + 1) * MAX_TASKS_PER_EXECUTION, inferenceTasks.size());
+					List<InferenceResult> partialResults = compute.computeAdditiveRegulation(geneProfiles, inferenceTasks.subList(minIndex, maxIndex), 1, numIterations, false);
+					results.addAll(partialResults);
+				}
 				
 				
 				List<String> rowNames = new ArrayList<>();
@@ -648,6 +657,11 @@ public class PredictionServiceImpl implements PredictionService {
 			{
 				userLogger.error("Could not predict expression.", ex);		
 				throw new GNException(ex);
+			}
+			catch (OutOfMemoryError e)
+			{
+				userLogger.error("Not enough memory for prediction.",e);
+				throw new GNException("Not enough memory and/or OpenCL device memory for prediction.", e);
 			}
 			catch(Error e)
 			{
