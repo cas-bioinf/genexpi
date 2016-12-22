@@ -145,9 +145,9 @@
 		</dependency>
 		
 		<dependency>
-			<groupId>cz.cas.mbu.gn</groupId>
+			<groupId>cz.cas.mbu</groupId>
 			<artifactId>cy-dataseries</artifactId>
-			<version>0.9.1-SNAPSHOT</version>
+			<version>0.9.1</version>
 			<scope>provided</scope>
 		</dependency>
 
