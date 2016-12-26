@@ -14,7 +14,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>cz.cas.mbu.genexpi</groupId>
 	<artifactId>cy-genexpi</artifactId>
-	<version>1.0.0</version>
+	<version>1.1.0-SNAPSHOT</version>
 
 	<name>CyGenexpi</name>
     <url>https://github.com/martincerny/genexpi</url>
@@ -170,7 +170,7 @@
 		<dependency>
 			<groupId>cz.cas.mbu.genexpi</groupId>
 			<artifactId>genexpi-compute</artifactId>
-			<version>1.0.0</version>
+			<version>1.1.0-SNAPSHOT</version>
 			<optional>true</optional>
 		</dependency>
 
