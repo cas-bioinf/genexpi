@@ -147,7 +147,7 @@
 		</dependency>
 		
 		<dependency>
-			<groupId>cz.cas.mbu.gn</groupId>
+			<groupId>cz.cas.mbu</groupId>
 			<artifactId>cy-dataseries</artifactId>
 			<version>${cy-dataseries.version}</version>
 			<scope>provided</scope>
