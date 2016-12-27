@@ -36,7 +36,7 @@ public class PredictSingleRegulationsTask extends AbstractTask {
 	@Tunable(description="Network")
 	public ListSingleSelection<CyNetwork> network;
 	
-	@Tunable(description="Column containing mapping to expression time series",dependsOn="network")
+	@Tunable(description="Column containing mapping to expression time series",listenForChange="network")
 	public ListSingleSelection<String> getExpressionTimeSeriesColumn()
 	{
 		updateColumnSelection();
