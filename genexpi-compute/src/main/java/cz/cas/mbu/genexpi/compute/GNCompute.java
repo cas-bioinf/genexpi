@@ -448,6 +448,11 @@ public class GNCompute<NUMBER_TYPE extends Number> {
     
     public List<InferenceResult> computeNoRegulator(List<GeneProfile<NUMBER_TYPE>> geneProfiles, List<NoRegulatorInferenceTask> inferenceTasks, int numIterations, boolean preventFullOccupation) throws IOException
     {
+    	if(inferenceTasks.isEmpty())
+    	{
+    		return Collections.EMPTY_LIST;
+    	}
+    	
         long preparationStartTime = System.nanoTime();
     	//TODO: invert the method - let the user to specify only the model specific params.
         
