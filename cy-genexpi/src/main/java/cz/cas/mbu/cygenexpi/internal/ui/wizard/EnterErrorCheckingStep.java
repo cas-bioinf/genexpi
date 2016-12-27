@@ -11,6 +11,9 @@ import org.cytoscape.work.TunableValidator.ValidationState;
 import com.jgoodies.forms.layout.FormLayout;
 import com.jgoodies.forms.layout.ColumnSpec;
 import com.jgoodies.forms.layout.RowSpec;
+
+import cz.cas.mbu.genexpi.compute.RegulationType;
+
 import com.jgoodies.forms.layout.FormSpecs;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
@@ -18,6 +21,7 @@ import java.awt.Font;
 import javax.swing.JCheckBox;
 import javax.swing.JSeparator;
 import javax.swing.SwingConstants;
+import javax.swing.JComboBox;
 
 public class EnterErrorCheckingStep extends JPanel implements WizardStep<GNWizardData> {
 	private JTextField textFieldRelativeError;
@@ -29,6 +33,7 @@ public class EnterErrorCheckingStep extends JPanel implements WizardStep<GNWizar
 	private GNWizardData data;
 	private CyServiceRegistrar registrar;
 	private JTextField textFieldMinimalError;
+	private JComboBox<RegulationType> comboBoxRegulationType;
 	
 	/**
 	 * Create the panel.
@@ -41,6 +46,8 @@ public class EnterErrorCheckingStep extends JPanel implements WizardStep<GNWizar
 				ColumnSpec.decode("default:grow"),
 				FormSpecs.RELATED_GAP_COLSPEC,},
 			new RowSpec[] {
+				FormSpecs.RELATED_GAP_ROWSPEC,
+				FormSpecs.DEFAULT_ROWSPEC,
 				FormSpecs.RELATED_GAP_ROWSPEC,
 				FormSpecs.DEFAULT_ROWSPEC,
 				FormSpecs.RELATED_GAP_ROWSPEC,
@@ -105,6 +112,12 @@ public class EnterErrorCheckingStep extends JPanel implements WizardStep<GNWizar
 		JLabel lblifCheckedWe = new JLabel("<html>If checked, we will first try to fit the profiles by a simple model with consant synthesis and constant decay. If the genes can be fit well by this model, they can be fit also by any combination of regulators and thus genes found to be fit well by constant synthesis will be excluded from fitting by potential regulators.</html>");
 		lblifCheckedWe.setFont(new Font("Tahoma", Font.ITALIC, 11));
 		add(lblifCheckedWe, "4, 18");
+		
+		JLabel lblCheckForRegulations = new JLabel("Regulations to consider");
+		add(lblCheckForRegulations, "2, 20, right, default");
+		
+		comboBoxRegulationType = new JComboBox<>(RegulationType.values());
+		add(comboBoxRegulationType, "4, 20, fill, default");
 
 	}
 
@@ -141,6 +154,7 @@ public class EnterErrorCheckingStep extends JPanel implements WizardStep<GNWizar
 		textFieldMinimalError.setText(Double.toString(data.errorDef.minimalError));
 		textFieldQuality.setText(Double.toString(data.minFitQuality));
 		chckbxUseConstantSynthesis.setSelected(data.useConstantSynthesis);
+		comboBoxRegulationType.setSelectedItem(data.regulationType);
 	}
 
 	@Override
@@ -150,6 +164,11 @@ public class EnterErrorCheckingStep extends JPanel implements WizardStep<GNWizar
 		data.errorDef.minimalError = Double.parseDouble(textFieldMinimalError.getText());
 		data.minFitQuality = Double.parseDouble(textFieldQuality.getText());
 		data.useConstantSynthesis = chckbxUseConstantSynthesis.isSelected();
+
+		if(comboBoxRegulationType.getSelectedIndex() >= 0)
+		{
+			data.regulationType = comboBoxRegulationType.getItemAt(comboBoxRegulationType.getSelectedIndex());
+		}
 	}
 
 	@Override

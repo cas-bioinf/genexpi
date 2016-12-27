@@ -25,6 +25,7 @@ import cz.cas.mbu.cygenexpi.RememberAllValues;
 import cz.cas.mbu.cygenexpi.RememberValueService;
 import cz.cas.mbu.cygenexpi.internal.ErrorDef;
 import cz.cas.mbu.cygenexpi.internal.ui.UIUtils;
+import cz.cas.mbu.genexpi.compute.RegulationType;
 import cz.cas.mbu.genexpi.compute.SuspectGPUResetByOSException;
 
 @RememberAllValues
@@ -51,6 +52,8 @@ public class PredictSingleRegulationsTask extends AbstractTask {
 	@Tunable(description="Quality required for good fit (0-1)",groups={"Error"})
 	public double requiredQuality = 0.8f;
 
+	@Tunable(description="Regulations to consider")
+	public RegulationType regulationType = RegulationType.PositiveOnly;
 	
 	private final CyServiceRegistrar registrar;
 
@@ -90,7 +93,7 @@ public class PredictSingleRegulationsTask extends AbstractTask {
 		PredictionService predictionService = registrar.getService(PredictionService.class);
 		
 		try {
-			predictionService.predictSingleRegulations(taskMonitor, selectedNetwork, expressionTimeSeriesColumn.getSelectedValue(), resultsName, resultsName + "_Idx", storeParametersInEdgeTable, parametersPrefix, forcePrediction, errorDef, requiredQuality);
+			predictionService.predictSingleRegulations(taskMonitor, selectedNetwork, expressionTimeSeriesColumn.getSelectedValue(), resultsName, resultsName + "_Idx", storeParametersInEdgeTable, parametersPrefix, forcePrediction, errorDef, requiredQuality, regulationType);
 		} catch (SuspectGPUResetByOSException ex)
 		{
 			UIUtils.handleSuspectedGPUResetInTask(ex);

@@ -360,6 +360,19 @@ public class GNCompute<NUMBER_TYPE extends Number> {
     	}
     }
     
+    private int regulationTypeToInt(RegulationType w)
+    {
+    	switch (w) {
+	    	case All : return 0;
+	    	case NegativeOnly: return -1;
+	    	case PositiveOnly: return 1;
+	    	default: {
+	    		throw new IllegalStateException("Unrecognized regulation type: " + w);
+	    	}
+    	}
+    	
+    }
+    
     public List<InferenceResult> computeAdditiveRegulation(List<GeneProfile<NUMBER_TYPE>> geneProfiles, List<AdditiveRegulationInferenceTask> inferenceTasks, int numRegulators, int numIterations, boolean preventFullOccupation) throws IOException
     {
     	if(inferenceTasks.isEmpty())
@@ -399,7 +412,7 @@ public class GNCompute<NUMBER_TYPE extends Number> {
         	for(int j = 0; j < numRegulators; j++)
         	{
         		regulatorIDs[i * numRegulators + j] = taskRegulatorIDs[j];
-        		weightConstraints[i * numRegulators + j] = inferenceTasks.get(i).getWeightConstraints()[j];
+        		weightConstraints[i * numRegulators + j] = regulationTypeToInt(inferenceTasks.get(i).getRegulationTypes()[j]);
         	}        	
         }
         

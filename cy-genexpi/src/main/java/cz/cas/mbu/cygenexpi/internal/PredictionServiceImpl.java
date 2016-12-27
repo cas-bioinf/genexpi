@@ -45,6 +45,7 @@ import cz.cas.mbu.genexpi.compute.InferenceModel;
 import cz.cas.mbu.genexpi.compute.InferenceResult;
 import cz.cas.mbu.genexpi.compute.IntegrateResults;
 import cz.cas.mbu.genexpi.compute.NoRegulatorInferenceTask;
+import cz.cas.mbu.genexpi.compute.RegulationType;
 import cz.cas.mbu.genexpi.compute.SuspectGPUResetByOSException;
 
 public class PredictionServiceImpl implements PredictionService {
@@ -379,7 +380,7 @@ private final CyServiceRegistrar registrar;
 	 * @see cz.cas.mbu.genexpi.internal.PredictionService#predictSingleRegulations(org.cytoscape.work.TaskMonitor, org.cytoscape.model.CyNetwork, java.lang.String, java.lang.String, boolean, java.lang.String, boolean, cz.cas.mbu.cygngpu.internal.ErrorDef, double)
 	 */
 	@Override
-	public void predictSingleRegulations(TaskMonitor taskMonitor, CyNetwork selectedNetwork,  String expressionTimeSeriesColumn, String resultsSeriesName, String resultsColumnName,  boolean storeParametersInEdgeTable, String parametersPrefix, boolean forcePrediction,ErrorDef errorDef, double requiredQuality)
+	public void predictSingleRegulations(TaskMonitor taskMonitor, CyNetwork selectedNetwork,  String expressionTimeSeriesColumn, String resultsSeriesName, String resultsColumnName,  boolean storeParametersInEdgeTable, String parametersPrefix, boolean forcePrediction,ErrorDef errorDef, double requiredQuality, RegulationType regulationType)
 	{
 		JavaCLHelper.runWithCLClassloader(() -> {
 		
@@ -493,7 +494,7 @@ private final CyServiceRegistrar registrar;
 								timeSeriesRowIndexToProfileIndex.put(targetTSId, targetProfileIndex);
 							}
 							
-							inferenceTasks.add(new AdditiveRegulationInferenceTask(regulatorProfileIndex, targetProfileIndex));
+							inferenceTasks.add(new AdditiveRegulationInferenceTask(regulatorProfileIndex, targetProfileIndex, regulationType));
 							edgesCorrespondingToInferenceTasks.add(edge);
 						}
 					});

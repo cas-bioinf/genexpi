@@ -14,35 +14,42 @@ import java.util.List;
 public class AdditiveRegulationInferenceTask  {
     private final int[] regulatorIDs;
     private final int targetID;    
-	private final int[] weightConstraints;
+	private final RegulationType[] regulationTypes;
     
 	public AdditiveRegulationInferenceTask(int regulatorID, int targetID) {
 		super();
 		this.targetID = targetID;
 		this.regulatorIDs = new int[] { regulatorID };
-		this.weightConstraints = new int[] {0};
+		this.regulationTypes = new RegulationType[] {RegulationType.All};
+	}
+	
+	public AdditiveRegulationInferenceTask(int regulatorID, int targetID, RegulationType regulationType) {
+		super();
+		this.targetID = targetID;
+		this.regulatorIDs = new int[] { regulatorID };
+		this.regulationTypes = new RegulationType[] {regulationType};
 	}
 	
 	public AdditiveRegulationInferenceTask(int[] regulatorIDs, int targetID) {
 		super();
 		this.targetID = targetID;
 		this.regulatorIDs = regulatorIDs;
-		this.weightConstraints = new int[regulatorIDs.length];
+		this.regulationTypes = new RegulationType[regulatorIDs.length];
 		for(int i = 0; i < regulatorIDs.length; i++)
 		{
-			weightConstraints[i] = 0;
+			regulationTypes[i] = RegulationType.All;
 		}
 	}
 	
-    public AdditiveRegulationInferenceTask(int[] regulatorIDs, int targetID, int[] weightConstraints) {
+    public AdditiveRegulationInferenceTask(int[] regulatorIDs, int targetID, RegulationType[] regulationTypes) {
 		super();
-		if(regulatorIDs.length != weightConstraints.length)
+		if(regulatorIDs.length != regulationTypes.length)
 		{
 			throw new IllegalArgumentException("There has to be the same number of weight constraints as regulators.");
 		}
 		this.regulatorIDs = regulatorIDs;
 		this.targetID = targetID;
-		this.weightConstraints = weightConstraints;
+		this.regulationTypes = regulationTypes;
 	}
 	
 	
@@ -54,8 +61,8 @@ public class AdditiveRegulationInferenceTask  {
 		return regulatorIDs;
 	}
 
-	public int[] getWeightConstraints() {
-		return weightConstraints;
+	public RegulationType[] getRegulationTypes() {
+		return regulationTypes;
 	}
    
     

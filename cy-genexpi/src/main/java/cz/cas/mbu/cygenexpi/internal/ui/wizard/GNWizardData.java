@@ -7,6 +7,7 @@ import cz.cas.mbu.cygenexpi.RememberValue;
 import cz.cas.mbu.cygenexpi.RememberValue.Type;
 import cz.cas.mbu.cygenexpi.RememberValueRecursive;
 import cz.cas.mbu.cygenexpi.internal.ErrorDef;
+import cz.cas.mbu.genexpi.compute.RegulationType;
 
 @RememberAllValues
 public class GNWizardData {
@@ -21,7 +22,8 @@ public class GNWizardData {
 	public double minFitQuality = 0.8;
 	
 	public boolean useConstantSynthesis = true;
-	
+
+	public RegulationType regulationType = RegulationType.PositiveOnly;
 
 	public static final String CONSTANT_SYNTHESIS_SERIES_NAME = "Constant Synthesis";
 	public static final String CONSTANT_SYNTHESIS_COLUMN_NAME = "Constant Synthesis_Idx";

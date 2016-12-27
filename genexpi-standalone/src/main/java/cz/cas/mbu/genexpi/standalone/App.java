@@ -35,6 +35,7 @@ import cz.cas.mbu.genexpi.compute.GeneProfile;
 import cz.cas.mbu.genexpi.compute.InferenceModel;
 import cz.cas.mbu.genexpi.compute.InferenceResult;
 import cz.cas.mbu.genexpi.compute.NoRegulatorInferenceTask;
+import cz.cas.mbu.genexpi.compute.RegulationType;
 import cz.cas.mbu.genexpi.compute.SuspectGPUResetByOSException;
 
 import com.nativelibs4java.opencl.JavaCL;
@@ -191,14 +192,14 @@ public class App {
             }
             
             String[] weightConstraintsFields = null; 
-            int[] weightConstraints = null;
+            RegulationType[] regulationTypes = null;
             if(params.constraintsFile != null)
             {
             	weightConstraintsFields = constraintLines.get(line).split(",");
-                weightConstraints = new int[numRegulators];
+                regulationTypes = new RegulationType[numRegulators];
                 if(weightConstraintsFields.length != numRegulators)
                 {
-                	throw new IllegalArgumentException("Number of constraints at line " + (line + 1) + " (" + weightConstraints.length + " regulators) does not match the given number of regulators (" + numRegulators + ")");
+                	throw new IllegalArgumentException("Number of constraints at line " + (line + 1) + " (" + regulationTypes.length + " regulators) does not match the given number of regulators (" + numRegulators + ")");
                 }
             }
             
@@ -222,14 +223,26 @@ public class App {
 	            if(params.constraintsFile != null)
 	            {
 	            	try {
-	            		weightConstraints[regulator] = Integer.parseInt(weightConstraintsFields[regulator]);
+	            		int intRegulationType = Integer.parseInt(weightConstraintsFields[regulator]);
+	            		if(intRegulationType == 1) 
+	            		{
+	            			regulationTypes[regulator] = RegulationType.PositiveOnly;
+	            		}
+	            		else if(intRegulationType == -1)
+	            		{
+	            			regulationTypes[regulator] = RegulationType.NegativeOnly;
+	            		}
+	            		else if(intRegulationType == 0)
+	            		{
+	            			regulationTypes[regulator] = RegulationType.All;
+	            		}
+	            		else
+		            	{
+		            		throw new IllegalArgumentException("Constraint at line " + (line + 1) + " for regulator " + regulator + " is not +-1 neither 0.");	            		
+		            	}
 	            	} catch (NumberFormatException nfe)
 	            	{
 	            		throw new IllegalArgumentException("Constraint at line " + (line + 1) + " for regulator " + regulator + " cannot be parsed as a number");
-	            	}
-	            	if(weightConstraints[regulator] != -1 && weightConstraints[regulator] != 1 && weightConstraints[regulator] !=0)
-	            	{
-	            		throw new IllegalArgumentException("Constraint at line " + (line + 1) + " for regulator " + regulator + " is not +-1 neither 0.");	            		
 	            	}
 	            }
             }
@@ -251,7 +264,7 @@ public class App {
                 
             	if(params.constraintsFile != null)
             	{
-            		inferenceTasks.add(new AdditiveRegulationInferenceTask(regulatorIDs, targetIndex, weightConstraints));            	
+            		inferenceTasks.add(new AdditiveRegulationInferenceTask(regulatorIDs, targetIndex, regulationTypes));            	
             	}
             	else
             	{

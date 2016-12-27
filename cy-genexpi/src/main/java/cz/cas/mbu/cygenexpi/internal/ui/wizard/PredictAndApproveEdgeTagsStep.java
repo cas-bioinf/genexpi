@@ -119,7 +119,7 @@ public class PredictAndApproveEdgeTagsStep extends JPanel implements WizardStep<
 
 		PredictionService predictionService = registrar.getService(PredictionService.class);
 		try {
-			predictionService.predictSingleRegulations(taskMonitor, data.selectedNetwork, data.expressionMappingColumn, GNWizardData.PREDICTION_SERIES_NAME, GNWizardData.PREDICTION_COLUMN_NAME, true, "Prediction_", false, data.errorDef, data.minFitQuality);
+			predictionService.predictSingleRegulations(taskMonitor, data.selectedNetwork, data.expressionMappingColumn, GNWizardData.PREDICTION_SERIES_NAME, GNWizardData.PREDICTION_COLUMN_NAME, true, "Prediction_", false, data.errorDef, data.minFitQuality, data.regulationType);
 		} catch (SuspectGPUResetByOSException ex)
 		{
 			UIUtils.handleSuspectedGPUResetInTask(ex);

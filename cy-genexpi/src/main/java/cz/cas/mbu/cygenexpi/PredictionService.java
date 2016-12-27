@@ -6,6 +6,7 @@ import org.cytoscape.work.TunableValidator.ValidationState;
 
 import cz.cas.mbu.cydataseries.TimeSeries;
 import cz.cas.mbu.cygenexpi.internal.ErrorDef;
+import cz.cas.mbu.genexpi.compute.RegulationType;
 
 public interface PredictionService {
 
@@ -51,7 +52,7 @@ public interface PredictionService {
 	 */
 	void predictSingleRegulations(TaskMonitor taskMonitor, CyNetwork selectedNetwork, String expressionTimeSeriesColumn,
 			String resultsSeriesName, String resultsColumnName, boolean storeParametersInEdgeTable, String parametersPrefix, boolean forcePrediction,
-			ErrorDef errorDef, double requiredQuality);
+			ErrorDef errorDef, double requiredQuality, RegulationType regulationType);
 	
 	ValidationState validateTimeSeriesForPrediction(TimeSeries expressionSeries, StringBuilder message);
 
