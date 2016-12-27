@@ -137,7 +137,7 @@ public class RememberValueServiceImpl implements RememberValueService {
 		if(sessionStorage.containsKey(storageId))
 		{
 			Object storedValue = sessionStorage.get(storageId);
-			if(f.getType().isPrimitive() || f.getType().equals(String.class))
+			if(f.getType().isPrimitive() || f.getType().equals(String.class) || f.getType().isEnum())
 			{
 				f.set(obj, storedValue);
 			}
@@ -159,7 +159,7 @@ public class RememberValueServiceImpl implements RememberValueService {
 			}
 			else
 			{
-				throw new IllegalStateException("Session storage supports only primitive types, strings and ListSingleSelection, not " + f.getType().getName());
+				throw new IllegalStateException("Session storage supports only primitive types, enums, strings and ListSingleSelection, not " + f.getType().getName());
 			}
 		}		
 	}
@@ -202,6 +202,25 @@ public class RememberValueServiceImpl implements RememberValueService {
 			{
 				f.set(obj, classPreferences.get(storageId, null));
 			}
+			else if(f.getType().isEnum())
+			{
+				String storedValue = classPreferences.get(storageId, null);
+				if(storedValue == null || storedValue.isEmpty())
+				{
+					f.set(obj,null);
+				}
+				else 
+				{
+					try {
+						@SuppressWarnings({"unchecked","rawtypes"})
+						Object value = Enum.valueOf((Class<Enum>)f.getType(), storedValue);
+						f.set(obj, value);
+					} catch (IllegalArgumentException ex)
+					{
+						logger.warn("Unrecognized enum value '" + storedValue + "' for type " + f.getType().getName());
+					}
+				}
+			}			
 			else if(f.getType().equals(ListSingleSelection.class))
 			{
 				String stringValue = classPreferences.get(storageId, null);
@@ -222,7 +241,7 @@ public class RememberValueServiceImpl implements RememberValueService {
 			}
 			else
 			{
-				throw new IllegalStateException("Permanent storage supports only primitive types, strings and ListSingleSelection, not " + f.getType().getName());
+				throw new IllegalStateException("Permanent storage supports only primitive types, enums, strings and ListSingleSelection, not " + f.getType().getName());
 			}
 		}		
 	}
@@ -235,7 +254,7 @@ public class RememberValueServiceImpl implements RememberValueService {
 	protected void saveSessionProperty(Object obj, Field f) throws IllegalArgumentException, IllegalAccessException 
 	{
 		String storageId = getSessionStorageIdentifier(obj, f);
-		if(f.getType().isPrimitive() || f.getType().equals(String.class))
+		if(f.getType().isPrimitive() || f.getType().equals(String.class) || f.getType().isEnum())
 		{
 			sessionStorage.put(storageId, f.get(obj));
 		}
@@ -249,7 +268,7 @@ public class RememberValueServiceImpl implements RememberValueService {
 		}
 		else
 		{
-			throw new IllegalStateException("Session storage supports only primitive types, strings and ListSingleSelection, not " + f.getType().getName());
+			throw new IllegalStateException("Session storage supports only primitive types, enums, strings and ListSingleSelection, not " + f.getType().getName());
 		}		
 	}
 	
@@ -281,6 +300,10 @@ public class RememberValueServiceImpl implements RememberValueService {
 		else if(f.getType().equals(String.class))
 		{
 			classPreferences.put(storageId, (String)f.get(obj));
+		}
+		else if(f.getType().isEnum())
+		{
+			classPreferences.put(storageId, ((Enum)f.get(obj)).name());
 		}
 		else if(f.getType().equals(ListSingleSelection.class))
 		{
