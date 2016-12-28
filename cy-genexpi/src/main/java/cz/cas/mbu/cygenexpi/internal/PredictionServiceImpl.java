@@ -15,8 +15,6 @@ import org.cytoscape.model.CyNetwork;
 import org.cytoscape.model.CyNode;
 import org.cytoscape.model.CyRow;
 import org.cytoscape.model.CyTable;
-import org.cytoscape.opencl.cycl.CyCL;
-import org.cytoscape.opencl.cycl.CyCLDevice;
 import org.cytoscape.service.util.CyServiceRegistrar;
 import org.cytoscape.work.TaskMonitor;
 import org.cytoscape.work.TunableValidator.ValidationState;
@@ -30,6 +28,7 @@ import cz.cas.mbu.cydataseries.DataSeriesFactory;
 import cz.cas.mbu.cydataseries.DataSeriesManager;
 import cz.cas.mbu.cydataseries.DataSeriesMappingManager;
 import cz.cas.mbu.cydataseries.TimeSeries;
+import cz.cas.mbu.cygenexpi.ConfigurationService;
 import cz.cas.mbu.cygenexpi.HumanApprovalTags;
 import cz.cas.mbu.cygenexpi.PredictionService;
 import cz.cas.mbu.cygenexpi.ProfileTags;
@@ -54,34 +53,24 @@ public class PredictionServiceImpl implements PredictionService {
 	private final CyServiceRegistrar registrar;
 	
 	private final Logger userLogger = Logger.getLogger(CyUserLog.NAME); 
-			
+	
+	private static final String CONFIGURE_MSG = "Check configuration under Apps -> Genexpi -> Configure.";
 	
 	public PredictionServiceImpl(CyServiceRegistrar registrar) {
 		super();
 		this.registrar = registrar;
 	}
 
+	/*
 	protected CLDevice getDeviceFromCyCLPreferred()
 	{	
-		//TODO once 3.5.0 is out, revert to the more nice code
-		/*
 		CyCLDevice cyCLPreferredDevice = CyCL.getPreferredDevice();
 		if(cyCLPreferredDevice == null)
 		{
 			return null;
 		}
-		*/
-
-		if (CyCL.getDevices().isEmpty())
-		{
-			return null;
-		}
 		
-		CyCLDevice cyCLPreferredDevice = CyCL.getDevices().get(0);
-		
-		//TODO once 3.5.0 is out, revert to the more nice code
-		//String cyCLPreferredName = cyCLPreferredDevice.openCLName;
-		String cyCLPreferredName = cyCLPreferredDevice.name;
+		String cyCLPreferredName = cyCLPreferredDevice.openCLName;
 		String cyCLPreferredVersion = cyCLPreferredDevice.version;
 
 		CLDevice bestDevice = null;
@@ -117,22 +106,35 @@ public class PredictionServiceImpl implements PredictionService {
 		}
 		
 		return bestDevice;
-	}
+	}*/
 	
 	protected CLContext getContext()
 	{
-		CLDevice cyClPreferred = getDeviceFromCyCLPreferred();
+		CLDevice preferred = registrar.getService(ConfigurationService.class).getPreferredDevice();
 		
-		if(cyClPreferred != null)
+		if(preferred != null)
 		{
-			return cyClPreferred.getPlatform().createContext(Collections.EMPTY_MAP,cyClPreferred);
+			try {
+				return preferred.getPlatform().createContext(Collections.EMPTY_MAP,preferred);
+			}
+			catch(Exception ex)
+			{
+				throw new GNException("Could not create context for device " + preferred.getName() + "\n" + CONFIGURE_MSG);
+			}
 		}
 		else
 		{
-			CLContext context = GNCompute.getBestContext();
+			CLContext context;
+			try {
+				context = GNCompute.getBestContext();
+			}
+			catch(Exception ex)
+			{
+				throw new GNException("Could not create OpenCL context.\n" + CONFIGURE_MSG);
+			}
 			if(context == null)
 			{
-				throw new GNException("No OpenCL context could be created. You may need to install OpenCL drivers for your processor/GPU.");
+				throw new GNException("No OpenCL context could be created. You may need to install OpenCL drivers for your processor/GPU." + CONFIGURE_MSG);
 			}
 			userLogger.info("Using context: " + context.toString());
 			return context;
@@ -263,9 +265,7 @@ public class PredictionServiceImpl implements PredictionService {
 				GNCompute<Float> compute = new GNCompute<>(Float.class, context, model, method, null /*No error function*/, lossFunction, regularizationWeight, useCustomTimeStep, (float)timeStep);
 				
 				int numIterations = 128;
-				//TODO once 3.5.0 is out, revert to the more nice code
-				//List<InferenceResult> results = compute.computeNoRegulator(geneProfiles, inferenceTasks, numIterations, CyCL.isPreventFullOccupation());
-				List<InferenceResult> results = compute.computeNoRegulator(geneProfiles, inferenceTasks, numIterations, false);
+				List<InferenceResult> results = compute.computeNoRegulator(geneProfiles, inferenceTasks, numIterations, registrar.getService(ConfigurationService.class).isPreventFullOccupation());
 				
 			
 				//Calculate the best profiles + error rate
@@ -514,8 +514,6 @@ public class PredictionServiceImpl implements PredictionService {
 				GNCompute<Float> compute = new GNCompute<>(Float.class, context, model, method, errorFunction, lossFunction, regularizationWeight, useCustomTimeStep, (float)timeStep);
 				
 				int numIterations = 128;
-				//TODO once 3.5.0 is out, revert to the more nice code
-				//List<InferenceResult> results = compute.computeAdditiveRegulation(geneProfiles, inferenceTasks, 1, numIterations, CyCL.isPreventFullOccupation());
 				List<InferenceResult> results = new ArrayList<>();
 				int numSteps = ((inferenceTasks.size() - 1) / MAX_TASKS_PER_EXECUTION) + 1;
 				for(int step = 0; step < numSteps; step++)
@@ -524,7 +522,7 @@ public class PredictionServiceImpl implements PredictionService {
 					taskMonitor.setProgress((double)step / (double)numSteps);
 					int minIndex = step * MAX_TASKS_PER_EXECUTION;
 					int maxIndex = Math.min((step + 1) * MAX_TASKS_PER_EXECUTION, inferenceTasks.size());
-					List<InferenceResult> partialResults = compute.computeAdditiveRegulation(geneProfiles, inferenceTasks.subList(minIndex, maxIndex), 1, numIterations, false);
+					List<InferenceResult> partialResults = compute.computeAdditiveRegulation(geneProfiles, inferenceTasks.subList(minIndex, maxIndex), 1, numIterations, registrar.getService(ConfigurationService.class).isPreventFullOccupation());
 					results.addAll(partialResults);
 				}
 				

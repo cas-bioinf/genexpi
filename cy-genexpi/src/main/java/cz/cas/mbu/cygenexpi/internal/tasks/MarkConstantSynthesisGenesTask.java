@@ -92,7 +92,7 @@ public class MarkConstantSynthesisGenesTask extends AbstractTask {
 			predictionService.markConstantSynthesis(taskMonitor, selectedNetwork, expressionTimeSeriesColumn.getSelectedValue(), errorDef, requiredQuality, storeFitsInTimeSeries, resultsName, resultsMappingColumnName, storeParametersInNodeTable, parametersPrefix);
 		} catch (SuspectGPUResetByOSException ex)
 		{
-			UIUtils.handleSuspectedGPUResetInTask(ex);
+			UIUtils.handleSuspectedGPUResetInTask(registrar, ex);
 		}
 		
 	}

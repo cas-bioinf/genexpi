@@ -127,7 +127,7 @@ public class PredictAndApproveNodeTagsStep extends JPanel implements WizardStep<
 				predictionService.markConstantSynthesis(taskMonitor, data.selectedNetwork, data.expressionMappingColumn, data.errorDef, data.minFitQuality, true /*storeFitsInTimeSeries*/, GNWizardData.CONSTANT_SYNTHESIS_SERIES_NAME, GNWizardData.CONSTANT_SYNTHESIS_COLUMN_NAME,  true /*storeParametersInNodeTable*/, "csynth_" /* parametersPrefix*/);
 			} catch (SuspectGPUResetByOSException ex)
 			{
-				UIUtils.handleSuspectedGPUResetInTask(ex);
+				UIUtils.handleSuspectedGPUResetInTask(registrar, ex);
 			}
 		}
 		else

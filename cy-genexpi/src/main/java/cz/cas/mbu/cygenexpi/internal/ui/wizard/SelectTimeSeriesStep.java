@@ -36,6 +36,7 @@ import cz.cas.mbu.cydataseries.DataSeriesPublicTasks;
 import cz.cas.mbu.cydataseries.MappingDescriptor;
 import cz.cas.mbu.cydataseries.TimeSeries;
 import cz.cas.mbu.cygenexpi.PredictionService;
+import cz.cas.mbu.cygenexpi.internal.tasks.CheckConfigurationTask;
 
 import com.jgoodies.forms.layout.FormSpecs;
 import javax.swing.JLabel;
@@ -233,6 +234,8 @@ public class SelectTimeSeriesStep extends JPanel implements WizardStep<GNWizardD
 	@Override
 	public void beforeStep(TaskMonitor taskMonitor)
 	{	
+		registrar.getService(DialogTaskManager.class).execute(new TaskIterator(new CheckConfigurationTask(registrar)));
+		
 		refreshUI();
 	}
 	

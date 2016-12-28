@@ -9,14 +9,17 @@ import org.cytoscape.work.ServiceProperties;
 import org.cytoscape.work.TaskFactory;
 import org.osgi.framework.BundleContext;
 
+import cz.cas.mbu.cygenexpi.ConfigurationService;
 import cz.cas.mbu.cygenexpi.PredictionService;
 import cz.cas.mbu.cygenexpi.RememberValueService;
 import cz.cas.mbu.cygenexpi.TaggingService;
+import cz.cas.mbu.cygenexpi.internal.tasks.ConfigurationTask;
 import cz.cas.mbu.cygenexpi.internal.tasks.ExpressionDependentRegistrarTaskFactory;
 import cz.cas.mbu.cygenexpi.internal.tasks.MarkConstantSynthesisGenesTask;
 import cz.cas.mbu.cygenexpi.internal.tasks.MarkNoChangeGenesTask;
 import cz.cas.mbu.cygenexpi.internal.tasks.NetworkSelectedRegistrarTaskFactory;
 import cz.cas.mbu.cygenexpi.internal.tasks.PredictSingleRegulationsTask;
+import cz.cas.mbu.cygenexpi.internal.tasks.RegistrarPassingTaskFactory;
 import cz.cas.mbu.cygenexpi.internal.tasks.StartWizardTask;
 import cz.cas.mbu.cygenexpi.internal.tasks.TagEdgesTaskFactory;
 import cz.cas.mbu.cygenexpi.internal.tasks.TagNodesTask;
@@ -42,7 +45,8 @@ public class CyActivator extends AbstractCyActivator {
 		
 		registerService(bc, new RememberValueServiceImpl(), RememberValueService.class, new Properties());
 		registerService(bc, new TaggingServiceImpl(), TaggingService.class, new Properties());
-		registerService(bc, new PredictionServiceImpl(serviceRegistrar), PredictionService.class, new Properties());	
+		registerService(bc, new PredictionServiceImpl(serviceRegistrar), PredictionService.class, new Properties());
+		registerService(bc, new ConfigurationServiceImpl(serviceRegistrar), ConfigurationService.class, new Properties());
 		
 
 		registerTaskFactory(bc, new NetworkSelectedRegistrarTaskFactory<>(StartWizardTask.class, serviceRegistrar),
@@ -57,6 +61,8 @@ public class CyActivator extends AbstractCyActivator {
 				"Tag node profiles");
 		registerTaskFactory(bc, new TagEdgesTaskFactory(serviceRegistrar),
 				"Tag edge profiles");
+		
+		registerTaskFactory(bc, new RegistrarPassingTaskFactory<>(ConfigurationTask.class, serviceRegistrar), "Configure");
 		
 		registerService(bc, new CustomVizmapStyleManager(serviceRegistrar), SessionLoadedListener.class, new Properties());
 	}

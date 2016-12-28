@@ -96,7 +96,7 @@ public class PredictSingleRegulationsTask extends AbstractTask {
 			predictionService.predictSingleRegulations(taskMonitor, selectedNetwork, expressionTimeSeriesColumn.getSelectedValue(), resultsName, resultsName + "_Idx", storeParametersInEdgeTable, parametersPrefix, forcePrediction, errorDef, requiredQuality, regulationType);
 		} catch (SuspectGPUResetByOSException ex)
 		{
-			UIUtils.handleSuspectedGPUResetInTask(ex);
+			UIUtils.handleSuspectedGPUResetInTask(registrar, ex);
 		}
 		
 	}

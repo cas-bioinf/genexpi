@@ -6,9 +6,9 @@ import org.cytoscape.application.swing.CySwingApplication;
 import org.cytoscape.application.swing.CytoPanel;
 import org.cytoscape.application.swing.CytoPanelComponent;
 import org.cytoscape.application.swing.CytoPanelState;
-import org.cytoscape.opencl.cycl.CyCL;
 import org.cytoscape.service.util.CyServiceRegistrar;
 
+import cz.cas.mbu.cygenexpi.ConfigurationService;
 import cz.cas.mbu.genexpi.compute.SuspectGPUResetByOSException;
 
 public class UIUtils {
@@ -31,18 +31,15 @@ public class UIUtils {
 		
 	}
 	
-	public static void handleSuspectedGPUResetInTask(SuspectGPUResetByOSException ex)
+	public static void handleSuspectedGPUResetInTask(CyServiceRegistrar registrar, SuspectGPUResetByOSException ex)
 	{
-		//TODO once 3.5.0 is out, revert to the more nice code
-		/*
-		if (!CyCL.isPreventFullOccupation())
+		if (!registrar.getService(ConfigurationService.class).isPreventFullOccupation())
 		{
 			throw new SuspectGPUResetByOSException(ex.getMessage() + "\nSee Edit -> Preferences -> OpenCL Settings.", ex);
 		}
 		else
 		{
 			throw ex;
-		}*/
-		throw ex;
+		}
 	}
 }
