@@ -131,7 +131,7 @@ public class UITagging {
 			
 		
 		String[] possibleTags = new String[] { ProfileTags.NO_FIT, ProfileTags.BORDERLINE_FIT, ProfileTags.GOOD_FIT }; 
-		TaggingInfo info = new TaggingInfo(possibleTags, "Unprocessed", taggingSeriesProvider, errorDef);
+		TaggingInfo info = new TaggingInfo(possibleTags, "<Unprocessed>", taggingSeriesProvider, errorDef);
 		final BatchTaggingPanel taggingPanel = new BatchTaggingPanel(registrar,info, TaggingMode.EDGE, "Tagging edges");		
 				
 		registrar.registerService(taggingPanel, CytoPanelComponent.class, new Properties());

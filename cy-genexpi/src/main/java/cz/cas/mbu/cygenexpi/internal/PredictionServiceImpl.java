@@ -50,8 +50,8 @@ import cz.cas.mbu.genexpi.compute.SuspectGPUResetByOSException;
 
 public class PredictionServiceImpl implements PredictionService {
 
-	private static final int MAX_TASKS_PER_EXECUTION = 2048;
-private final CyServiceRegistrar registrar;
+	private static final int MAX_TASKS_PER_EXECUTION = 512;
+	private final CyServiceRegistrar registrar;
 	
 	private final Logger userLogger = Logger.getLogger(CyUserLog.NAME); 
 			
@@ -520,7 +520,7 @@ private final CyServiceRegistrar registrar;
 				int numSteps = ((inferenceTasks.size() - 1) / MAX_TASKS_PER_EXECUTION) + 1;
 				for(int step = 0; step < numSteps; step++)
 				{
-					taskMonitor.setStatusMessage("Predicting, using " + context.getDevices()[0].getName() +  "\n(if running on a GPU, computer may become unresponsive)\n" + (step * MAX_TASKS_PER_EXECUTION) + "/" + inferenceTasks.size());					
+					taskMonitor.setStatusMessage("Predicting, using " + context.getDevices()[0].getName() +  "\n(if running on a GPU, computer may become unresponsive)\n" + (step * MAX_TASKS_PER_EXECUTION) + "/" + inferenceTasks.size() + ", progress updates in large batches.");					
 					taskMonitor.setProgress((double)step / (double)numSteps);
 					int minIndex = step * MAX_TASKS_PER_EXECUTION;
 					int maxIndex = Math.min((step + 1) * MAX_TASKS_PER_EXECUTION, inferenceTasks.size());
