@@ -11,6 +11,7 @@ import org.cytoscape.work.TaskMonitor;
 import org.cytoscape.work.TaskMonitor.Level;
 
 import cz.cas.mbu.cygenexpi.ConfigurationService;
+import cz.cas.mbu.cygenexpi.internal.ConfigurationHelp;
 
 public class CheckConfigurationTask extends AbstractTask {
 
@@ -33,11 +34,11 @@ public class CheckConfigurationTask extends AbstractTask {
 			{
 				taskMonitor.showMessage(Level.WARN, configurationMessage);
 			}
-			else
-			{
-				JOptionPane.showMessageDialog(null, configurationMessage);
-			}
-			insertTasksAfterCurrentTask(new ConfigurationTask(registrar));
+			
+			ConfigurationTask configurationTask = new ConfigurationTask(registrar);			
+			configurationTask.help = new ConfigurationHelp(configurationTask.help.getMainMessage(), configurationMessage + "\n\n" + configurationTask.help.getDetails());
+			insertTasksAfterCurrentTask(configurationTask);
+			
 		}
 	}
 	

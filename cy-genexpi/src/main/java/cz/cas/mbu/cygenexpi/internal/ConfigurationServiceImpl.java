@@ -1,6 +1,8 @@
 package cz.cas.mbu.cygenexpi.internal;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
@@ -10,11 +12,21 @@ import java.util.stream.Stream;
 import org.cytoscape.property.CyProperty;
 import org.cytoscape.service.util.CyServiceRegistrar;
 
+import com.nativelibs4java.opencl.CLContext;
 import com.nativelibs4java.opencl.CLDevice;
 import com.nativelibs4java.opencl.CLPlatform;
 import com.nativelibs4java.opencl.JavaCL;
 
 import cz.cas.mbu.cygenexpi.ConfigurationService;
+import cz.cas.mbu.cygenexpi.GNException;
+import cz.cas.mbu.cygenexpi.PredictionService;
+import cz.cas.mbu.genexpi.compute.AdditiveRegulationInferenceTask;
+import cz.cas.mbu.genexpi.compute.EErrorFunction;
+import cz.cas.mbu.genexpi.compute.ELossFunction;
+import cz.cas.mbu.genexpi.compute.EMethod;
+import cz.cas.mbu.genexpi.compute.GNCompute;
+import cz.cas.mbu.genexpi.compute.GeneProfile;
+import cz.cas.mbu.genexpi.compute.InferenceModel;
 
 public class ConfigurationServiceImpl implements ConfigurationService {
 	private final CyServiceRegistrar registrar;
@@ -56,8 +68,24 @@ public class ConfigurationServiceImpl implements ConfigurationService {
 	}
 
 	@Override
-	public void testDevice(CLDevice device) {
-		throw new UnsupportedOperationException();
+	public void testDevice(CLDevice device) throws GNException {
+		//Create a simple simple data
+		try {
+			CLContext context = device.getPlatform().createContext(Collections.EMPTY_MAP, device);
+			GNCompute<Float> compute = new GNCompute<Float>(Float.class, context, InferenceModel.createAdditiveRegulationModel(1), EMethod.Annealing, EErrorFunction.Euler, ELossFunction.Squared, 10.0f, false, 0.0f);
+			GeneProfile<Float> p1 = new GeneProfile<>("test1", Arrays.asList(0.f,0.1f,0.2f,0.3f,0.4f));
+			GeneProfile<Float> p2 = new GeneProfile<>("test2", Arrays.asList(0.4f,0.3f,0.2f,0.1f,0.0f));
+			
+			compute.computeAdditiveRegulation(Arrays.asList(p1, p2), Collections.singletonList(new AdditiveRegulationInferenceTask(0, 1)), 1, 64, true);
+		}
+		catch(GNException ex)
+		{
+			throw ex;
+		}
+		catch(Exception ex)
+		{
+			throw new GNException(ex.getMessage(), ex);
+		}
 	}
 
 	@Override

@@ -35,7 +35,7 @@ public class UIUtils {
 	{
 		if (!registrar.getService(ConfigurationService.class).isPreventFullOccupation())
 		{
-			throw new SuspectGPUResetByOSException(ex.getMessage() + "\nSee Edit -> Preferences -> OpenCL Settings.", ex);
+			throw new SuspectGPUResetByOSException(ex.getMessage() + "\nSee Apps -> Genexpi -> Configure", ex);
 		}
 		else
 		{

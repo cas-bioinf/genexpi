@@ -28,25 +28,8 @@ public class ExpressionDependentRegistrarTaskFactory<TASK extends Task> extends 
 		{
 			return false;
 		}
-		
-		CyApplicationManager applicationManager = registrar.getService(CyApplicationManager.class);
-		CyNetwork selectedNetwork = applicationManager.getCurrentNetwork();
-		
-		if(selectedNetwork == null)
-		{
-			return false;
-		}
-		
-		DataSeriesMappingManager mappingManager = registrar.getService(DataSeriesMappingManager.class);
-		
-		CyTable nodeTable = mappingManager.getMappingTable(selectedNetwork, CyNode.class); 
-		
-		Map<String, TimeSeries> mappings = mappingManager.getAllMappings(selectedNetwork, CyNode.class, TimeSeries.class);
-		
-		boolean anyAvailableMappings = mappings.keySet().stream()
-				.anyMatch(col -> (nodeTable.getColumn(col) != null));
-		
-		return anyAvailableMappings;
+
+		return TaskUtils.expressionDataAvailable(registrar);
 	}
 
 }

@@ -23,6 +23,7 @@ import com.nativelibs4java.opencl.CLContext;
 import com.nativelibs4java.opencl.CLDevice;
 import com.nativelibs4java.opencl.CLPlatform;
 import com.nativelibs4java.opencl.JavaCL;
+import com.nativelibs4java.opencl.CLException.OutOfHostMemory;
 
 import cz.cas.mbu.cydataseries.DataSeriesFactory;
 import cz.cas.mbu.cydataseries.DataSeriesManager;
@@ -360,17 +361,17 @@ public class PredictionServiceImpl implements PredictionService {
 			catch(GNException ex)
 			{
 				userLogger.error("Could not predict expression.", ex);
-				throw ex;
+				throw new GNException(ex.getMessage() + CONFIGURE_MSG, ex);
 			}
 			catch(Exception ex)
 			{
 				userLogger.error("Could not predict expression.", ex);		
-				throw new GNException(ex);
+				throw new GNException(ex.getMessage() + CONFIGURE_MSG, ex);
 			}
 			catch(Error e)
 			{
 				userLogger.error("Error during prediction.", e);
-				throw e;
+				throw new GNException(e.getMessage() + CONFIGURE_MSG, e);
 			}
 		});
 	}
@@ -650,12 +651,12 @@ public class PredictionServiceImpl implements PredictionService {
 			catch(GNException ex)
 			{
 				userLogger.error("Could not predict expression.", ex);
-				throw ex;
+				throw new GNException(ex.getMessage() + CONFIGURE_MSG, ex);
 			}
 			catch(Exception ex)
 			{
 				userLogger.error("Could not predict expression.", ex);		
-				throw new GNException(ex);
+				throw new GNException(ex.getMessage() + CONFIGURE_MSG, ex);
 			}
 			catch (OutOfMemoryError e)
 			{
@@ -665,8 +666,8 @@ public class PredictionServiceImpl implements PredictionService {
 			catch(Error e)
 			{
 				userLogger.error("Error during prediction.", e);
-				throw e;
-			}
+				throw new GNException(e.getMessage() + CONFIGURE_MSG, e);
+			}			
 		});
 	}
 

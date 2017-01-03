@@ -7,6 +7,7 @@ import org.cytoscape.service.util.CyServiceRegistrar;
 import org.cytoscape.session.events.SessionLoadedListener;
 import org.cytoscape.work.ServiceProperties;
 import org.cytoscape.work.TaskFactory;
+import org.cytoscape.work.swing.GUITunableHandlerFactory;
 import org.osgi.framework.BundleContext;
 
 import cz.cas.mbu.cygenexpi.ConfigurationService;
@@ -65,6 +66,8 @@ public class CyActivator extends AbstractCyActivator {
 		registerTaskFactory(bc, new RegistrarPassingTaskFactory<>(ConfigurationTask.class, serviceRegistrar), "Configure");
 		
 		registerService(bc, new CustomVizmapStyleManager(serviceRegistrar), SessionLoadedListener.class, new Properties());
+		
+		registerService(bc, new ConfigurationHelpGUIHandlerFactory(), GUITunableHandlerFactory.class, new Properties());
 	}
 
 }
