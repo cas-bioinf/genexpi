@@ -1,15 +1,18 @@
 package cz.cas.mbu.cygenexpi.internal;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.function.Consumer;
 import java.util.stream.Stream;
 
-import org.cytoscape.property.CyProperty;
+import org.apache.log4j.Logger;
+import org.cytoscape.application.CyApplicationConfiguration;
 import org.cytoscape.service.util.CyServiceRegistrar;
 
 import com.nativelibs4java.opencl.CLContext;
@@ -19,7 +22,6 @@ import com.nativelibs4java.opencl.JavaCL;
 
 import cz.cas.mbu.cygenexpi.ConfigurationService;
 import cz.cas.mbu.cygenexpi.GNException;
-import cz.cas.mbu.cygenexpi.PredictionService;
 import cz.cas.mbu.genexpi.compute.AdditiveRegulationInferenceTask;
 import cz.cas.mbu.genexpi.compute.EErrorFunction;
 import cz.cas.mbu.genexpi.compute.ELossFunction;
@@ -30,22 +32,65 @@ import cz.cas.mbu.genexpi.compute.InferenceModel;
 
 public class ConfigurationServiceImpl implements ConfigurationService {
 	private final CyServiceRegistrar registrar;
-
+	private final Logger logger = Logger.getLogger(ConfigurationService.class);
+	
+	private static final String PROPERTIES_FILE_NAME = "cz.cas.mbu.genexpi.cygenexpi.props";
+	
 	private static final String PREFERRED_DEVICE = "cz.cas.mbu.genexpi.preferredDevice";
 	private static final String PREFERRED_PLATFORM = "cz.cas.mbu.genexpi.preferredPlatform";
 	private static final String PREFERRED_VERSION = "cz.cas.mbu.genexpi.preferredVersion";
 	private static final String PREVENT_FULL_OCCUPATION = "cz.cas.mbu.genexpi.preventFullOccupation";
 	
 	
+	
+	/**
+	 * Lazily loaded property file
+	 */
+	private Properties properties = null;
+	
 	public ConfigurationServiceImpl(CyServiceRegistrar registrar) {
 		super();
 		this.registrar = registrar;
 	}
+	
+	private File getPropertiesFile() {
+		final CyApplicationConfiguration config = registrar.getService(CyApplicationConfiguration.class);
+		final File outputFile = new File(config.getConfigurationDirectoryLocation(), PROPERTIES_FILE_NAME);
+		return outputFile;
+	}
+	
 
+	private void loadProperties()
+	{		
+		properties = new Properties();
+		
+		try (FileInputStream in = new FileInputStream(getPropertiesFile())) {
+			properties.load(in);
+		} catch (Exception e) {
+			logger.error("Error in wring properties file.", e);
+		}
+		
+	}
+
+	private void saveProperties()
+	{
+		if(properties != null)
+		{
+			try (FileOutputStream out = new FileOutputStream(getPropertiesFile())){				
+				properties.store(out, null);
+			} catch (Exception e) {
+				logger.error("Error in wring properties file.", e);
+			}
+		}
+	}
+	
 	private Properties getProperties()
 	{
-		CyProperty<Properties> cyPropertyServiceRef = registrar.getService(CyProperty.class, "(cyPropertyName=cytoscape3.props)");
-		return cyPropertyServiceRef.getProperties();
+		if(properties == null)
+		{
+			loadProperties();
+		}
+		return properties;
 	}
 	
 	private Stream<CLDevice> deviceStream()
@@ -77,14 +122,16 @@ public class ConfigurationServiceImpl implements ConfigurationService {
 				GeneProfile<Float> p1 = new GeneProfile<>("test1", Arrays.asList(0.f,0.1f,0.2f,0.3f,0.4f));
 				GeneProfile<Float> p2 = new GeneProfile<>("test2", Arrays.asList(0.4f,0.3f,0.2f,0.1f,0.0f));
 				
-				compute.computeAdditiveRegulation(Arrays.asList(p1, p2), Collections.singletonList(new AdditiveRegulationInferenceTask(0, 1)), 1, 64, true);
+				compute.computeAdditiveRegulation(Arrays.asList(p1, p2), Collections.singletonList(new AdditiveRegulationInferenceTask(0, 1)), 1, 16, true);
 			}
 			catch(GNException ex)
 			{
+				logger.error("Device test failed", ex);
 				throw ex;
 			}
 			catch(Exception ex)
 			{
+				logger.error("Device test failed", ex);
 				throw new GNException(ex.getMessage(), ex);
 			}
 		});
@@ -132,6 +179,8 @@ public class ConfigurationServiceImpl implements ConfigurationService {
 		props.setProperty(PREFERRED_PLATFORM, device.getPlatform().getName());
 		props.setProperty(PREFERRED_VERSION, device.getPlatform().getVersion());
 		props.setProperty(PREFERRED_DEVICE, device.getName());
+		
+		saveProperties();
 	}
 
 	@Override
@@ -142,7 +191,7 @@ public class ConfigurationServiceImpl implements ConfigurationService {
 	@Override
 	public void setPreventFullOccupation(boolean preventFullOccupation) {
 		getProperties().setProperty(PREVENT_FULL_OCCUPATION, Boolean.toString(preventFullOccupation));
-		
+		saveProperties();		
 	}
 	
 	

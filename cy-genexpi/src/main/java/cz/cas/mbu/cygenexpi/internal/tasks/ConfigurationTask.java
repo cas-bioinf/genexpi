@@ -1,6 +1,7 @@
 package cz.cas.mbu.cygenexpi.internal.tasks;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.apache.log4j.Logger;
@@ -8,11 +9,9 @@ import org.cytoscape.service.util.CyServiceRegistrar;
 import org.cytoscape.work.ProvidesTitle;
 import org.cytoscape.work.TaskMonitor;
 import org.cytoscape.work.Tunable;
-import org.cytoscape.work.TunableValidator.ValidationState;
 import org.cytoscape.work.util.ListSingleSelection;
 
 import com.nativelibs4java.opencl.CLDevice;
-import com.nativelibs4java.opencl.CLDevice.ExecutionCapability;
 
 import cz.cas.mbu.cygenexpi.ConfigurationService;
 import cz.cas.mbu.cygenexpi.internal.ConfigurationHelp;
@@ -44,6 +43,18 @@ public class ConfigurationTask extends AbstractValidatedTask {
 					.collect(Collectors.toList());
 			this.device = new ListSingleSelection<>(wrappers);
 		
+			CLDevice preferredDevice = configurationService.getPreferredDevice();
+			if(preferredDevice != null)
+			{
+				Optional<DeviceWrapper> selected = wrappers.stream()
+						.filter(w -> w.getDevice().equals(preferredDevice))
+						.findAny();
+				if(selected.isPresent())
+				{
+					device.setSelectedValue(selected.get());
+				}
+			}
+			
 			if(allDevices.isEmpty())
 			{
 				help = new ConfigurationHelp(ConfigurationHelp.MainMessage.NoDevices, "");
@@ -78,6 +89,7 @@ public class ConfigurationTask extends AbstractValidatedTask {
 		CLDevice clDevice = device.getSelectedValue().getDevice();
 		if(device.getSelectedValue() != null)
 		{
+			taskMonitor.setStatusMessage("Testing the selected device.");
 			try 
 			{
 				configurationService.testDevice(clDevice);				
