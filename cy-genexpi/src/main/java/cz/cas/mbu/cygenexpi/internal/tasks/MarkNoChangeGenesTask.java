@@ -49,38 +49,16 @@ import cz.cas.mbu.genexpi.compute.IntegrateResults;
 import cz.cas.mbu.genexpi.compute.NoRegulatorInferenceTask;
 
 @RememberAllValues
-public class MarkNoChangeGenesTask extends AbstractTask {
+public class MarkNoChangeGenesTask extends AbstractExpressionTask {
 
-	@Tunable(description="Column containing mapping to expression time series")
-	public ListSingleSelection<String> expressionTimeSeriesColumn;
 	
 	@ContainsTunables
 	public ErrorDef errorDef;
-		
-	private final CyServiceRegistrar registrar;
-
-	private final CyTable nodeTable;
-	private final CyNetwork selectedNetwork;
-	
+			
 	private final Logger userLogger = Logger.getLogger(CyUserLog.NAME); 
 	
 	public MarkNoChangeGenesTask(CyServiceRegistrar registrar) {
-		super();
-		this.registrar = registrar;
-		
-		CyApplicationManager applicationManager = registrar.getService(CyApplicationManager.class);
-		selectedNetwork = applicationManager.getCurrentNetwork();
-
-		DataSeriesMappingManager mappingManager = registrar.getService(DataSeriesMappingManager.class);
-		nodeTable = mappingManager.getMappingTable(selectedNetwork, CyNode.class); 
-		
-		Map<String, TimeSeries> mappings = mappingManager.getAllMappings(selectedNetwork, CyNode.class, TimeSeries.class);
-		
-		List<String> possibleSourceColumns = mappings.keySet().stream()
-				.filter(col -> (nodeTable.getColumn(col) != null))
-				.collect(Collectors.toList());
-		
-		expressionTimeSeriesColumn = new ListSingleSelection<>(possibleSourceColumns);
+		super(registrar);
 		errorDef = ErrorDef.DEFAULT;
 		
 		registrar.getService(RememberValueService.class).loadProperties(this);		
@@ -94,7 +72,7 @@ public class MarkNoChangeGenesTask extends AbstractTask {
 		registrar.getService(RememberValueService.class).saveProperties(this);		
 		
 		PredictionService predictionService = registrar.getService(PredictionService.class);
-		predictionService.markNoChangeGenes(selectedNetwork, expressionTimeSeriesColumn.getSelectedValue(), errorDef);
+		predictionService.markNoChangeGenes(network.getSelectedValue(), expressionTimeSeriesColumn.getSelectedValue(), errorDef);
 						
 	}
 

@@ -718,7 +718,7 @@ public class PredictionServiceImpl implements PredictionService {
 				String error = "The time differences between all time points in the series have to be equal.\n"
 						+ " Difference between point " + step + " (time " + indexArray[step - 1] + ") and " + (step + 1) + " (time " + indexArray[step] + ")"
 						+ " is not equal to the difference between 1st and 2nd point (" + timeStep + ").\n"
-						+ "Consider smoothing/splining the series with the cy-dataseries plugin.";
+						+ "Consider smoothing/splining the series with the Data Series plugin (see Apps -> Data Series).";
 				userLogger.error(error);
 				throw new GNException(error);
 			}
