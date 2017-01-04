@@ -140,7 +140,7 @@ public class GNCompute<NUMBER_TYPE extends Number> {
         
         int maxItemsPerExecution ;
         if (preventFullOccupation) {
-        	maxItemsPerExecution = maxComputeUnits - 1;
+        	maxItemsPerExecution = Math.max(maxComputeUnits - 1, 1);
         }
         else
         {
