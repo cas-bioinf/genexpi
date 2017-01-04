@@ -262,7 +262,7 @@ public class PredictionServiceImpl implements PredictionService {
 				float regularizationWeight = 24;
 				
 				CLContext context = getContext();
-				taskMonitor.setStatusMessage("Predicting, using " + context.getDevices()[0].getName() +  "\n(if running on a GPU, computer may become unresponsive)");
+				taskMonitor.setStatusMessage("Predicting, using " + context.getDevices()[0].getName() +  "\n(if running on a GPU, computer may be unresponsive during computation)");
 				GNCompute<Float> compute = new GNCompute<>(Float.class, context, model, method, null /*No error function*/, lossFunction, regularizationWeight, useCustomTimeStep, (float)timeStep);
 				
 				int numIterations = 128;
@@ -519,7 +519,7 @@ public class PredictionServiceImpl implements PredictionService {
 				int numSteps = ((inferenceTasks.size() - 1) / MAX_TASKS_PER_EXECUTION) + 1;
 				for(int step = 0; step < numSteps; step++)
 				{
-					taskMonitor.setStatusMessage("Predicting, using " + context.getDevices()[0].getName() +  "\n(if running on a GPU, computer may become unresponsive)\n" + (step * MAX_TASKS_PER_EXECUTION) + "/" + inferenceTasks.size() + ", progress updates in large batches.");					
+					taskMonitor.setStatusMessage("Predicting, using " + context.getDevices()[0].getName() +  "\n(if running on a GPU, computer may be unresponsive during computation)\n" + (step * MAX_TASKS_PER_EXECUTION) + "/" + inferenceTasks.size() + ", progress updates in large batches.");					
 					taskMonitor.setProgress((double)step / (double)numSteps);
 					int minIndex = step * MAX_TASKS_PER_EXECUTION;
 					int maxIndex = Math.min((step + 1) * MAX_TASKS_PER_EXECUTION, inferenceTasks.size());
