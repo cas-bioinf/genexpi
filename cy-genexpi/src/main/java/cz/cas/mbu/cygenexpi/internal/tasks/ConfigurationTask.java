@@ -126,13 +126,20 @@ public class ConfigurationTask extends AbstractValidatedTask {
 	@Override
 	protected ValidationState getValidationState(StringBuilder messageBuilder) {
 		DeviceWrapper selectedDeviceWrapper = device.getSelectedValue();
-		if(selectedDeviceWrapper != null && selectedDeviceWrapper.getDevice().getType().contains(CLDevice.Type.GPU) && !preventFullOccupation)
+		if(selectedDeviceWrapper != null && selectedDeviceWrapper.getDevice().getType().contains(CLDevice.Type.GPU))
 		{
 			messageBuilder.append("You have selected a GPU platform.\n"
-					+ "If this is the GPU that runs your main display, computations may not be succesful and may freeze your computer.\n"
-					+ "If it is your main display, you should select 'Prevent full occupation'"
-					+ "\nAre you sure '" + selectedDeviceWrapper.getDevice().getName() + "' is not your main display?\n"
-					);
+					+ "It is strongly discouraged to use the GPU that runs your main display for computations as it may freeze your computer.\n");
+			
+			if(! preventFullOccupation)
+			{
+				messageBuilder.append(
+						"Selecting 'Prevent full occupation' may prevent some of the issues, bot does not work with all GPUs.");
+			}						
+			messageBuilder.append(
+					"\nAre you sure '" + selectedDeviceWrapper.getDevice().getName() + "' is not your main display?\n"
+						);
+			
 			return ValidationState.REQUEST_CONFIRMATION;
 		}
 		return ValidationState.OK;

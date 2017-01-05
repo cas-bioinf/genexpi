@@ -86,6 +86,11 @@ public class ConfigurationHelpPanel extends JPanel {
 		{
 			lblSpecificText.setText(mainMessageText);
 		}
+		else if(mainMessageText.isEmpty())
+		{
+			String completeText = "<html>" + help.getDetails().replace("\n", "<br>") +  "</html>";
+			lblSpecificText.setText(completeText);
+		}
 		else
 		{
 			String completeText = "<html>" + mainMessageText + ":<br>" + help.getDetails().replace("\n", "<br>") +  "</html>";
