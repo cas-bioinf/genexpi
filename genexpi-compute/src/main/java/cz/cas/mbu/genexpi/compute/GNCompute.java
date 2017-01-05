@@ -164,7 +164,16 @@ public class GNCompute<NUMBER_TYPE extends Number> {
             long[] globalOffset = new long[] {offset, 0};
             long[] globalWorkSize = new long[] { itemsForExecution, numIterations };
             long[] localWorkSize = new long[] {1, numIterations};
-            eventsToWaitFor.add(kernel.enqueueNDRange(queue, globalOffset, globalWorkSize, localWorkSize));            
+            CLEvent computationFinishedEvent = kernel.enqueueNDRange(queue, globalOffset, globalWorkSize, localWorkSize);
+            
+            if(preventFullOccupation)
+            {
+            	computationFinishedEvent.waitFor();
+            }
+            else
+            {
+            	eventsToWaitFor.add(computationFinishedEvent);
+            }
         }
       
         CLEvent[] eventsToWaitForArray = new CLEvent[eventsToWaitFor.size()];
