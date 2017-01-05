@@ -109,7 +109,7 @@ public class EnterErrorCheckingStep extends JPanel implements WizardStep<GNWizar
 		chckbxUseConstantSynthesis = new JCheckBox("Exclude genes fitted with constant synthesis");
 		add(chckbxUseConstantSynthesis, "2, 16, 3, 1");
 		
-		JLabel lblifCheckedWe = new JLabel("<html>If checked, we will first try to fit the profiles by a simple model with consant synthesis and constant decay. If the genes can be fit well by this model, they can be fit also by any combination of regulators and thus genes found to be fit well by constant synthesis will be excluded from fitting by potential regulators.</html>");
+		JLabel lblifCheckedWe = new JLabel("<html>If checked, we will first try to fit the profiles by a simple model with constant synthesis and constant decay. If the genes can be fit well by this model, they can be fit also by any combination of regulators and thus genes found to be fit well by constant synthesis will be excluded from fitting by potential regulators.</html>");
 		lblifCheckedWe.setFont(new Font("Tahoma", Font.ITALIC, 11));
 		add(lblifCheckedWe, "4, 18");
 		

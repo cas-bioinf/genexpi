@@ -117,9 +117,9 @@ public class HumanTaggingPanel extends JPanel {
 		currentTagTextField.setEditable(false);
 		currentTagTextField.setColumns(3);
 		FormLayout fl_panel = new FormLayout(new ColumnSpec[] {
-				ColumnSpec.decode("74px"),
+				FormSpecs.DEFAULT_COLSPEC,
 				FormSpecs.LABEL_COMPONENT_GAP_COLSPEC,
-				ColumnSpec.decode("108px:grow"),
+				ColumnSpec.decode("default:grow"),
 				FormSpecs.RELATED_GAP_COLSPEC,
 				FormSpecs.DEFAULT_COLSPEC,
 				FormSpecs.RELATED_GAP_COLSPEC,

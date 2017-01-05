@@ -109,10 +109,10 @@ public class BatchTaggingPanel extends JPanel implements CytoPanelComponent2 {
 		JSeparator separator = new JSeparator();
 		controlPanel.add(separator, "1, 1, 8, 1");
 		
-		JButton btnApproveDisplayedTags = new JButton("Approve Tags");
+		JButton btnApproveDisplayedTags = new JButton("Approve Tags & Continue");
 		btnApproveDisplayedTags.setFont(new Font("Tahoma", Font.BOLD, 13));
 		btnApproveDisplayedTags.addActionListener(evt -> approveAllSelectedTags());
-		controlPanel.add(btnApproveDisplayedTags, "8, 2");
+		controlPanel.add(btnApproveDisplayedTags, "6, 2, 3, 1");
 		
 		JButton btnRefresh = new JButton("Refresh");
 		controlPanel.add(btnRefresh, "6, 4");
