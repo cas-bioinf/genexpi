@@ -76,7 +76,7 @@ public class ConfigurationHelpPanel extends JPanel {
 				mainMessageText = "Device test failed";
 				break;
 			case InitError:
-				mainMessageText = "Error in OpenCL initialization";
+				mainMessageText = "Error in OpenCL initialization - try (re)installing OpenCL drivers";
 				break;
 			default:
 				mainMessageText = "Unexpected problem";					

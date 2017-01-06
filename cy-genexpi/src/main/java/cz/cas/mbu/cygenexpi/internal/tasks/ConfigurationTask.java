@@ -64,7 +64,7 @@ public class ConfigurationTask extends AbstractValidatedTask {
 				help = new ConfigurationHelp(ConfigurationHelp.MainMessage.None, "");			
 			}
 		}
-		catch(Exception ex)
+		catch(Throwable ex)
 		{
 			logger.error(ex);
 			help = new ConfigurationHelp(MainMessage.InitError, ex.getMessage() == null ? "" : ex.getMessage());

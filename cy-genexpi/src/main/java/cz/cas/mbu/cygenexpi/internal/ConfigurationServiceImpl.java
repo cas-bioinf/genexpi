@@ -2,6 +2,7 @@ package cz.cas.mbu.cygenexpi.internal;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -66,8 +67,13 @@ public class ConfigurationServiceImpl implements ConfigurationService {
 		
 		try (FileInputStream in = new FileInputStream(getPropertiesFile())) {
 			properties.load(in);
-		} catch (Exception e) {
-			logger.error("Error in wring properties file.", e);
+		}
+		catch (FileNotFoundException ex)
+		{
+			//Do nothing, not even need to report
+		}
+		catch (Exception e) {
+			logger.error("Error in reading properties file.", e);
 		}
 		
 	}
@@ -79,7 +85,7 @@ public class ConfigurationServiceImpl implements ConfigurationService {
 			try (FileOutputStream out = new FileOutputStream(getPropertiesFile())){				
 				properties.store(out, null);
 			} catch (Exception e) {
-				logger.error("Error in wring properties file.", e);
+				logger.error("Error in writing properties file.", e);
 			}
 		}
 	}
