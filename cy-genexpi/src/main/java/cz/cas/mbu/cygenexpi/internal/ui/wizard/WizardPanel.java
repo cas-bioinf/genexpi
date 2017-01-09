@@ -44,6 +44,8 @@ public class WizardPanel<DATA> extends JPanel implements CytoPanelComponent {
 	private DATA data; 
 	private JButton btnCancel;
 	
+	private JPanel processingPanel;
+	private final CellConstraints stepComponentConstraints;
 	/**
 	 * Create the panel.
 	 */
@@ -85,6 +87,9 @@ public class WizardPanel<DATA> extends JPanel implements CytoPanelComponent {
 		this.steps = steps;
 		this.title = title;
 		this.data = data;
+				
+		processingPanel = new ProcessingPanel();
+		stepComponentConstraints = new CellConstraints(2, 4, 5, 1);
 		
 		if(!java.beans.Beans.isDesignTime())
 		{
@@ -124,11 +129,7 @@ public class WizardPanel<DATA> extends JPanel implements CytoPanelComponent {
 	protected void setShownStepIndex(int index, boolean runBeforeStepProcessing)
 	{
 		remove(getShownStep().getComponent());
-		shownStepIndex = index;
-		add(getShownStep().getComponent(), new CellConstraints(2, 4, 5, 1));
-	
-		revalidate();
-		repaint();		
+		shownStepIndex = index;	
 		
 		if(shownStepIndex >= steps.size() -1)
 		{
@@ -152,6 +153,10 @@ public class WizardPanel<DATA> extends JPanel implements CytoPanelComponent {
 		
 		if(runBeforeStepProcessing)
 		{
+			add(processingPanel, stepComponentConstraints);
+			revalidate();
+			repaint();
+			
 			registrar.getService(DialogTaskManager.class).execute(new TaskIterator(
 					new AbstractTask() {
 						
@@ -159,6 +164,12 @@ public class WizardPanel<DATA> extends JPanel implements CytoPanelComponent {
 						public void run(TaskMonitor taskMonitor) throws Exception {
 							try {
 								getShownStep().beforeStep(taskMonitor);
+								remove(processingPanel);
+								add(getShownStep().getComponent(), stepComponentConstraints);
+							
+								revalidate();
+								repaint();		
+								
 							}
 							catch(Exception ex)
 							{
@@ -175,6 +186,12 @@ public class WizardPanel<DATA> extends JPanel implements CytoPanelComponent {
 						}
 					}
 					));
+		}
+		else
+		{
+			add(getShownStep().getComponent(), stepComponentConstraints);			
+			revalidate();
+			repaint();					
 		}
 	}
 	
