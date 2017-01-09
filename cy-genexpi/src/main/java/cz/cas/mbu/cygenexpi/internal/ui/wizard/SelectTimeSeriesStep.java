@@ -37,6 +37,7 @@ import cz.cas.mbu.cydataseries.MappingDescriptor;
 import cz.cas.mbu.cydataseries.TimeSeries;
 import cz.cas.mbu.cygenexpi.PredictionService;
 import cz.cas.mbu.cygenexpi.internal.tasks.CheckConfigurationTask;
+import cz.cas.mbu.cygenexpi.internal.tasks.LoadExampleDataTask;
 
 import com.jgoodies.forms.layout.FormSpecs;
 import javax.swing.JLabel;
@@ -83,6 +84,12 @@ public class SelectTimeSeriesStep extends JPanel implements WizardStep<GNWizardD
 				FormSpecs.RELATED_GAP_ROWSPEC,
 				FormSpecs.DEFAULT_ROWSPEC,
 				FormSpecs.UNRELATED_GAP_ROWSPEC,
+				FormSpecs.DEFAULT_ROWSPEC,
+				FormSpecs.RELATED_GAP_ROWSPEC,
+				FormSpecs.DEFAULT_ROWSPEC,
+				FormSpecs.RELATED_GAP_ROWSPEC,
+				FormSpecs.DEFAULT_ROWSPEC,
+				FormSpecs.RELATED_GAP_ROWSPEC,
 				FormSpecs.DEFAULT_ROWSPEC,
 				FormSpecs.RELATED_GAP_ROWSPEC,
 				FormSpecs.DEFAULT_ROWSPEC,
@@ -154,6 +161,16 @@ public class SelectTimeSeriesStep extends JPanel implements WizardStep<GNWizardD
 		btnSmoothTimeSeries = new JButton("Smooth a Time Series");
 		add(btnSmoothTimeSeries, "2, 28, 3, 1");
 		btnSmoothTimeSeries.addActionListener(evt -> smoothTimeSeries());
+		
+		JSeparator separator_3 = new JSeparator();
+		add(separator_3, "2, 30, 3, 1");
+		
+		JLabel lblAlternativelyYouCan = new JLabel("Alternatively you can load example data directly:");
+		add(lblAlternativelyYouCan, "2, 32, 3, 1");
+		
+		JButton btnLoadExampleData = new JButton("Load example data");
+		add(btnLoadExampleData, "2, 34, 3, 1");
+		btnLoadExampleData.addActionListener(evt -> loadExampleData());
 
 	}
 
@@ -293,6 +310,27 @@ public class SelectTimeSeriesStep extends JPanel implements WizardStep<GNWizardD
 		registrar.getService(DialogTaskManager.class).execute(smoothTaskIterator);		
 	}
 	
+	private void loadExampleData()
+	{
+		registrar.getService(DialogTaskManager.class).execute(new TaskIterator(
+				new LoadExampleDataTask(registrar)
+				, new AbstractTask(){
+
+					@Override
+					public void run(TaskMonitor taskMonitor) throws Exception {
+						SwingUtilities.invokeLater(() -> {
+							CyNetwork exampleNetwork = registrar.getService(CyNetworkManager.class).getNetworkSet().iterator().next();
+							data.selectedNetwork = exampleNetwork;
+							data.expressionMappingColumn = "Expression_smooth";
+							refreshUI();
+							data.wizardPanel.nextStep();							
+						});
+					}
+					
+				}
+				));		
+		
+	}
 	
 	
 	@Override

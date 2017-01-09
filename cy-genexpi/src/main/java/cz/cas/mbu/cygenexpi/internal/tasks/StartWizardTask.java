@@ -40,6 +40,7 @@ public class StartWizardTask extends AbstractTask{
 		data.selectedNetwork = registrar.getService(CyApplicationManager.class).getCurrentNetwork();
 		
 		WizardPanel<GNWizardData> panel = new WizardPanel<>(registrar, InferenceWizard.getSteps(), InferenceWizard.TITLE, data);
+		data.wizardPanel = panel;
 		registrar.registerService(panel, CytoPanelComponent.class, new Properties());
 		
 		UIUtils.ensurePanelVisible(registrar, panel);		

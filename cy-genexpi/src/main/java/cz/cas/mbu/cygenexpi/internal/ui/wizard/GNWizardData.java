@@ -14,6 +14,9 @@ public class GNWizardData {
 	@RememberValue(type=Type.NEVER)
 	public CyNetwork selectedNetwork;
 	
+	@RememberValue(type=Type.NEVER)
+	public WizardPanel<GNWizardData> wizardPanel;
+	
 	public String expressionMappingColumn = "";
 	
 	@RememberValueRecursive

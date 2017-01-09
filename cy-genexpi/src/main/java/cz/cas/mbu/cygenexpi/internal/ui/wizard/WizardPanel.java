@@ -195,7 +195,7 @@ public class WizardPanel<DATA> extends JPanel implements CytoPanelComponent {
 		}
 	}
 	
-	protected void previousStep()
+	public void previousStep()
 	{
 		if(shownStepIndex > 0)
 		{
@@ -203,7 +203,7 @@ public class WizardPanel<DATA> extends JPanel implements CytoPanelComponent {
 		}
 	}
 	
-	protected void nextStep()
+	public void nextStep()
 	{
 		registrar.getService(RememberValueService.class).saveProperties(data);
 		
