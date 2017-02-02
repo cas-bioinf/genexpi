@@ -233,14 +233,20 @@ public class SelectTimeSeriesStep extends JPanel implements WizardStep<GNWizardD
 		DataSeriesMappingManager mappingManager = registrar.getService(DataSeriesMappingManager.class );
 		Map<String, TimeSeries> mappings = mappingManager.getAllMappings(data.selectedNetwork, CyNode.class, TimeSeries.class);
 		
-		CyTable nodeTable = data.selectedNetwork.getDefaultNodeTable();
-		
-		List<String> possibleSourceColumns = mappings.keySet().stream()
-				.filter(col -> (nodeTable.getColumn(col) != null))
-				.collect(Collectors.toList());
-		
-		comboBoxTimeSeries.setModel(new DefaultComboBoxModel<>(possibleSourceColumns.toArray( new String[ possibleSourceColumns.size()])));
-		comboBoxTimeSeries.setSelectedItem(data.expressionMappingColumn); //This will not change the selection, if the column is not in the list, because the combo box is uneditable
+		if(data.selectedNetwork != null) {
+			CyTable nodeTable = data.selectedNetwork.getDefaultNodeTable();
+			comboBoxTimeSeries.setEnabled(true);
+			
+			List<String> possibleSourceColumns = mappings.keySet().stream()
+					.filter(col -> (nodeTable.getColumn(col) != null))
+					.collect(Collectors.toList());
+			
+			comboBoxTimeSeries.setModel(new DefaultComboBoxModel<>(possibleSourceColumns.toArray( new String[ possibleSourceColumns.size()])));
+			comboBoxTimeSeries.setSelectedItem(data.expressionMappingColumn); //This will not change the selection, if the column is not in the list, because the combo box is uneditable
+		}
+		else {
+			comboBoxTimeSeries.setEnabled(false);
+		}
 		
 		boolean anyTimeSeries = !registrar.getService(DataSeriesManager.class).getDataSeriesByType(TimeSeries.class).isEmpty();
 		btnMapTimeSeries.setEnabled(anyTimeSeries);
