@@ -38,6 +38,7 @@ import cz.cas.mbu.cygenexpi.internal.TaggingInfo;
 
 import javax.swing.JSeparator;
 import java.awt.Font;
+import java.awt.Dimension;
 
 public class BatchTaggingPanel extends JPanel implements CytoPanelComponent2 {
 
@@ -64,6 +65,7 @@ public class BatchTaggingPanel extends JPanel implements CytoPanelComponent2 {
 	 * Create the panel.
 	 */
 	public BatchTaggingPanel(CyServiceRegistrar registrar, TaggingInfo info, TaggingMode mode, String caption) {
+		setMinimumSize(new Dimension(450, 600));
 		setLayout(new BorderLayout(0, 0));
 		
 		taggingSetPanel = new JPanel();
