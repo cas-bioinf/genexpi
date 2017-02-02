@@ -50,7 +50,7 @@ public class CyActivator extends AbstractCyActivator {
 		registerService(bc, new ConfigurationServiceImpl(serviceRegistrar), ConfigurationService.class, new Properties());
 		
 
-		registerTaskFactory(bc, new NetworkSelectedRegistrarTaskFactory<>(StartWizardTask.class, serviceRegistrar),
+		registerTaskFactory(bc, new RegistrarPassingTaskFactory<>(StartWizardTask.class, serviceRegistrar),
 				InferenceWizard.TITLE);
 		registerTaskFactory(bc, new ExpressionDependentRegistrarTaskFactory<>(MarkNoChangeGenesTask.class, serviceRegistrar), 
 				"Mark genes that are approximately constant onver the time range.");		
