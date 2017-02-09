@@ -45,7 +45,7 @@ public class TagEdgesTaskFactory extends AbstractTaskFactory {
 		DataSeriesMappingManager mappingManager = registrar.getService(DataSeriesMappingManager.class);
 		
 		CyTable nodeTable = mappingManager.getMappingTable(selectedNetwork, CyNode.class); 
-		CyTable edgeTable = mappingManager.getMappingTable(selectedNetwork, CyNode.class); 
+		CyTable edgeTable = mappingManager.getMappingTable(selectedNetwork, CyEdge.class); 
 		
 		Map<String, TimeSeries> nodeMappings = mappingManager.getAllMappings(selectedNetwork, CyNode.class, TimeSeries.class);
 		Map<String, TimeSeries> edgeMappings = mappingManager.getAllMappings(selectedNetwork, CyEdge.class, TimeSeries.class);
