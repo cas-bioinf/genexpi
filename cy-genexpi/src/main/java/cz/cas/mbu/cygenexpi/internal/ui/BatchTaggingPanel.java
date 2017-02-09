@@ -3,7 +3,8 @@ package cz.cas.mbu.cygenexpi.internal.ui;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
-import java.awt.FlowLayout;
+import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.event.ItemEvent;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,9 +16,8 @@ import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.SwingUtilities;
+import javax.swing.JSeparator;
 
-import org.cytoscape.application.CyApplicationManager;
 import org.cytoscape.application.swing.CytoPanelComponent2;
 import org.cytoscape.application.swing.CytoPanelName;
 import org.cytoscape.model.CyNetwork;
@@ -35,10 +35,6 @@ import cz.cas.mbu.cygenexpi.HumanApprovalTags;
 import cz.cas.mbu.cygenexpi.ProfileTags;
 import cz.cas.mbu.cygenexpi.TaggingService;
 import cz.cas.mbu.cygenexpi.internal.TaggingInfo;
-
-import javax.swing.JSeparator;
-import java.awt.Font;
-import java.awt.Dimension;
 
 public class BatchTaggingPanel extends JPanel implements CytoPanelComponent2 {
 
@@ -200,14 +196,15 @@ public class BatchTaggingPanel extends JPanel implements CytoPanelComponent2 {
 		taggingSetPanel.removeAll();
 
 		int maxDisplayed = fmt.getWidth() * fmt.getHeight();
-		CyNetwork network = registrar.getService(CyApplicationManager.class).getCurrentNetwork();
+		CyNetwork network = taggingInfo.getSeriesProvider().getNetwork();
+		List<CyRow> candidateRows;
 		if(mode == TaggingMode.NODE)
 		{
-			currentlyShownRows = registrar.getService(TaggingService.class).getNodeRowsPendingApproval(network);
+			candidateRows = registrar.getService(TaggingService.class).getNodeRowsPendingApproval(network);
 		}
 		else if(mode == TaggingMode.EDGE)
 		{
-			currentlyShownRows = registrar.getService(TaggingService.class).getEdgeRowsPendingApproval(network);			
+			candidateRows = registrar.getService(TaggingService.class).getEdgeRowsPendingApproval(network);			
 		}
 		else
 		{
@@ -215,7 +212,7 @@ public class BatchTaggingPanel extends JPanel implements CytoPanelComponent2 {
 		}
 		
 		//Filter rows with no series and limit max rows to the max displayed
-		currentlyShownRows = currentlyShownRows.stream()
+		currentlyShownRows = candidateRows.stream()
 				.filter(row -> taggingInfo.getSeriesProvider().isRelevant(row))
 				.limit(maxDisplayed)
 				.collect(Collectors.toList());		

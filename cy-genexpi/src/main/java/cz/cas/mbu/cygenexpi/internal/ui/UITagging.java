@@ -117,7 +117,7 @@ public class UITagging {
 			public List<TaggingSeriesDescriptor> getSeriesForTagging(CyRow taggedRow) {
 				List<TaggingSeriesDescriptor> result = new ArrayList<>();
 				
-				CyNetwork network = registrar.getService(CyApplicationManager.class).getCurrentNetwork();
+				CyNetwork network = getNetwork();
 
 				CyEdge edge = network.getEdge(taggedRow.get(CyIdentifiable.SUID, Long.class));
 				CyTable nodeTable = network.getDefaultNodeTable();

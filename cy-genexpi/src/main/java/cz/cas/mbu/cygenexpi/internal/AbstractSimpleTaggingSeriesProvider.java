@@ -1,5 +1,6 @@
 package cz.cas.mbu.cygenexpi.internal;
 
+import org.cytoscape.model.CyNetwork;
 import org.cytoscape.model.CyRow;
 
 import cz.cas.mbu.cydataseries.MappingDescriptor;
@@ -33,4 +34,10 @@ public abstract class AbstractSimpleTaggingSeriesProvider  implements TaggingSer
 		}
 	}
 
+	@Override
+	public CyNetwork getNetwork() {
+		return mainSeriesDescriptor.getNetwork();
+	}
+
+	
 }
