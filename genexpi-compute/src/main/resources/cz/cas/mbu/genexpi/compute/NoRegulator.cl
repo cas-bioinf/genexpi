@@ -52,7 +52,7 @@ T_Value ErrorNoRegulator(
     //Start at one (initial condition ensures that error at 0th point is 0)
     for(int time = 1; time < numTime; time++)
     {
-        T_Value value = signDerivativeAtZero * (constantFactor * exp(-decay * time * timeStep) + ratio);
+        T_Value value = signDerivativeAtZero * (constantFactor * exp(-decay * time * timeStep) - ratio);
       
         const T_Value diff = value - TARGET_VALUE(time);
         error += ERROR_FROM_DIFF(diff);        

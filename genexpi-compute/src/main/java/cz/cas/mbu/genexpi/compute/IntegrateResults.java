@@ -58,7 +58,7 @@ public class IntegrateResults {
 		for(int i = 0; i < targetProfile.size(); i++)
 		{
 			double time = targetTimePoints[i] - profileInitialTime; //the NoRegulator inference has to start at time 0 (so I shift all times)
-	        double value = signDerivativeAtZero * (constantFactor * Math.exp(-decay * time) + ratio);
+	        double value = signDerivativeAtZero * (constantFactor * Math.exp(-decay * time) - ratio);
 			result[i] = value;
 		}
 		return result;
