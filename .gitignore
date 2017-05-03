@@ -10,3 +10,6 @@ buildNumber.properties
 rpackage/.Rproj.user/
 rpackage/.Rhistory
 rpackage/.RData
+.Rproj.user/
+*.rds
+.Rproj.user

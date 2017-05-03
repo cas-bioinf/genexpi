@@ -1,8 +1,47 @@
+getDeviceSpecs <- function(device = NULL, deviceType = NULL) {
+    if(is.null(device)) {
+      if (is.null(deviceType)) {
+        return (.jnew(rinterfaceType("DeviceSpecs")));
+
+      }
+      else {
+        if (deviceType == "gpu") {
+          return (.jcall(rinterfaceType("DeviceSpecs"), rinterfaceReturnType("DeviceSpecs"), "gpuSpecs"))
+        }
+        else if (deviceType == "processor") {
+          return (.jcall(rinterfaceType("DeviceSpecs"), rinterfaceReturnType("DeviceSpecs"), "processorSpecs"))
+        }
+        else {
+          stop("deviceType has to be either 'gpu' or 'processor'");
+        }
+
+      }
+    }
+    else {
+      if(!is.null(deviceType)) {
+        stop("You cannot specify both device and deviceType");
+      }
+
+      deviceList = J(rinterfaceType("RInterface"))$getAllDevices();
+      numDevices = deviceList$size();
+      if(is.integer(device)) {
+        if(device < 0 || device >= numDevices) {
+          stop("Invalid device ID. Call XXX to get the list of possible devices"); #TODO method name
+        }
+        return (new(J(rinterfaceType("DeviceSpecs"), deviceList$get(device))));
+      }
+    }
+
+}
+
 #.jcall(result[[1]], "D","getError")
-computeGN <- function(profiles, tasks) {
+computeGN <- function(profiles, tasks, deviceSpecs) {
 
   #TODO: Check parameters
   numRegulators = dim(tasks)[2] - 1;
+  if(numRegulators < 1) {
+    stop("The given tasks should contain at least one regulator index and one target");
+  }
 
   profileList <- .jcast(.jnew("java/util/ArrayList"), "java/util/List");
 
@@ -20,6 +59,7 @@ computeGN <- function(profiles, tasks) {
   taskListR = list();
   for (i in 1:dim(tasks)[1])
   {
+    #TODO allow multiple regulators
     #Create the inference tasks (move to 0-based indices in Java)
     taskListR[[i]] = .jnew("cz/cas/mbu/gn/compute/AdditiveRegulationInferenceTask", as.integer(tasks[i,1] - 1), as.integer(tasks[i,2] - 1))
   }

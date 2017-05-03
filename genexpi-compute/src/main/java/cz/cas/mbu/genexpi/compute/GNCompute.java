@@ -47,23 +47,30 @@ public class GNCompute<NUMBER_TYPE extends Number> {
     private final CLKernel kernel;
     
 
+    public static CLDevice getBestDevice()
+    {
+    	CLDevice device = JavaCL.getBestDevice(CLPlatform.DeviceFeature.OutOfOrderQueueSupport, CLPlatform.DeviceFeature.GPU, CLPlatform.DeviceFeature.MaxComputeUnits);
+    	if(device != null)
+    	{
+    		return device;
+    	}
+    	device = JavaCL.getBestDevice(CLPlatform.DeviceFeature.OutOfOrderQueueSupport, CLPlatform.DeviceFeature.MaxComputeUnits);
+    	if(device != null)
+    	{
+    		return device;
+    	}
+    	return JavaCL.getBestDevice();    	
+    	
+    }
+    
     /**
      * 
      * @return null if no context available
      */
     public static CLContext getBestContext()
     {
-    	CLContext context = JavaCL.createBestContext(CLPlatform.DeviceFeature.OutOfOrderQueueSupport, CLPlatform.DeviceFeature.GPU, CLPlatform.DeviceFeature.MaxComputeUnits);
-    	if(context != null)
-    	{
-    		return context;
-    	}
-    	context = JavaCL.createBestContext(CLPlatform.DeviceFeature.OutOfOrderQueueSupport, CLPlatform.DeviceFeature.MaxComputeUnits);
-    	if(context != null)
-    	{
-    		return context;
-    	}
-    	return JavaCL.createBestContext();    	
+    	CLDevice device = getBestDevice();
+    	return device.getPlatform().createContext(null, device);    	
     }
 
     public GNCompute(Class<NUMBER_TYPE> elementClass, CLContext context, InferenceModel model, EMethod method,
