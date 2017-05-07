@@ -34,8 +34,42 @@ getDeviceSpecs <- function(device = NULL, deviceType = NULL) {
 
 }
 
+defaultErrorDef <- function() {
+  return(list(absolute = 0, relative = 0.2, minimal = 0))
+}
+
+errorMargin <- function(x, errorDef = defaultErrorDef()) {
+  errors = x * errorDef$relative + errorDef$absolute;
+  errors[errors < errorDef$minimal] = errorDef$minimal;
+  return(errors)
+}
+
+profileFit <- function(targetProfile, candidateProfile, errorDef = defaultErrorDef()) {
+  if(length(targetProfile) != length(candidateProfile)) {
+    error("Profiles must have the same length")
+  }
+  matches = abs(targetProfile - candidateProfile) < errorMargin(targetProfile, errorDef);
+  return(mean(matches));
+}
+
+#Returns a boolean matrix. True -> can be fit by a constant profile
+testConstant <- function(profiles, errorDef = defaultErrorDef() ) {
+  errors = errorMargin(profiles, errorDef);
+  minUpperBound = apply(profiles + errors, FUN = min, MARGIN = 1)
+  maxLowerBound = apply(profiles - errors, FUN = max, MARGIN = 1)
+  return(minUpperBound > maxLowerBound)
+}
+
+computeConstantSynthesis <- function(deviceSpecs, profiles) {
+
+}
+
+testConstantSynthesis <- function(constantSynthesisResults, errorDef = defaultErrorDef(), fitQuality = 0.8 ) {
+
+}
+
 #.jcall(result[[1]], "D","getError")
-computeGN <- function(profiles, tasks, deviceSpecs) {
+computeAdditiveRegulation <- function(deviceSpecs, profiles, tasks, constraints = NULL) {
 
   #TODO: Check parameters
   numRegulators = dim(tasks)[2] - 1;
@@ -69,6 +103,8 @@ computeGN <- function(profiles, tasks, deviceSpecs) {
 
   model = .jcall("cz/cas/mbu/gn/compute/InferenceModel","Lcz/cas/mbu/gn/compute/InferenceModel;", "createAdditiveRegulationModel", as.integer(numRegulators));
 
+  #TODO: Constraints
+
   rInt = .jnew("cz/cas/mbu/gn/rinterface/RInterface");
   result = .jcall(rInt, "[Lcz/cas/mbu/gn/compute/InferenceResult;", "executeComputation", profileList, taskListJava, model);
 
@@ -88,8 +124,11 @@ computeGN <- function(profiles, tasks, deviceSpecs) {
 
   processedResult = list(parameters = params, errors = errors, profiles = profiles, tasks = tasks);
   class(processedResult) <- "gnDifferential";
-  #return( .jcall(rInt, "Ljava/util/List", "executeComputation", profileList, taskList));
   return( processedResult );
 }
 
 
+#Returns a matrix of integrated profiles according to the fit parameters
+evaluateAdditiveRegulationResult <- function(additiveRegulationResult) {
+
+}
