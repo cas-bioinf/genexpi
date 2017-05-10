@@ -27,7 +27,7 @@ public class IntegrateResults {
 		integrator.integrate(equations, profileInitialTime, new double[] {initialValue}, endTime, new double[1]); //I ignore the last (output argument)
 		
 		double[] result = new double[targetTimePoints.length];
-		for(int i = 0; i < targetProfile.size(); i++)
+		for(int i = 0; i < targetTimePoints.length; i++)
 		{
 			outputModel.setInterpolatedTime(targetTimePoints[i]);
 			result[i] = outputModel.getInterpolatedState()[0];
@@ -54,8 +54,8 @@ public class IntegrateResults {
         
         double ratio = basalSynthesis / decay;
                 
-		double[] result = new double[targetProfile.size()];
-		for(int i = 0; i < targetProfile.size(); i++)
+		double[] result = new double[targetTimePoints.length];
+		for(int i = 0; i < targetTimePoints.length; i++)
 		{
 			double time = targetTimePoints[i] - profileInitialTime; //the NoRegulator inference has to start at time 0 (so I shift all times)
 	        double value = signDerivativeAtZero * (constantFactor * Math.exp(-decay * time) - ratio);

@@ -1,30 +1,30 @@
-generateRandomProfile <- function(time, variance, length) {
+generateRandomProfile <- function(time, scale, length) {
   covMatrix = array(0,c(length(time), length(time)));
   for(i in 1:length(time))  {
-    covMatrix[i,i] = variance + 0.00001;
+    covMatrix[i,i] = scale + 0.00001;
     if (i < length(time)) {
       for(j in (i+1):length(time)) {
-        #TOTO je asi spatne
-        covariance = variance * ((0.5) / exp(((time[i] - time[j])/length) ^ 2));
+        covariance = (scale^2) * exp( (-0.5 / (length ^ 2)) * ((time[i] - time[j]) ^ 2) );
         covMatrix[i,j] = covariance
         covMatrix[j,i] = covariance
       }
     }
   }
-  cholCov = chol(covMatrix);
-  rawProfile = t(cholCov %*% rnorm(length(time)));
+  cholCov = t(chol(covMatrix));
+  rawProfile = cholCov %*% rnorm(length(time));
+  #return(rawProfile)
   return(log(1 + exp(rawProfile)))
 }
 
-plotRandomProfiles <- function(n, time, variance, length) {
+plotRandomProfiles <- function(n, time, scale, length) {
   profiles = array(0, c(n, length(time)));
   for(i in 1:n) {
-    profiles[i,] = generateRandomProfile(time, variance, length);
+    profiles[i,] = generateRandomProfile(time, scale, length);
   }
   matplot(time, t(profiles), type = "l")
 }
 
-testRandomRegulator <- function(deviceSpecs, rounds, profiles, time, variance, length, errorDef = defaultErrorDef()) {
+testRandomRegulator <- function(deviceSpecs, rounds, profiles, time, scale, length, errorDef = defaultErrorDef()) {
   numProfiles = dim(profiles)[1];
   numTime = dim(profiles)[2];
   profilesWithRegulator = array(0, c(numProfiles + 1, numTime));
@@ -39,7 +39,7 @@ testRandomRegulator <- function(deviceSpecs, rounds, profiles, time, variance, l
   constraints = NULL #TODO positive only
 
   for(round in 1:rounds) {
-    randomProfile = generateRandomProfile(time, variance, length);
+    randomProfile = generateRandomProfile(time, scale, length);
     if(testConstant(randomProfile, errorDef)) {
       fitQualitites[r,] = NA;
     }

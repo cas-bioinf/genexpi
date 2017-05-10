@@ -263,7 +263,7 @@ public class PredictionServiceImpl implements PredictionService {
 				
 				CLContext context = getContext();
 				taskMonitor.setStatusMessage("Predicting, using " + context.getDevices()[0].getName() +  "\n(if running on a GPU, computer may be unresponsive during computation)");
-				GNCompute<Float> compute = new GNCompute<>(Float.class, context, model, method, null /*No error function*/, lossFunction, regularizationWeight, useCustomTimeStep, (float)timeStep);
+				GNCompute<Float> compute = new GNCompute<>(Float.class, context, model, method, null /*No error function*/, lossFunction, useCustomTimeStep, (float)timeStep);
 				
 				int numIterations = 128;
 				List<InferenceResult> results = compute.computeNoRegulator(geneProfiles, inferenceTasks, numIterations, registrar.getService(ConfigurationService.class).isPreventFullOccupation());
@@ -512,7 +512,7 @@ public class PredictionServiceImpl implements PredictionService {
 				float regularizationWeight = 24;
 				
 				CLContext context = getContext();
-				GNCompute<Float> compute = new GNCompute<>(Float.class, context, model, method, errorFunction, lossFunction, regularizationWeight, useCustomTimeStep, (float)timeStep);
+				GNCompute<Float> compute = new GNCompute<>(Float.class, context, model, method, errorFunction, lossFunction, useCustomTimeStep, (float)timeStep);
 				
 				int numIterations = 128;
 				List<InferenceResult> results = new ArrayList<>();
@@ -523,7 +523,7 @@ public class PredictionServiceImpl implements PredictionService {
 					taskMonitor.setProgress((double)step / (double)numSteps);
 					int minIndex = step * MAX_TASKS_PER_EXECUTION;
 					int maxIndex = Math.min((step + 1) * MAX_TASKS_PER_EXECUTION, inferenceTasks.size());
-					List<InferenceResult> partialResults = compute.computeAdditiveRegulation(geneProfiles, inferenceTasks.subList(minIndex, maxIndex), 1, numIterations, registrar.getService(ConfigurationService.class).isPreventFullOccupation());
+					List<InferenceResult> partialResults = compute.computeAdditiveRegulation(geneProfiles, inferenceTasks.subList(minIndex, maxIndex), 1, numIterations, regularizationWeight, registrar.getService(ConfigurationService.class).isPreventFullOccupation());
 					results.addAll(partialResults);
 				}
 				

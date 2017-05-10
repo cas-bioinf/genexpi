@@ -44,7 +44,7 @@ public class DeviceSpecs {
 		return device.getPlatform().createContext(null, device);
 	}
 	
-	public String getDeviceDescription() {
+	public String getDeviceDescription2() {
 		CLDevice device = getDevice();
 		return device.getPlatform().getName() + ": " + device.getName();
 	}

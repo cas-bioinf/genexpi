@@ -287,9 +287,9 @@ public class App {
             }
         }
 
-        GNCompute<NUMBER_TYPE> compute = new GNCompute<>(numberType, context, params.model, params.method, params.errorFunction, params.lossFunction, params.regularizationWeight, params.useCustomTimeStep, params.customTimeStep);
+        GNCompute<NUMBER_TYPE> compute = new GNCompute<>(numberType, context, params.model, params.method, params.errorFunction, params.lossFunction, params.useCustomTimeStep, params.customTimeStep);
                
-        List<InferenceResult> results = compute.computeAdditiveRegulation(profiles, inferenceTasks, numRegulators, params.numIterations, params.preventFullOccupation);
+        List<InferenceResult> results = compute.computeAdditiveRegulation(profiles, inferenceTasks, numRegulators, params.numIterations, params.regularizationWeight, params.preventFullOccupation);
         List<String> outCSVMain = new ArrayList<>();
         
         StringBuilder headerBuilder = new StringBuilder("target");
@@ -397,7 +397,7 @@ public class App {
             }
         }
 
-        GNCompute<NUMBER_TYPE> compute = new GNCompute<>(numberType, context, params.model, params.method, params.errorFunction, params.lossFunction, params.regularizationWeight, params.useCustomTimeStep, params.customTimeStep);
+        GNCompute<NUMBER_TYPE> compute = new GNCompute<>(numberType, context, params.model, params.method, params.errorFunction, params.lossFunction, params.useCustomTimeStep, params.customTimeStep);
                
         List<InferenceResult> results = compute.computeNoRegulator(profiles, inferenceTasks, params.numIterations, params.preventFullOccupation);
         List<String> outCSVMain = new ArrayList<>();

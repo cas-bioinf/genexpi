@@ -38,7 +38,6 @@ public class GNCompute<NUMBER_TYPE extends Number> {
     private final EMethod method;
     private final EErrorFunction errorFunction;
     private final ELossFunction lossFunction;    
-    private final float regularizationWeight;
     
     private final boolean useCustomTimeStep;
     private final float customTimeStep;
@@ -74,7 +73,7 @@ public class GNCompute<NUMBER_TYPE extends Number> {
     }
 
     public GNCompute(Class<NUMBER_TYPE> elementClass, CLContext context, InferenceModel model, EMethod method,
-			EErrorFunction errorFunction, ELossFunction lossFunction, float regularizationWeight, boolean useCustomTimeStep, Float customTimeStep) throws IOException {
+			EErrorFunction errorFunction, ELossFunction lossFunction, boolean useCustomTimeStep, Float customTimeStep) throws IOException {
 		super();
 		this.elementClass = elementClass;
 		this.context = context;
@@ -82,7 +81,6 @@ public class GNCompute<NUMBER_TYPE extends Number> {
 		this.method = method;
 		this.errorFunction = errorFunction;
 		this.lossFunction = lossFunction;
-		this.regularizationWeight = regularizationWeight;
 		
 		this.useCustomTimeStep = useCustomTimeStep;
 		if(useCustomTimeStep)
@@ -104,17 +102,15 @@ public class GNCompute<NUMBER_TYPE extends Number> {
         String methodSrc = IOUtils.readText(GNCompute.class.getResource(method.getMethodSource()));
         
         String combinedSource = definitionsSrc + utilsSrc + xorShiftSrc + modelSrc + methodSrc; 
-              
-        /*
-        File srcOut = new File(kernelName + ".cl");
-        try (Writer w = new FileWriter(srcOut))
-		{
-        	w.write(combinedSource);
-		}
-		*/
+
+        //Commented out block of debug code. Slightly ashamed of this.
+//        File srcOut = new File(kernelName + ".cl");
+//        try (Writer w = new FileWriter(srcOut))
+//		{
+//        	w.write(combinedSource);
+//		}
         
         program = context.createProgram(combinedSource);
-        //program.addInclude("/cz/cas/mbu/genenetworks");
         if(errorFunction != null)
         {
         	program.defineMacro(errorFunction.getMacro(), 1);
@@ -389,7 +385,7 @@ public class GNCompute<NUMBER_TYPE extends Number> {
     	
     }
     
-    public List<InferenceResult> computeAdditiveRegulation(List<GeneProfile<NUMBER_TYPE>> geneProfiles, List<AdditiveRegulationInferenceTask> inferenceTasks, int numRegulators, int numIterations, boolean preventFullOccupation) throws IOException
+    public List<InferenceResult> computeAdditiveRegulation(List<GeneProfile<NUMBER_TYPE>> geneProfiles, List<AdditiveRegulationInferenceTask> inferenceTasks, int numRegulators, int numIterations, float regularizationWeight, boolean preventFullOccupation) throws IOException
     {
     	if(inferenceTasks.isEmpty())
     	{
@@ -567,5 +563,30 @@ public class GNCompute<NUMBER_TYPE extends Number> {
      
 
     }
+
+	public InferenceModel getModel() {
+		return model;
+	}
+
+	public EMethod getMethod() {
+		return method;
+	}
+
+	public EErrorFunction getErrorFunction() {
+		return errorFunction;
+	}
+
+	public ELossFunction getLossFunction() {
+		return lossFunction;
+	}
+
+	public boolean isUseCustomTimeStep() {
+		return useCustomTimeStep;
+	}
+
+	public float getCustomTimeStep() {
+		return customTimeStep;
+	}
+    
     
 }
