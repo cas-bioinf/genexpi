@@ -32,18 +32,13 @@ computeConstantSynthesis <- function(deviceSpecs, profilesMatrix, tasks = NULL, 
 
 evaluateConstantSynthesis <- function(constantSynthesisResult, targetTimePoints) {
   if(class(constantSynthesisResult) != "constantSynthesisResult") {
-    error("Must provide an object of class 'constantSynthesisResult'");
+    stop("Must provide an object of class 'constantSynthesisResult'");
   }
   rInt = rinterfaceJavaType("RInterface");
   results = J(rInt)$evaluateConstantSynthesisResult(constantSynthesisResult$profilesJava,
                                           constantSynthesisResult$tasksJava,
                                           constantSynthesisResult$resultsJava,
-                                          targetTimePoints);
-  # results = .jcall(rInt, "[[D", "evaluateConstantSynthesisResult",
-  #                  constantSynthesisResult$profilesJava,
-  #                  constantSynthesisResult$tasksJava,
-  #                  constantSynthesisResult$resultsJava,
-  #                  targetTimePoints);
+                                          as.numeric(targetTimePoints));
   return(.jevalArray(results, simplify = TRUE));
 }
 

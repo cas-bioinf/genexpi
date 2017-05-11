@@ -307,7 +307,7 @@ public class PredictionServiceImpl implements PredictionService {
 					for(int taskId = 0; taskId < inferenceTasks.size(); taskId++)
 					{
 						NoRegulatorInferenceTask task = inferenceTasks.get(taskId);
-						rowNames.add(geneProfiles.get(task.getTargetID()).getName() + " Const. reg");
+						rowNames.add(geneProfiles.get(task.getTargetID()).getName() + " Const. synth.");
 					}
 					
 					TimeSeries resultsSeries = registrar.getService(DataSeriesFactory.class).createTimeSeries(resultsName, rowNames, timePoints, resultsData);

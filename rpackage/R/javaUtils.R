@@ -16,20 +16,8 @@ computeJavaReturnType <- function(typeName) {
 
 
 geneProfilesFromMatrix <- function(profilesMatrix) {
-  profileList <- .jcast(.jnew("java/util/ArrayList"), "java/util/List");
-
-  for (p in 1:(dim(profilesMatrix)[1]))
-  {
-    profileValues <- .jcast(.jnew("java/util/ArrayList"), "java/util/List");
-    for( t in 1:dim(profilesMatrix)[2])
-    {
-      .jcall(profileValues,"Z","add", .jcast(.jnew("java.lang.Float",.jfloat(profilesMatrix[p,t]))));
-    }
-    newProfile <- .jnew(computeJavaType("GeneProfile"),"", profileValues);
-    .jcall(profileList, "Z","add", .jcast(newProfile));
-  }
-
-  return(profileList)
+  matrixForJava = .jarray(profilesMatrix, dispatch = TRUE);
+  return(.jcall(rinterfaceJavaType("RInterface"), "Ljava/util/List;", "geneProfilesFromMatrix", matrixForJava, rownames(profilesMatrix)));
 }
 
 inferenceResultsToR <- function(results, model, profilesMatrix, profilesJava, tasks, tasksJava, rClass) {
@@ -46,7 +34,7 @@ inferenceResultsToR <- function(results, model, profilesMatrix, profilesJava, ta
 
 
 
-  processedResult = list(resultsJava = results, parameters = params, errors = errors, profilesMatrix = profilesMatrix, profilesJava = profilesJava, tasks = tasks, tasksJava = tasksJava);
+  processedResult = list(resultsJava = results, model = model, parameters = params, errors = errors, profilesMatrix = profilesMatrix, profilesJava = profilesJava, tasks = tasks, tasksJava = tasksJava);
   class(processedResult) <- rClass;
   return(processedResult);
 }

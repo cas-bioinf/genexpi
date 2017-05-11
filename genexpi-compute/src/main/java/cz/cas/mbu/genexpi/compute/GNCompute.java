@@ -231,7 +231,7 @@ public class GNCompute<NUMBER_TYPE extends Number> {
 				{
 					if(!warnedOfWrongValues)
 					{
-						System.out.println("Warning: some gene values are negative, infinity or NaN (e.g. for gene " + regulator + " and time " + timePoint + ")");						
+						System.out.println("Warning: some gene values are negative, infinity or NaN (e.g. for gene `" + genes.get(regulator).getName() + "` and time " + timePoint + ")");						
 						warnedOfWrongValues = true;
 					}
 				}

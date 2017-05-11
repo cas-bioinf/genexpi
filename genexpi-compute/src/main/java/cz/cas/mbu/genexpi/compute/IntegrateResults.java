@@ -20,7 +20,7 @@ public class IntegrateResults {
         {
         	initialValue = 0;
         }
-		double endTime = targetTimePoints[targetProfile.size() - 1];
+		double endTime = targetTimePoints[targetTimePoints.length - 1];
 		
 		ContinuousOutputModel outputModel = new ContinuousOutputModel();
 		integrator.addStepHandler(outputModel);		

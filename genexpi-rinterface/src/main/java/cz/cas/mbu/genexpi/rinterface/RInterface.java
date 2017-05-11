@@ -55,6 +55,19 @@ public class RInterface {
     			.collect(Collectors.toList());
     }
 	
+    public static List<GeneProfile<Float>> geneProfilesFromMatrix(double[][] profileMatrix, String[] profileNames) {
+    	List<GeneProfile<Float>> result = new ArrayList<>(profileMatrix.length);
+    	for(int i = 0; i < profileMatrix.length; i++)
+    	{
+    		List<Float> profileValues = Arrays.stream(profileMatrix[i])
+    				.mapToObj(x -> (float)x)
+    				.collect(Collectors.toList());
+    		GeneProfile<Float> profile = new GeneProfile<>(profileNames[i], profileValues);
+    		result.add(profile);
+    	}
+    	return result;
+    }
+    
     public static InferenceResult[] computeAdditiveRegulation(DeviceSpecs deviceSpecs, List<GeneProfile<Float>> geneProfiles, AdditiveRegulationInferenceTask inferenceTasks[], InferenceModel model, int numIterations, float regularizationWeight) 
     {
     	CLContext context = deviceSpecs.createContext();
