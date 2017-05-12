@@ -54,3 +54,23 @@ evaluateAdditiveRegulationResult <- function(additiveRegulationResult, targetTim
   #ex$printStackTrace();
   return(results);
 }
+
+testAdditiveRegulation <- function(additiveRegulationResults, errorDef = defaultErrorDef(), minFitQuality = 0.8 ) {
+  profiles = additiveRegulationResults$profilesMatrix;
+
+  time = 0:(dim(profiles)[2] - 1);
+
+  additiveRegulationEvaluated = evaluateAdditiveRegulationResult(additiveRegulationResults, time)
+
+  regulatedProfiles = logical(dim(profiles)[1])
+  for(i in 1:dim(additiveRegulationResults$tasks)[1]) {
+    #Target is the last column in tasks
+    profileIndex = additiveRegulationResults$tasks[i, dim(additiveRegulationResults$tasks)[2]];
+
+    if(fitQuality(profiles[profileIndex,], additiveRegulationEvaluated[i,], errorDef) >= minFitQuality) {
+      regulatedProfiles[profileIndex] = TRUE;
+    }
+  }
+
+  return(regulatedProfiles)
+}

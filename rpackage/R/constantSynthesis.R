@@ -30,7 +30,7 @@ computeConstantSynthesis <- function(deviceSpecs, profilesMatrix, tasks = NULL, 
   return( inferenceResultsToR(results, model, profilesMatrix, profilesJava, tasks, tasksJava, rClass = "constantSynthesisResult"));
 }
 
-evaluateConstantSynthesis <- function(constantSynthesisResult, targetTimePoints) {
+evaluateConstantSynthesisResult <- function(constantSynthesisResult, targetTimePoints) {
   if(class(constantSynthesisResult) != "constantSynthesisResult") {
     stop("Must provide an object of class 'constantSynthesisResult'");
   }
@@ -43,5 +43,19 @@ evaluateConstantSynthesis <- function(constantSynthesisResult, targetTimePoints)
 }
 
 testConstantSynthesis <- function(constantSynthesisResults, errorDef = defaultErrorDef(), minFitQuality = 0.8 ) {
+  profiles = constantSynthesisResults$profilesMatrix;
 
+  time = 0:(dim(profiles)[2] - 1);
+
+  constantSynthesisEvaluated = evaluateConstantSynthesisResult(constantSynthesisResults, time)
+
+  constantSynthesisProfiles = logical(dim(profiles)[1])
+  for(i in 1:length(constantSynthesisResults$tasks)) {
+    profileIndex = constantSynthesisResults$tasks[i];
+    if(fitQuality(profiles[profileIndex,], constantSynthesisEvaluated[i,], errorDef) >= minFitQuality) {
+      constantSynthesisProfiles[profileIndex] = TRUE;
+    }
+  }
+
+  return(constantSynthesisProfiles)
 }

@@ -1,7 +1,70 @@
+computeSigB <- function(profiles, sigBRegulonNames, errorDef = list(absolute = 0, relative = 0.2, minimal = 0.5), minFitQuality = 0.8) {
+  targetProfiles = rownames(profiles) %in% sigBRegulonNames
+
+
+  #Test flat
+  constantProfiles = testConstant(profiles, errorDef)
+
+  #Test constant synthesis
+  profilesToTestConstantSynthesis = targetProfiles & !constantProfiles;
+  profilesToTestConstantSynthesisIndices = which(profilesToTestConstantSynthesis);
+
+  if(length(profilesToTestConstantSynthesisIndices) <= 0) {
+    constantSynthesisResults = list();
+    constantSynthesisProfiles = logical(0);
+
+    regulationResults = list();
+    actualTargets = logical(0);
+    numTargets = 0;
+    regulated = logical(0);
+  } else {
+
+    constantSynthesisResults = computeConstantSynthesis(getDeviceSpecs(), profiles, tasks = profilesToTestConstantSynthesisIndices);
+
+    constantSynthesisProfiles = testConstantSynthesis(constantSynthesisResults, errorDef, minFitQuality);
+
+    #Run the actual prediction
+    sigBIndex = which(rownames(profiles) == "sigB")
+
+    actualTargets = targetProfiles & !constantProfiles & !constantSynthesisProfiles;
+    numTargets = sum(actualTargets);
+
+    if(numTargets <= 0) {
+      regulationResults = list();
+      actualTargets = logical(0);
+      numTargets = 0;
+      regulated = logical(0);
+    }
+    else {
+      tasks = array(0, c(numTargets,2));
+      tasks[,1] = sigBIndex;
+      tasks[,2] = which(actualTargets);
+
+      #constraints = array(1, )
+
+      regulationResults = computeAdditiveRegulation(getDeviceSpecs(), profiles, tasks)
+      regulated = testAdditiveRegulation(regulationResults, errorDef, minFitQuality)
+    }
+  }
+
+  return( list(
+    constantSynthesisResults = constantSynthesisResults,
+    regulationResults = regulationResults,
+    numConstant = sum(targetProfiles & constantProfiles),
+    constant = targetProfiles & constantProfiles,
+    numConstantSynthesis = sum(constantSynthesisProfiles),
+    constantSynthesis = constantSynthesisProfiles,
+    numTested = numTargets,
+    tested = actualTargets,
+    numRegulated = sum(regulated),
+    regulated = regulated
+  ))
+}
+
 generateRandomProfile <- function(time, scale, length) {
   covMatrix = array(0,c(length(time), length(time)));
   for(i in 1:length(time))  {
-    covMatrix[i,i] = scale + 0.00001;
+    covMatrix[i,i] = scale^2 + 0.00001;
     if (i < length(time)) {
       for(j in (i+1):length(time)) {
         covariance = (scale^2) * exp( (-0.5 / (length ^ 2)) * ((time[i] - time[j]) ^ 2) );
@@ -41,7 +104,7 @@ testRandomRegulator <- function(deviceSpecs, rounds, profiles, time, scale, leng
   for(round in 1:rounds) {
     randomProfile = generateRandomProfile(time, scale, length);
     if(testConstant(randomProfile, errorDef)) {
-      fitQualitites[r,] = NA;
+      fitQualities[round,] = NA;
     }
     else {
       profilesWithRegulator[profilesDim[1] + 1,] = randomProfile;
