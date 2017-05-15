@@ -17,7 +17,11 @@ computeJavaReturnType <- function(typeName) {
 
 geneProfilesFromMatrix <- function(profilesMatrix) {
   matrixForJava = .jarray(profilesMatrix, dispatch = TRUE);
-  return(.jcall(rinterfaceJavaType("RInterface"), "Ljava/util/List;", "geneProfilesFromMatrix", matrixForJava, rownames(profilesMatrix)));
+  geneNames = rownames(profilesMatrix);
+  if(is.null(geneNames)) {
+    geneNames = as.character(1:dim(profilesMatrix)[1]);
+  }
+  return(.jcall(rinterfaceJavaType("RInterface"), "Ljava/util/List;", "geneProfilesFromMatrix", matrixForJava, geneNames));
 }
 
 inferenceResultsToR <- function(results, model, profilesMatrix, profilesJava, tasks, tasksJava, rClass) {

@@ -76,7 +76,7 @@ generateRandomProfile <- function(time, scale, length) {
   cholCov = t(chol(covMatrix));
   rawProfile = cholCov %*% rnorm(length(time));
   #return(rawProfile)
-  return(log(1 + exp(rawProfile)))
+  return(t(log(1 + exp(rawProfile))))
 }
 
 plotRandomProfiles <- function(n, time, scale, length) {
@@ -88,8 +88,9 @@ plotRandomProfiles <- function(n, time, scale, length) {
 }
 
 testRandomRegulator <- function(deviceSpecs, rounds, profiles, time, scale, length, errorDef = defaultErrorDef()) {
-  numProfiles = dim(profiles)[1];
-  numTime = dim(profiles)[2];
+  profilesDim = dim(profiles);
+  numProfiles = profilesDim[1];
+  numTime = profilesDim[2];
   profilesWithRegulator = array(0, c(numProfiles + 1, numTime));
   profilesWithRegulator[1:numProfiles,] = profiles;
 
@@ -108,11 +109,11 @@ testRandomRegulator <- function(deviceSpecs, rounds, profiles, time, scale, leng
     }
     else {
       profilesWithRegulator[profilesDim[1] + 1,] = randomProfile;
-      computationResult = computeAdditiveRegulation(deviceSpecs, profilesWithRegulaor, tasks, constraints = constraints);
-      fittedProfiles = evaluateAdditiveRegulationResult(computationResult);
+      computationResult = computeAdditiveRegulation(deviceSpecs, profilesWithRegulator, tasks, constraints = constraints);
+      fittedProfiles = evaluateAdditiveRegulationResult(computationResult, time);
       numFits = 0;
       for(i in 1:numProfiles) {
-        fitQualities[r,i] = profileFit(profiles[i,], fittedProfiles[i,], errorDef)
+        fitQualities[round,i] = fitQuality(profiles[i,], fittedProfiles[i,], errorDef)
       }
 
     }
