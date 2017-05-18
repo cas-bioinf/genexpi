@@ -11,12 +11,33 @@ computeAdditiveRegulation <- function(deviceSpecs, profilesMatrix, tasks, constr
 
   profilesJava = geneProfilesFromMatrix(profilesMatrix)
 
+  if(is.null(constraints)) {
+    constraints = array("", dim(tasks)[1])
+  } else if(length(constraints) == 1) {
+    constraints = array(constraints, dim(tasks)[1])
+  }
+
+
   taskListR = list();
   for (i in 1:dim(tasks)[1])
   {
     #TODO allow multiple regulators
     #Create the inference tasks (move to 0-based indices in Java)
-    taskListR[[i]] = .jnew(computeJavaType("AdditiveRegulationInferenceTask"), as.integer(tasks[i,1] - 1), as.integer(tasks[i,2] - 1))
+    if(constraints[i] == "")
+    {
+      regulationType = J(computeJavaType("RegulationType"))$All;
+    }
+    else if(constraints[i] == "+") {
+      regulationType = J(computeJavaType("RegulationType"))$PositiveOnly;
+    }
+    else if(constraints[i] == "-") {
+      regulationType = J(computeJavaType("RegulationType"))$NegativeOnly;
+    }
+    else {
+      stop(paste0("Unknown constraint: ", constraints[i]));
+    }
+
+    taskListR[[i]] = .jnew(computeJavaType("AdditiveRegulationInferenceTask"), as.integer(tasks[i,1] - 1), as.integer(tasks[i,2] - 1), regulationType)
   }
 
 
