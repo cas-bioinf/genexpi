@@ -33,6 +33,8 @@ import cz.cas.mbu.genexpi.compute.NoRegulatorInferenceTask;
  * @author MBU
  */
 public class RInterface {
+	private static boolean verbose = true;
+	
     public static List<CLDevice> getAllDevices() {
     	List<CLDevice> result = new ArrayList<>();
 		for(CLPlatform platform : JavaCL.listPlatforms())					
@@ -43,6 +45,10 @@ public class RInterface {
 			}						
 		}
     	return result;
+    }
+    
+    public static void setVerbose(boolean verbose) {
+    	RInterface.verbose = verbose;
     }
     
     public static String getDeviceDescription(CLDevice device) {
@@ -76,7 +82,8 @@ public class RInterface {
         
 			//GNCompute<Float> compute = new GNCompute<>(Float.class, context, model, EMethod.Annealing, EErrorFunction.Euler, ELossFunction.Squared, 10);
         	
-			GNCompute<Float> compute = new GNCompute<Float>(Float.class, context, model, EMethod.Annealing, EErrorFunction.Euler, ELossFunction.Squared, false, null); 
+			GNCompute<Float> compute = new GNCompute<Float>(Float.class, context, model, EMethod.Annealing, EErrorFunction.Euler, ELossFunction.Squared, false, null);
+			compute.setVerbose(verbose);
 			List<InferenceResult> result = compute.computeAdditiveRegulation(geneProfiles, Arrays.asList(inferenceTasks), 1, numIterations, regularizationWeight, false);
 			InferenceResult[] resultArray = new InferenceResult[result.size()];
 			result.toArray(resultArray);
@@ -109,6 +116,7 @@ public class RInterface {
         try {
         
 			GNCompute<Float> compute = new GNCompute<Float>(Float.class, context, InferenceModel.NO_REGULATOR, EMethod.Annealing, EErrorFunction.Euler, ELossFunction.Squared, false, null);
+			compute.setVerbose(verbose);
 				
 			List<InferenceResult> result = compute.computeNoRegulator(geneProfiles, Arrays.asList(inferenceTasks), numIterations, false);
 			InferenceResult[] resultArray = new InferenceResult[result.size()];

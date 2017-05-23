@@ -45,6 +45,7 @@ public class GNCompute<NUMBER_TYPE extends Number> {
     private final CLProgram program;
     private final CLKernel kernel;
     
+    private boolean verbose = true;
 
     public static CLDevice getBestDevice()
     {
@@ -136,7 +137,17 @@ public class GNCompute<NUMBER_TYPE extends Number> {
         
 	}
    
-    private CLEvent[] executeKernel(CLQueue queue, int numItems, int numIterations, boolean preventFullOccupation)
+    
+    
+    public boolean isVerbose() {
+		return verbose;
+	}
+
+	public void setVerbose(boolean verbose) {
+		this.verbose = verbose;
+	}
+
+	private CLEvent[] executeKernel(CLQueue queue, int numItems, int numIterations, boolean preventFullOccupation)
     {
         
         int maxComputeUnits = queue.getDevice().getMaxComputeUnits();
@@ -402,7 +413,9 @@ public class GNCompute<NUMBER_TYPE extends Number> {
         }
         catch(CLException ex)
         {
-            System.out.println("Could not create out-of-order queue. Using default queue.");
+        	if(verbose) {
+        		System.out.println("Could not create out-of-order queue. Using default queue.");
+        	}
             queue = context.createDefaultQueue();        	
         }
         long totalBytes = 0;
@@ -448,7 +461,9 @@ public class GNCompute<NUMBER_TYPE extends Number> {
                       
         long totalMB = totalBytes / (1024 * 1024);
         
-        System.out.println("Allocating " + totalMB + "MB.");
+        if(verbose) {
+        	System.out.println("Allocating " + totalMB + "MB.");
+        }
 
         kernel.setArgs(argumentList.toArray());
         
@@ -456,7 +471,9 @@ public class GNCompute<NUMBER_TYPE extends Number> {
         long preparationDuration = mainStartTime - preparationStartTime;
         
         float preparationDurationMSec = (((float)preparationDuration) / 1000000);
-        System.out.println("Preparation took: " + preparationDurationMSec + " ms.");        
+        if(verbose) {
+        	System.out.println("Preparation took: " + preparationDurationMSec + " ms.");        
+        }
         
         CLEvent[] eventsToWaitForArray = executeKernel(queue, numItems, numIterations, preventFullOccupation);
 
@@ -466,8 +483,9 @@ public class GNCompute<NUMBER_TYPE extends Number> {
    
         float mainDurationMSec = (((float)mainDuration) / 1000000);
 
-        System.out.println("Computation took: " + mainDurationMSec + " ms.");        
-
+        if(verbose) {
+        	System.out.println("Computation took: " + mainDurationMSec + " ms.");        
+        }
         return results;
     }
     
@@ -488,7 +506,9 @@ public class GNCompute<NUMBER_TYPE extends Number> {
         }
         catch(CLException ex)
         {
-            System.out.println("Could not create out-of-order queue. Using default queue.");
+        	if(verbose) {
+        		System.out.println("Could not create out-of-order queue. Using default queue.");
+        	}
             queue = context.createDefaultQueue();        	
         }
         long totalBytes = 0;
@@ -514,7 +534,9 @@ public class GNCompute<NUMBER_TYPE extends Number> {
                       
         long totalMB = totalBytes / (1024 * 1024);
         
-        System.out.println("Allocating " + totalMB + "MB.");
+        if(verbose) {
+        	System.out.println("Allocating " + totalMB + "MB.");
+        }
 
         kernel.setArgs(argumentList.toArray());
         
@@ -522,7 +544,9 @@ public class GNCompute<NUMBER_TYPE extends Number> {
         long preparationDuration = mainStartTime - preparationStartTime;
         
         float preparationDurationMSec = (((float)preparationDuration) / 1000000);
-        System.out.println("Preparation took: " + preparationDurationMSec + " ms.");        
+        if(verbose) {        
+        	System.out.println("Preparation took: " + preparationDurationMSec + " ms.");
+        }
         
         CLEvent[] eventsToWaitForArray = executeKernel(queue, numItems, numIterations, preventFullOccupation);
 
@@ -532,7 +556,9 @@ public class GNCompute<NUMBER_TYPE extends Number> {
    
         float mainDurationMSec = (((float)mainDuration) / 1000000);
 
-        System.out.println("Computation took: " + mainDurationMSec + " ms.");        
+        if(verbose) {
+        	System.out.println("Computation took: " + mainDurationMSec + " ms.");
+        }
 
         return results;
     }    

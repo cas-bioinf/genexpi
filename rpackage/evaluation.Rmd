@@ -1,0 +1,275 @@
+---
+title: "Genexpi evaluation"
+output: html_notebook
+---
+
+# Setting up
+```{r}
+  # Load Genexpi
+  # Load and install the packages required for evaluation against TD-Aracne
+  source("https://bioconductor.org/biocLite.R")
+  biocLite(c("Biobase","TDARACNE", "RBGL"))
+  library(Biobase)
+  library(TDARACNE)
+  library(RBGL)
+  
+  pkgTest <- function(x)
+  {
+    if (!require(x,character.only = TRUE))
+    {
+      install.packages(x,dep=TRUE)
+        if(!require(x,character.only = TRUE)) stop("Package not found")
+    }
+  }
+  pkgTest("foreach")
+  library(foreach)
+  pkgTest("doParallel")
+  library(doParallel)
+
+```
+
+```{r}
+listOpenCLDevices()
+```
+If the list is empty or the call ends in an error, it is probably because your computer has no OpenCL driver installed. Almost all recent GPUs and CPUs (processors) support OpenCL, so you should be able to run Genexpi.
+
+* For GPUs, try updating your device driver. We encountered cases where GPUs started being available only after installing a CPU driver (see next bullet).
+* For CPUs (the usual processors), you need to install specific drivers. As of 2017-05-22, drivers for Intel CPUs can be downloaded at https://software.intel.com/en-us/articles/opencl-drivers#latest_CPU_runtime - (you want “runtime-only”). AMD’s drivers can be found at http://support.amd.com/en-us/kb-articles/Pages/OpenCL2-Driver.aspx.
+
+If the list is non-empty, you can choose which device to use for computation. The best devices to use with Genexpi are (in the following order):
+
+* A dedicated graphics card (GPU) for computing (not connected to a display)
+* A Xeon Phi card
+* Your processor (CPU)
+* A GPU connected to a display
+
+While GPUs will run Genexpi the fastest, using a GPU connected to a display is discouraged as it interferes with the operating system (OS) and may cause your computer to freeze and/or the computations to be reset by the operating system. If you absolutely need to use the GPU running your display, and use Windows, you may want to disable [TDR - Timeout detection and recovery](https://msdn.microsoft.com/en-us/library/windows/hardware/ff569918(v=vs.85).aspx) (expert only).
+
+With that in mind, let use select a device.
+
+```{r}
+#Select the device automatically
+deviceSpecs = getDeviceSpecs()
+
+#Select the best GPU device
+#deviceSpecs = getDeviceSpecs(deviceType = "gpu")
+
+#Select the best CPU device
+#deviceSpecs = getDeviceSpecs(deviceType = "processor")
+
+#Select device by ID
+#deviceSpecs = getDeviceSpecs(device = 1)
+
+#Display the selected device
+if(is.null(deviceSpecs)) {
+  stop("Invalid device")
+} else {
+  deviceSpecs$getDevice()$toString()
+}
+```
+
+# Load the sigB data from GSE6865
+
+The original source: (https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE6865)
+
+```{r}
+temp <- tempfile();
+download.file("ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE6nnn/GSE6865/matrix/GSE6865_series_matrix.txt.gz", temp)
+gse6865_raw_df = read.delim(gzfile(temp), comment.char = "!") #Intermediate data frame representation
+
+# Raw profile data. We scale by 1000 to get to more wieldy values
+gse6865_raw = as.matrix(gse6865_raw_df[,2:15]) / 1000
+rownames(gse6865_raw) = gse6865_raw_df$ID_REF
+
+#Times (in minutes) for the individual samples
+gse6865_raw_time = c(0,5,10,15,20,25,30,40,50,60,70,80,90,100)
+colnames(gse6865_raw) <- sapply(gse6865_raw_time,  FUN = function(x) { paste0(x,"min")})
+
+#We will compute at 1 minute resolution
+smoothTime = 0:100
+errorDef = list(relative = 0.2, absolute = 0, minimal = 0.5)
+
+# There are a few genes that have NA values for the first or second measurement
+cat("Numbers of NA values per measurement:\n")
+apply(gse6865_raw, MARGIN  = 2, FUN = function(x) { sum(is.na(x)) })
+
+# For the first measurement, we can expect the value to be 0 (the series are from germination)
+gse6865_raw[is.na(gse6865_raw[,1]),1] = 0
+
+# For the second measurement we will go with a linear interpolation
+na2 = is.na(gse6865_raw[,2])
+gse6865_raw[na2,2] = 0.5 * gse6865_raw[na2,1] + 0.5 * gse6865_raw[na2,3]
+
+
+
+# Genes in the regulon according to http://subtiwiki.uni-goettingen.de/wiki/index.php/SigB_regulon as of 2017-02-09
+sigBRegulonNames = c("aag", "aldY", "bmr", "bmrR", "bmrU", "bofC", "cdd", "chaA", "clpC", "clpP", "corA", "csbA", "csbB", "csbC", "csbD", "csbX", "ctc", "ctsR", "cypC", "disA", "dps", "era", "gabD", "gsiB", "gspA", "gtaB", "guaD", "hpf", "iolW", "ispD", "ispF", "katE", "katX", "mcsA", "mcsB", "mgsR", "mhqO", "mhqP", "nadE", "nhaX", "ohrB", "opuE", "phoP", "phoR", "plsC", "radA", "rnr", "rpmEB", "rsbRD", "rsbV", "rsbW", "rsbX", "sigB", "sodA", "spo0E", "spoVC", "spx", "trxA", "yaaH", "yaaI", "yacL", "ybyB", "ycbP", "ycdF", "ycdG", "yceC", "yceD", "yceE", "yceF", "yceG", "yceH", "ydaD", "ydaE", "ydaF", "ydaG", "ydaJ", "ydaK", "ydaL", "ydaM", "ydaN", "ydaP", "ydaS", "ydaT", "ydbD", "ydeC", "ydhK", "yerD", "yfhD", "yfhE", "yfhF", "yfhK", "yfhL", "yfhM", "yfkD", "yfkH", "yfkI", "yfkJ", "yfkM", "yfkS", "yfkT", "yflA", "yflH", "yflT", "ygxB", "yhcM", "yhdF", "yhdN", "yhxD", "yitT", "yjbC", "yjgB", "yjgC", "yjgD", "yjzE", "ykgA", "ykgB", "ykuT", "ykzI", "ylxP", "ymzB", "yoaA", "yocB", "yocK", "yoxB", "yoxC", "ypuB", "ypuC", "ypuD", "yqhB", "yqhP", "yqhQ", "yqjL", "yraA", "ysdB", "ysnF", "ytaB", "ytkL", "ytxG", "ytxH", "ytxJ", "yugU", "yuzA", "yvaK", "yvgN", "yvgO", "yvrE", "ywiE", "ywjC", "ywlB", "ywmE", "ywmF", "ywsB", "ywtG", "ywzA", "yxaB", "yxbG", "yxiS", "yxjI", "yxjJ", "yxkO", "yxnA", "yxzF", "yycD", "yczO", "ydaC", "yebE", "yebG", "yflD", "yflB", "yisP", "ipi", "yjlB", "ykzN", "spo0E", "yktC", "ykzC", "rbfA", "ytkC", "ytiB", "menC", "menE", "yuzH", "yvbG", "yvzE", "ywsA", "ywjA", "yydC", "yyzG", "yyzH", "yybO")
+
+
+#cleanup the intermediate results
+rm(gse6865_raw_df)
+rm(na2)
+rm(temp)
+```
+# Random Profiles
+
+```{r}
+
+# Plot 10 random profiles running from 0 to 100 minutes with scale 5 and length 10
+plotRandomProfiles(10, smoothTime, 5, 20, main = "Sampled random profiles");
+```
+
+How do we identify the correct scale and length? Lets just find some that look similar enough to the sigB profile. After a bit of experimentation we chose scale = 7 and length = 20 minutes. Below is a sample of how those random trajectories look, compared to the sigB profile measuered in the data.
+
+```{r}
+sigBRandomScale = 7
+sigBRandomLength = 20
+sigBIndex = which(rownames(gse6865_raw) == "sigB")
+plotRandomProfiles(10,smoothTime, sigBRandomScale, sigBRandomLength, trueTime = gse6865_raw_time, trueProfile = gse6865_raw[sigBIndex,], main = "Sampled random profiles and the sigB profile (dots)")
+```
+
+# Testing Genexpi in the sigB regulon
+
+```{r}
+#Measures performance of a set of random profiles in explaining the profiles in regulon
+testRandomRegulator <- function(deviceSpecs, rounds, profiles, time, scale, length, originalProfile, errorDef = defaultErrorDef()) {
+  profilesDim = dim(profiles);
+  numProfiles = profilesDim[1];
+  numTime = profilesDim[2];
+  profilesWithRegulator = array(0, c(numProfiles + 1, numTime));
+  profilesWithRegulator[1:numProfiles,] = profiles;
+
+  fitQualities = array(0, c(rounds, numProfiles));
+  randomProfiles = array(0, c(rounds, length(time)));
+
+  tasks = array(0, c(numProfiles,2));
+  tasks[,1] = numProfiles + 1 #The regulator
+  tasks[,2] = 1:numProfiles; #The targets
+
+  constraints = "+";
+
+  for(round in 1:rounds) {
+    randomProfile = generateUsefulRandomProfile(time, scale, length, errorDef, originalProfile)
+    randomProfiles[round, ] = randomProfile;
+
+    profilesWithRegulator[profilesDim[1] + 1,] = randomProfile;
+    computationResult = computeAdditiveRegulation(deviceSpecs, profilesWithRegulator, tasks, constraints = constraints);
+    fittedProfiles = evaluateAdditiveRegulationResult(computationResult, time);
+    numFits = 0;
+    for(i in 1:numProfiles) {
+      fitQualities[round,i] = fitQuality(profiles[i,], fittedProfiles[i,], errorDef)
+    }
+
+  }
+  return(list(fitQualities = fitQualities,
+              randomProfiles = randomProfiles));
+}
+
+evaluateRandomForRegulon <- function(deviceSpecs, rounds, profiles, regulatorName, regulonNames, time, scale, length, errorDef = defaultErrorDef(), minFitQuality = 0.8) {
+  trueResults = computeRegulon(deviceSpecs, profiles, regulatorName, regulonNames, errorDef = errorDef, minFitQuality = minFitQuality)
+
+  originalProfile = as.numeric(profiles[rownames(profiles) == regulatorName,])
+  randomResults = testRandomRegulator(deviceSpecs, rounds, profiles[trueResults$tested,], time, scale, length, originalProfile, errorDef);
+
+  trueRatio = trueResults$numRegulated / trueResults$numTested;
+  randomRatios = rowMeans(randomResults$fitQualities > minFitQuality);
+
+  return(list(
+    trueResults = trueResults,
+    trueRatio = trueRatio,
+    randomResults = randomResults,
+    randomRatios = randomRatios,
+    overallRandomRatio = mean(randomResults$fitQualities > minFitQuality),
+    regulonQuantile = ecdf(randomRatios)(trueRatio)
+  ))
+}
+```
+
+So lets take a sneak peek (just 3 random rounds) do we work with 6 degrees of freedom for the spline? (This will take a while to recompute).
+
+```{r}
+result6DF = evaluateRandomForRegulon(deviceSpecs, rounds = 3, profiles = splineProfileMatrix(gse6865_raw, gse6865_raw_time, smoothTime, df = 6), "sigB", sigBRegulonNames, smoothTime, sigBRandomScale, sigBRandomLength, errorDef)
+```
+```{r}
+paste0("Proportion of true regulations discovered: ",result6DF$trueRatio)
+paste0("Overall proportion of regulations by random profiles: ", result6DF$overallRandomRatio)
+```
+
+We may question how this depends on how we spline the data, so let us build a helper function for that.
+```{r}
+testVariousSplines <- function(deviceSpecs, rounds, rawProfiles, rawTime, targetTime, dfsToTest, regulatorName, regulonNames, scale, length, errorDef = defaultErrorDef(), minFitQuality = 0.8) {
+  results = list();
+  for(i in 1:length(dfsToTest)) {
+    profiles = splineProfileMatrix(rawProfiles, rawTime, targetTime, dfsToTest[i]);
+    currentResult = evaluateRandomForRegulon(deviceSpecs, rounds, profiles, regulatorName, regulonNames, targetTime, scale, length, errorDef, minFitQuality)
+    results[[i]] = list(df = dfsToTest[i],
+                      result = currentResult)
+    
+    cat(paste0("DF: ", dfsToTest[i], "\nTrue ratio: ", results[[i]]$result$trueRatio, "\nOverall random: ", results[[i]]$result$overallRandomRatio, "\n\n"));
+  }
+  return(results);
+}
+
+```
+Now, let's test for various splines (we can't get less DFs than 3, 8DFs do clearly overfit) and with more rounds
+
+```{r}
+dfsToTest = 3:8
+randomRounds = 50
+genexpiStart = proc.time();
+genexpiOptions(verbose = FALSE) # Hide unnecessary output
+variousSplinesResult = testVariousSplines(deviceSpecs, rounds = randomRounds, rawProfiles = gse6865_raw, rawTime = gse6865_raw_time, targetTime = smoothTime, dfsToTest = dfsToTest, regulatorName = "sigB", regulonNames = sigBRegulonNames,scale = sigBRandomScale, length = sigBRandomLength, errorDef = errorDef )
+
+genexpiEnd = proc.time();
+# Calculate time per round. For each spline (df) variant I have 1 non-random round in addition to the random roudns
+genexpiTimePerRound = (genexpiEnd["elapsed"] - genexpiStart["elapsed"]) / (length(dfsToTest) * (randomRounds + 1))
+cat(paste0("Genexpi time per round: ", genexpiTimePerRound / 3600, " hours\n"))
+
+```
+
+Let's plot histogram of the random results for 6DFs:
+```{r}
+hist(variousSplinesResult[[which(dfsToTest == 6)]]$result$randomRatios)
+#TODO plot the highest scoring profiles
+```
+
+# Testing TD-Aracne in the sigB regulon
+
+We cannot tell TD-Aracne to only test certain regulations. We tried running pairwise runs, but that turned out to be very expensive (random testing did not finish in a day, running )
+
+Direct vs. downstream vs. connected
+
+```{r}
+#Aracne requires uniform time intervals
+aracneSmoothTimeIndices = c(1,11,21,31,41,51,61,71,81,91,101)
+aracneRawTimeIndices = c(1,3,5,7:14)
+#This was chosen as the minimal value that does not rise warnings
+defaultAracneNumBins = 10
+
+#Aracne is too slow to run too many rounds
+randomRoundsAracne = 14 #This is twice the allocated number of cores
+
+aracneRawStart =  proc.time();
+aracneRawResult = evaluateTDAracne(rounds = randomRounds, profileMatrix = gse6865_raw[,aracneRawTimeIndices, drop=FALSE], time =  gse6865_raw[aracneRawTimeIndices], scale = sigBRandomScale, length = sigBRandomLength,errorDef =errorDef, regulatorName = "sigB", regulonNames = sigBRegulonNames, numBins = defaultAracneNumBins)
+aracneRawEnd =  proc.time();
+aracneRawTimePerRound = (aracneRawEnd["elapsed"] - aracneRawStart["elapsed"]) / (randomRoundsAracne + 1);
+
+aracneSplinedStart =  proc.time();
+aracneSplinedResults = list()
+for(i in 1:length(dfsToTest)) {
+  aracneSplinedResults[[i]] = evaluateTDAracne(rounds = randomRounds, profileMatrix = gse6865_raw[,aracneRawTimeIndices, drop=FALSE], time =  gse6865_raw[aracneRawTimeIndices], scale = sigBRandomScale, length = sigBRandomLength,errorDef =errorDef, regulatorName = "sigB", regulonNames = sigBRegulonNames, numBins = defaultAracneNumBins)
+}
+aracneSplinedEnd = proc.time();
+aracneSplinedTimePerRound = (aracneSplinedEnd["elapsed"] - aracneSplinedStart["elapsed"]) / ((randomRoundsAracne + 1) * length(dfsToTest));
+
+
+numCoresUsed = detectCores()[1] - 1; #The script leaves one CPU idle to let you work while it computes
+printTDAracneEvaluation("Raw data ", aracneRawResult)
+cat(paste0("Raw time per round (on ", numCoruseUsed," cores): ", aracneRawTimePerRound / 3600, " hours\n"))
+for(i in 1:length(dfsToTest)) {
+  printTDAracneEvaluation(paste0("Spline - ", dfsToTest[i], " DF"), aracneSplinedResults[[i]])
+}
+cat(paste0("Splined time per round (on ", numCoresUsed," cores): ", aracneSplinedTimePerRound / 3600, " hours\n"))
+
+```
+

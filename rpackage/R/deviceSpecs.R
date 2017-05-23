@@ -24,12 +24,23 @@ getDeviceSpecs <- function(device = NULL, deviceType = NULL) {
 
     deviceList = J(rinterfaceJavaType("RInterface"))$getAllDevices();
     numDevices = deviceList$size();
-    if(is.integer(device)) {
-      if(device < 0 || device >= numDevices) {
-        stop("Invalid device ID. Call XXX to get the list of possible devices"); #TODO method name
-      }
-      return (new(J(rinterfaceJavaType("DeviceSpecs"), deviceList$get(device))));
+    device = as.integer(device);
+    if(length(device) > 1) {
+      stop("device has to be coercible to a single integer");
     }
+    if(device < 1 || device > numDevices) {
+      stop("Invalid device ID. Call listOpenCLDevices() to get the list of possible devices");
+    }
+    return (new(J(rinterfaceJavaType("DeviceSpecs")), deviceList$get(as.integer(device - 1))));
   }
+}
 
+listOpenCLDevices <- function() {
+  deviceList = J(rinterfaceJavaType("RInterface"))$getAllDevices();
+  numDevices = deviceList$size();
+  result = character(numDevices);
+  for(i in 1:numDevices) {
+    result[i] = deviceList$get(as.integer(i - 1))$toString();
+  }
+  return(result);
 }
