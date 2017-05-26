@@ -509,7 +509,7 @@ public class PredictionServiceImpl implements PredictionService {
 				EMethod method = EMethod.Annealing;
 				EErrorFunction errorFunction = EErrorFunction.Euler;
 				ELossFunction lossFunction = ELossFunction.Squared;
-				float regularizationWeight = 24;
+				float regularizationWeight = (float)expressionSeries.getIndexArray().length / 10.0f;
 				
 				CLContext context = getContext();
 				GNCompute<Float> compute = new GNCompute<>(Float.class, context, model, method, errorFunction, lossFunction, useCustomTimeStep, (float)timeStep);

@@ -1,4 +1,7 @@
 runTDAracne <- function(profileMatrix, regulatorName, regulonNames, numBins = defaultAracneNumBins) {
+  library(Biobase)
+  library(TDARACNE)
+  library(RBGL)
 
   expressionSet = ExpressionSet(assayData = profileMatrix[rownames(profileMatrix) %in% c(regulatorName, regulonNames),]);
   aracneResult = TDARACNE(expressionSet, numBins);
@@ -42,6 +45,8 @@ testTDAracneRandom <- function(rounds, profileMatrix, time, scale, length, regul
 
     runTDAracne(customProfileMatrix, regulatorName, regulonNames, numBins)
   }
+  stopCluster(cl)
+
   return(result)
 
 }
@@ -83,6 +88,8 @@ printTDAracneEvaluation <- function(caption, evaluationResult) {
 
 
 testSingleRegulationByTDAracne <- function(profileMatrix, regulatorName, targetName, numBins = defaultAracneNumBins) {
+  library(Biobase)
+  library(TDARACNE)
   expressionSet = ExpressionSet(assayData = profileMatrix[rownames(profileMatrix) %in% c(regulatorName, targetName),]);
 
   if(.Platform$OS.type == "windows") {
@@ -90,32 +97,49 @@ testSingleRegulationByTDAracne <- function(profileMatrix, regulatorName, targetN
   } else {
     sink("/dev/null")
   }
+  cat("Starting ARACNE\n")
   aracneResult = TDARACNE(expressionSet, numBins);
   sink();
 
-  return(length(aracneResult@edgeL[[regulatorName]]$edges) > 0 || length(aracneResult@edgeL[[targetName]]$edges) > 0);
+  return(list(
+    direct = length(aracneResult@edgeL[[regulatorName]]$edges) > 0,
+    reverse = length(aracneResult@edgeL[[targetName]]$edges) > 0))
 }
 
 testTDAracnePairwise <- function(profileMatrix, regulatorName, regulonNames, numBins = defaultAracneNumBins, outputConnection = NULL) {
-  numRegulated = 0;
+  numRegulatedDirect = 0;
+  numRegulatedAny = 0;
   numTested = 0;
   for(target in regulonNames) {
     if(any(rownames(profileMatrix) == target)) {
       numTested = numTested + 1
       rowStart = paste0(regulatorName, "\t", target, "\t");
-      if(testSingleRegulationByTDAracne(profileMatrix, regulatorName, target, numBins)) {
+      singleResult = testSingleRegulationByTDAracne(profileMatrix, regulatorName, target, numBins)
+      if(singleResult$direct) {
+        fullRow = paste0(rowStart, "TRUE\t");
+        numRegulatedDirect = numRegulatedDirect + 1
+      }
+      else {
+        fullRow = paste0(rowStart, "FALSE\t");
+      }
+      if(singleResult$direct || singleResult$reverse)
+      {
         fullRow = paste0(rowStart, "TRUE\n");
-        numRegulated = numRegulated + 1
+        numRegulatedAny = numRegulatedAny + 1
       }
       else {
         fullRow = paste0(rowStart, "FALSE\n");
       }
-      if(~is.null(outputConnection)) {
+      if(!is.null(outputConnection)) {
         cat(fullRow, file = outputConnection);
+        flush(outputConnection);
       }
     }
   }
-  return(numRegulated / numTested);
+  return(list(direct = numRegulatedDirect,
+              any = numRegulatedAny,
+              numTested = numTested
+              ));
 }
 
 testTDAracneRandomPairwise <- function(rounds, profileMatrix, time, scale, length, regulatorName, regulonNames, errorDef = getDefaultErrorDef(), numBins = defaultAracneNumBins) {
@@ -125,19 +149,53 @@ testTDAracneRandomPairwise <- function(rounds, profileMatrix, time, scale, lengt
   cl <- makeCluster(cores[1] - 1) #not to overload your computer
   registerDoParallel(cl)
 
-  result = array(0, rounds);
-  #result = foreach(round = 1:rounds, .combine = cbind) %do% {
-  for(round in 1:rounds) {
-    randomProfile = generateUsefulRandomProfile(time, scale, length, errorDef, profileMatrix[rownames(profileMatrix) == regulatorName,])
+  result = foreach(round = 1:rounds) %dopar% {
+  #result = list();
+  #for(round in 1:rounds) {
+    randomProfile = generateUsefulRandomProfile(time = time, scale = scale, length = length, errorDef = errorDef, originalProfile = profileMatrix[rownames(profileMatrix) == regulatorName,])
 
     outputConnection = file(paste0("C:\\Users\\MBU\\Documents\\Genexpi\\genexpi\\rpackage\\test-out\\round_",as.character(round),".csv"), open = "wt");
     customProfileMatrix = profileMatrix;
     customProfileMatrix[rownames(profileMatrix) == regulatorName,] = randomProfile;
 
-    testTDAracne(customProfileMatrix, regulatorName, regulonNames, numBins, outputConnection = outputConnection)
+    roundResult = testTDAracnePairwise(customProfileMatrix, regulatorName, regulonNames, numBins, outputConnection = outputConnection)
     close(outputConnection)
+    #result[[round]] = roundResult;
+    return(roundResult)
   }
+  stopCluster(cl)
   return(result)
 
+}
+
+evaluateTDAracnePairwise <- function(rounds, profileMatrix, time, scale, length, regulatorName, regulonNames, errorDef, numBins) {
+
+  randomResults = testTDAracneRandomPairwise(rounds = rounds, profileMatrix = profileMatrix, time = time, scale = scale, length = length, regulatorName = regulatorName, regulonNames = regulonNames, errorDef = errorDef, numBins = numBins)
+
+  trueResults = testTDAracnePairwise(profileMatrix, regulatorName, regulonNames)
+  numTested = trueResults$numTested
+  trueRatioDirect = trueResults$direct / numTested
+  trueRatioAny = trueResults$any / numTested
+
+  randomRatiosDirect = sapply(randomResults, FUN = function(x) { x$direct / numTested })
+  randomRatiosAny = sapply(randomResults, FUN = function(x) { x$any / numTested })
+
+  return(list(
+    trueResults = trueResults,
+    trueRatioDirect = trueRatioDirect,
+    trueRatioAny = trueRatioAny,
+    randomResults = randomResults,
+    randomRatiosDirect = randomRatiosDirect,
+    randomRatiosAny = randomRatiosAny,
+    overallRandomRatioDirect = mean(randomRatiosDirect),
+    overallRandomRatioAny = mean(randomRatiosAny),
+    regulonQuantileDirect = ecdf(randomRatiosDirect)(trueRatioDirect),
+    regulonQuantileAny = ecdf(randomRatiosAny)(trueRatioAny)
+  ))
+}
+
+printTDAracnePairwiseEvaluation <- function(caption, evaluationResult) {
+  cat(paste0(caption," Direct - True ratio: ", evaluationResult$trueRatioDirect, " overall random: ", evaluationResult$overallRandomRatioDirect, "\n"))
+  cat(paste0(caption," Any - True ratio: ", evaluationResult$trueRatioAny, " overall random: ", evaluationResult$overallRandomRatioAny, "\n"))
 }
 

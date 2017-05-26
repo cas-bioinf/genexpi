@@ -3,16 +3,14 @@ title: "Genexpi evaluation"
 output: html_notebook
 ---
 
+This R notebook performs the evaluation of Genexpi against TD-Aracne on regulon identifiaction tasks. Note that the full evaluation of Genexpi can take hours and that the evaluation of TD-Aracne can take several days on an high end desktop.
+
 # Setting up
-```{r}
-  # Load Genexpi
-  # Load and install the packages required for evaluation against TD-Aracne
-  source("https://bioconductor.org/biocLite.R")
-  biocLite(c("Biobase","TDARACNE", "RBGL"))
-  library(Biobase)
-  library(TDARACNE)
-  library(RBGL)
-  
+
+First we install and start all the required libraries.
+
+``{r}
+  # Helper function to install packages if they are not available
   pkgTest <- function(x)
   {
     if (!require(x,character.only = TRUE))
@@ -21,19 +19,33 @@ output: html_notebook
         if(!require(x,character.only = TRUE)) stop("Package not found")
     }
   }
+
+  # Install and load Genexpi from GitHub vie devtools
+  pkgTest("devtools")
+  install_github("cas-bioinf/genexpi", subdir="rpackage")
+
+  # Install and load the packages required for evaluation against TD-Aracne
+  source("https://bioconductor.org/biocLite.R")
+  biocLite(c("Biobase","TDARACNE", "RBGL"))
+  library(Biobase)
+  library(TDARACNE)
+  library(RBGL)
+  
   pkgTest("foreach")
   library(foreach)
   pkgTest("doParallel")
   library(doParallel)
 
-```
+``
+
+Genexpi relies on OpenCL, so we need to check the available OpenCL devices:
 
 ```{r}
 listOpenCLDevices()
 ```
 If the list is empty or the call ends in an error, it is probably because your computer has no OpenCL driver installed. Almost all recent GPUs and CPUs (processors) support OpenCL, so you should be able to run Genexpi.
 
-* For GPUs, try updating your device driver. We encountered cases where GPUs started being available only after installing a CPU driver (see next bullet).
+* For GPUs, try updating your device driver. We also encountered cases where GPUs started being available only after installing a CPU driver (see next bullet).
 * For CPUs (the usual processors), you need to install specific drivers. As of 2017-05-22, drivers for Intel CPUs can be downloaded at https://software.intel.com/en-us/articles/opencl-drivers#latest_CPU_runtime - (you want “runtime-only”). AMD’s drivers can be found at http://support.amd.com/en-us/kb-articles/Pages/OpenCL2-Driver.aspx.
 
 If the list is non-empty, you can choose which device to use for computation. The best devices to use with Genexpi are (in the following order):
@@ -45,7 +57,7 @@ If the list is non-empty, you can choose which device to use for computation. Th
 
 While GPUs will run Genexpi the fastest, using a GPU connected to a display is discouraged as it interferes with the operating system (OS) and may cause your computer to freeze and/or the computations to be reset by the operating system. If you absolutely need to use the GPU running your display, and use Windows, you may want to disable [TDR - Timeout detection and recovery](https://msdn.microsoft.com/en-us/library/windows/hardware/ff569918(v=vs.85).aspx) (expert only).
 
-With that in mind, let use select a device.
+With that in mind, let us select a device.
 
 ```{r}
 #Select the device automatically
@@ -64,11 +76,12 @@ deviceSpecs = getDeviceSpecs()
 if(is.null(deviceSpecs)) {
   stop("Invalid device")
 } else {
-  deviceSpecs$getDevice()$toString()
+  paste0("Using device: ",deviceSpecs$getDevice()$toString())
 }
 ```
+# Testing SigB regulon of Bacilus subtilis
 
-# Load the sigB data from GSE6865
+## Load the sigB data from GSE6865
 
 The original source: (https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE6865)
 
@@ -90,7 +103,7 @@ smoothTime = 0:100
 errorDef = list(relative = 0.2, absolute = 0, minimal = 0.5)
 
 # There are a few genes that have NA values for the first or second measurement
-cat("Numbers of NA values per measurement:\n")
+cat("Numbers of NA values per measurement (NAs will be imputed):\n")
 apply(gse6865_raw, MARGIN  = 2, FUN = function(x) { sum(is.na(x)) })
 
 # For the first measurement, we can expect the value to be 0 (the series are from germination)
@@ -111,24 +124,31 @@ rm(gse6865_raw_df)
 rm(na2)
 rm(temp)
 ```
-# Random Profiles
+## Random Profiles
+
+The random profiles are drawn from a [Gaussian process](https://en.wikipedia.org/wiki/Gaussian_process) with squared exponential kernel and zero mean function. To keep the profile strictly positive, it is transformed via $$f(x) = log(1 + e^x)$$
+
+The source of the random profiles related functions can be found at https://github.com/cas-bioinf/genexpi/blob/master/rpackage/R/randomProfiles.R
 
 ```{r}
 
 # Plot 10 random profiles running from 0 to 100 minutes with scale 5 and length 10
-plotRandomProfiles(10, smoothTime, 5, 20, main = "Sampled random profiles");
+plotRandomProfiles(10, smoothTime, 5, 20, main = "Sampled random profiles", ylab="Expression");
 ```
 
-How do we identify the correct scale and length? Lets just find some that look similar enough to the sigB profile. After a bit of experimentation we chose scale = 7 and length = 20 minutes. Below is a sample of how those random trajectories look, compared to the sigB profile measuered in the data.
+How do we identify the correct scale and length for the Gaussian process? Lets just find some that look similar enough to the sigB profile. After a bit of experimentation we chose scale = 7 and length = 20 minutes. Below is a sample of how those random trajectories look, compared to the sigB profile from the original data.
 
 ```{r}
 sigBRandomScale = 7
 sigBRandomLength = 20
 sigBIndex = which(rownames(gse6865_raw) == "sigB")
-plotRandomProfiles(10,smoothTime, sigBRandomScale, sigBRandomLength, trueTime = gse6865_raw_time, trueProfile = gse6865_raw[sigBIndex,], main = "Sampled random profiles and the sigB profile (dots)")
+plotRandomProfiles(10,smoothTime, sigBRandomScale, sigBRandomLength, trueTime = gse6865_raw_time, trueProfile = gse6865_raw[sigBIndex,], main = "Sampled random profiles and the sigB profile (dots)", ylab="expression")
 ```
 
-# Testing Genexpi in the sigB regulon
+## Genexpi in the sigB regulon
+
+TODO - move function defs to package.
+https://github.com/cas-bioinf/genexpi/blob/master/rpackage/R/evaluationTools.R
 
 ```{r}
 #Measures performance of a set of random profiles in explaining the profiles in regulon
@@ -211,7 +231,7 @@ testVariousSplines <- function(deviceSpecs, rounds, rawProfiles, rawTime, target
 }
 
 ```
-Now, let's test for various splines (we can't get less DFs than 3, 8DFs do clearly overfit) and with more rounds
+Now, let's test for various splines (we can't get less DFs than 3, 8 DFs do clearly overfit) and with more rounds.
 
 ```{r}
 dfsToTest = 3:8
@@ -223,7 +243,7 @@ variousSplinesResult = testVariousSplines(deviceSpecs, rounds = randomRounds, ra
 genexpiEnd = proc.time();
 # Calculate time per round. For each spline (df) variant I have 1 non-random round in addition to the random roudns
 genexpiTimePerRound = (genexpiEnd["elapsed"] - genexpiStart["elapsed"]) / (length(dfsToTest) * (randomRounds + 1))
-cat(paste0("Genexpi time per round: ", genexpiTimePerRound / 3600, " hours\n"))
+cat(paste0("Genexpi time per round: ", genexpiTimePerRound / 60, " minutes\n"))
 
 ```
 
@@ -233,12 +253,14 @@ hist(variousSplinesResult[[which(dfsToTest == 6)]]$result$randomRatios)
 #TODO plot the highest scoring profiles
 ```
 
-# Testing TD-Aracne in the sigB regulon
+## Testing TD-Aracne in the sigB regulon
 
 We cannot tell TD-Aracne to only test certain regulations. We tried running pairwise runs, but that turned out to be very expensive (random testing did not finish in a day, running )
 
+When running against the full matrix, TD-Aracne is actually solving a much more complex problem than Genexpi.
 Direct vs. downstream vs. connected
-
+The sources for the evaluateTDAracne function and related code can be found at
+https://github.com/cas-bioinf/genexpi/blob/master/rpackage/R/tdaracneBridge.R
 ```{r}
 #Aracne requires uniform time intervals
 aracneSmoothTimeIndices = c(1,11,21,31,41,51,61,71,81,91,101)
@@ -247,17 +269,22 @@ aracneRawTimeIndices = c(1,3,5,7:14)
 defaultAracneNumBins = 10
 
 #Aracne is too slow to run too many rounds
-randomRoundsAracne = 14 #This is twice the allocated number of cores
+randomRoundsAracne = 10
+```
+
+
+```{r}
+
 
 aracneRawStart =  proc.time();
-aracneRawResult = evaluateTDAracne(rounds = randomRounds, profileMatrix = gse6865_raw[,aracneRawTimeIndices, drop=FALSE], time =  gse6865_raw[aracneRawTimeIndices], scale = sigBRandomScale, length = sigBRandomLength,errorDef =errorDef, regulatorName = "sigB", regulonNames = sigBRegulonNames, numBins = defaultAracneNumBins)
+aracneRawResult = evaluateTDAracne(rounds = randomRoundsAracne, profileMatrix = gse6865_raw[,aracneRawTimeIndices, drop=FALSE], time =  gse6865_raw_time[aracneRawTimeIndices], scale = sigBRandomScale, length = sigBRandomLength,errorDef =errorDef, regulatorName = "sigB", regulonNames = sigBRegulonNames, numBins = defaultAracneNumBins)
 aracneRawEnd =  proc.time();
 aracneRawTimePerRound = (aracneRawEnd["elapsed"] - aracneRawStart["elapsed"]) / (randomRoundsAracne + 1);
 
 aracneSplinedStart =  proc.time();
 aracneSplinedResults = list()
 for(i in 1:length(dfsToTest)) {
-  aracneSplinedResults[[i]] = evaluateTDAracne(rounds = randomRounds, profileMatrix = gse6865_raw[,aracneRawTimeIndices, drop=FALSE], time =  gse6865_raw[aracneRawTimeIndices], scale = sigBRandomScale, length = sigBRandomLength,errorDef =errorDef, regulatorName = "sigB", regulonNames = sigBRegulonNames, numBins = defaultAracneNumBins)
+  aracneSplinedResults[[i]] = evaluateTDAracne(rounds = randomRoundsAracne, profileMatrix = gse6865_raw[,aracneRawTimeIndices, drop=FALSE], time =  gse6865_raw[aracneRawTimeIndices], scale = sigBRandomScale, length = sigBRandomLength,errorDef =errorDef, regulatorName = "sigB", regulonNames = sigBRegulonNames, numBins = defaultAracneNumBins)
 }
 aracneSplinedEnd = proc.time();
 aracneSplinedTimePerRound = (aracneSplinedEnd["elapsed"] - aracneSplinedStart["elapsed"]) / ((randomRoundsAracne + 1) * length(dfsToTest));
@@ -265,11 +292,38 @@ aracneSplinedTimePerRound = (aracneSplinedEnd["elapsed"] - aracneSplinedStart["e
 
 numCoresUsed = detectCores()[1] - 1; #The script leaves one CPU idle to let you work while it computes
 printTDAracneEvaluation("Raw data ", aracneRawResult)
-cat(paste0("Raw time per round (on ", numCoruseUsed," cores): ", aracneRawTimePerRound / 3600, " hours\n"))
+cat(paste0("Raw time per round (on ", numCoresUsed," cores): ", aracneRawTimePerRound / 60, " minutes\n"))
 for(i in 1:length(dfsToTest)) {
   printTDAracneEvaluation(paste0("Spline - ", dfsToTest[i], " DF"), aracneSplinedResults[[i]])
 }
-cat(paste0("Splined time per round (on ", numCoresUsed," cores): ", aracneSplinedTimePerRound / 3600, " hours\n"))
+cat(paste0("Splined time per round (on ", numCoresUsed," cores): ", aracneSplinedTimePerRound / 60, " minutes\n"))
 
 ```
 
+
+```{r}
+
+aracneRawPairwiseStart =  proc.time();
+aracneRawPairwiseResult = evaluateTDAracnePairwise(rounds = randomRoundsAracne, profileMatrix = gse6865_raw[,aracneRawTimeIndices, drop=FALSE], time =  gse6865_raw_time[aracneRawTimeIndices], scale = sigBRandomScale, length = sigBRandomLength, regulatorName = "sigB", regulonNames = sigBRegulonNames,errorDef =errorDef, numBins = defaultAracneNumBins)
+aracneRawPairwiseEnd =  proc.time();
+aracneRawPairwiseTimePerRound = (aracneRawPairwiseEnd["elapsed"] - aracneRawPairwiseStart["elapsed"]) / (randomRoundsAracne + 1);
+
+
+aracneSplinedPairwiseStart =  proc.time();
+aracneSplinedPairwiseResults = list()
+for(i in 1:length(dfsToTest)) {
+  aracneSplinedPairwiseResults[[i]] = evaluateTDAracnePairwise(rounds = randomRoundsAracne, profileMatrix = gse6865_raw[,aracneRawTimeIndices, drop=FALSE], time =  gse6865_raw[aracneRawTimeIndices], scale = sigBRandomScale, length = sigBRandomLength,errorDef =errorDef, regulatorName = "sigB", regulonNames = sigBRegulonNames, numBins = defaultAracneNumBins)
+}
+aracneSplinedPairwiseEnd = proc.time();
+aracneSplinedPairwiseTimePerRound = (aracneSplinedPairwiseEnd["elapsed"] - aracneSplinedPairwiseStart["elapsed"]) / ((randomRoundsAracne + 1) * length(dfsToTest));
+
+
+numCoresUsed = detectCores()[1] - 1; #The script leaves one CPU idle to let you work while it computes
+printTDAracnePairwiseEvaluation("Pairwise - Raw data ", aracneRawPairwiseResult)
+cat(paste0("Pairwise - Raw time per round (on ", numCoresUsed," cores): ", aracneRawPairwiseTimePerRound / 60, " minutes\n"))
+for(i in 1:length(dfsToTest)) {
+  printTDAracneEvaluationPairwise(paste0("Pairwise - Spline - ", dfsToTest[i], " DF"), aracneSplinedPairwiseResults[[i]])
+}
+cat(paste0("Pairwise splined time per round (on ", numCoresUsed," cores): ", aracneSplinedPairwiseTimePerRound / 60, " minutes\n"))
+
+```

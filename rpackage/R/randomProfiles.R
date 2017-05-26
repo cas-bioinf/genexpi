@@ -39,12 +39,25 @@ plotRandomProfiles <- function(n, time, scale, length, trueTime = time, trueProf
 
 #Eliminates profiles that are either too flat or too similar to the regulator profile
 generateUsefulRandomProfile <- function(time, scale, length, errorDef, originalProfile) {
+  numTries = 0;
   repeat { #Rejection sampling to get a non-flat, non-similar profile
     randomProfile = generateRandomProfile(time, scale, length);
+    numTries = numTries + 1
     if(!testConstant(randomProfile, errorDef)) {
-      if(is.null(originalProfile) || cor(originalProfile, randomProfile[1,]) < 0.95) {
+        if(!is.null(originalProfile)) {
+          if(numTries > 100) {
+            warning("Could not find different profile - scale: ", scale, " length: ", length, " time: ", time);
+            break;
+          }
+          else if(cor(originalProfile, randomProfile[1,]) < 0.95) {
+            break;
+          }
+        }
         break;
       }
+    if(numTries > 200) {
+      warning("Could not create non-flat profile. - scale: ", scale, " length: ", length, " time: ", time)
+      break;
     }
   }
   return(randomProfile)
