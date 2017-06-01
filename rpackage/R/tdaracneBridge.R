@@ -29,7 +29,7 @@ runTDAracne <- function(profileMatrix, regulatorName, regulonNames, numBins = de
     connected = connected));
 }
 
-testTDAracneRandom <- function(rounds, profileMatrix, time, scale, length, regulatorName, regulonNames, errorDef, numBins) {
+testTDAracneRandom <- function(rounds, profileMatrix, time, rawTime, splineDFs, randomScale, randomLength, regulatorName, regulonNames, originalProfileRaw, errorDef, numBins) {
   library(foreach);
   library(doParallel);
   cores=detectCores()
@@ -38,7 +38,8 @@ testTDAracneRandom <- function(rounds, profileMatrix, time, scale, length, regul
 
   result = array(0, rounds);
   result = foreach(round = 1:rounds) %dopar% {
-    randomProfile = generateUsefulRandomProfile(time, scale, length, errorDef, as.numeric(profileMatrix[rownames(profileMatrix) == regulatorName,]))
+    randomProfileRaw = generateUsefulRandomProfile(rawTime, randomScale, randomLength, errorDef, as.numeric(originalProfileRaw))
+    randomProfile = splineProfileMatrix(randomProfileRaw, rawTime, time, splineDFs)
 
     customProfileMatrix = profileMatrix;
     customProfileMatrix[rownames(profileMatrix) == regulatorName,] = randomProfile;
@@ -52,9 +53,14 @@ testTDAracneRandom <- function(rounds, profileMatrix, time, scale, length, regul
 }
 
 
-evaluateTDAracne <- function(rounds, profileMatrix, time, scale, length, regulatorName, regulonNames, errorDef, numBins) {
+evaluateTDAracne <- function(rounds, profilesRaw, rawTime, splineDFs, time, randomScale, randomLength, regulatorName, regulonNames, errorDef, numBins) {
 
-  randomResults = testTDAracneRandom(rounds = rounds, profileMatrix = profileMatrix, time = time, scale = scale, length = length, regulatorName = regulatorName, regulonNames = regulonNames, errorDef = errorDef, numBins = numBins)
+  profileMatrix = splineProfileMatrix(profilesRaw, rawTime, time, splineDFs)
+  randomResults = testTDAracneRandom(
+    rounds = rounds, profileMatrix = profileMatrix, time = time, rawTime = rawTime, splineDFs = splineDFs,
+    randomScale = randomScale, randomLength = randomLength, regulatorName = regulatorName, regulonNames = regulonNames,
+    originalProfileRaw = profilesRaw[rownames(profilesRaw) == regulatorName,],
+    errorDef = errorDef, numBins = numBins)
 
   trueResults = runTDAracne(profileMatrix, regulatorName, regulonNames)
   numTested = length(trueResults$graph@nodes)
@@ -90,7 +96,7 @@ printTDAracneEvaluation <- function(caption, evaluationResult) {
 testSingleRegulationByTDAracne <- function(profileMatrix, regulatorName, targetName, numBins = defaultAracneNumBins) {
   library(Biobase)
   library(TDARACNE)
-  expressionSet = ExpressionSet(assayData = profileMatrix[rownames(profileMatrix) %in% c(regulatorName, targetName),]);
+  expressionSet = ExpressionSet(assayData = profileMatrix[rownames(profileMatrix) %in% c(regulatorName, targetName),, drop = FALSE]);
 
   if(.Platform$OS.type == "windows") {
     sink("NUL")
@@ -107,42 +113,55 @@ testSingleRegulationByTDAracne <- function(profileMatrix, regulatorName, targetN
 }
 
 testTDAracnePairwise <- function(profileMatrix, regulatorName, regulonNames, numBins = defaultAracneNumBins, outputConnection = NULL) {
-  numRegulatedDirect = 0;
-  numRegulatedAny = 0;
-  numTested = 0;
-  for(target in regulonNames) {
-    if(any(rownames(profileMatrix) == target)) {
-      numTested = numTested + 1
+
+  numProfiles = dim(profileMatrix)[1]
+  tested = logical(numProfiles)
+  regulatedDirect = logical(numProfiles)
+  regulatedAny = logical(numProfiles)
+
+  for(i in 1:numProfiles) {
+    target = rownames(profileMatrix)[i]
+    if(target %in% regulonNames) {
+      tested[i] = TRUE;
       rowStart = paste0(regulatorName, "\t", target, "\t");
       singleResult = testSingleRegulationByTDAracne(profileMatrix, regulatorName, target, numBins)
       if(singleResult$direct) {
         fullRow = paste0(rowStart, "TRUE\t");
-        numRegulatedDirect = numRegulatedDirect + 1
+        regulatedDirect[i] = TRUE;
       }
       else {
         fullRow = paste0(rowStart, "FALSE\t");
+        regulatedDirect[i] = FALSE;
       }
       if(singleResult$direct || singleResult$reverse)
       {
-        fullRow = paste0(rowStart, "TRUE\n");
-        numRegulatedAny = numRegulatedAny + 1
+        fullRow = paste0(fullRow, "TRUE\n");
+        regulatedAny[i] = TRUE;
       }
       else {
-        fullRow = paste0(rowStart, "FALSE\n");
+        fullRow = paste0(fullRow, "FALSE\n");
+        regulatedAny[i] = FALSE;
       }
       if(!is.null(outputConnection)) {
         cat(fullRow, file = outputConnection);
         flush(outputConnection);
       }
     }
+    else {
+      tested[i] = FALSE;
+      regulatedAny[i] = FALSE;
+      regulatedDirect[i] = FALSE
+    }
   }
-  return(list(direct = numRegulatedDirect,
-              any = numRegulatedAny,
-              numTested = numTested
+  return(list(direct = regulatedDirect,
+              any = regulatedAny,
+              tested = tested
               ));
 }
 
-testTDAracneRandomPairwise <- function(rounds, profileMatrix, time, scale, length, regulatorName, regulonNames, errorDef = getDefaultErrorDef(), numBins = defaultAracneNumBins) {
+testTDAracneRandomPairwise <- function(title, rounds, profileMatrix, time, rawTime, splineDFs, randomScale,
+                                       randomLength, regulatorName, regulonNames, originalProfileRaw,
+                                       errorDef = getDefaultErrorDef(), numBins = defaultAracneNumBins) {
   library(foreach);
   library(doParallel);
   cores=detectCores()
@@ -152,14 +171,23 @@ testTDAracneRandomPairwise <- function(rounds, profileMatrix, time, scale, lengt
   result = foreach(round = 1:rounds) %dopar% {
   #result = list();
   #for(round in 1:rounds) {
-    randomProfile = generateUsefulRandomProfile(time = time, scale = scale, length = length, errorDef = errorDef, originalProfile = profileMatrix[rownames(profileMatrix) == regulatorName,])
+    randomProfileRaw = generateUsefulRandomProfile(time = rawTime, scale = randomScale, length = randomLength, errorDef = errorDef, originalProfile = originalProfileRaw)
+    if(is.null(splineDFs)) {
+      randomProfile = randomProfileRaw
+    }
+    else {
+      randomProfile = splineProfileMatrix(randomProfileRaw, rawTime, time, splineDFs)
+    }
 
-    outputConnection = file(paste0("C:\\Users\\MBU\\Documents\\Genexpi\\genexpi\\rpackage\\test-out\\round_",as.character(round),".csv"), open = "wt");
+    #outputConnection = file(paste0("C:\\Users\\MBU\\Documents\\Genexpi\\genexpi\\rpackage\\test-out\\",title,"_round_",as.character(round),".csv"), open = "wt");
+    outputConnection = NULL;
     customProfileMatrix = profileMatrix;
     customProfileMatrix[rownames(profileMatrix) == regulatorName,] = randomProfile;
 
     roundResult = testTDAracnePairwise(customProfileMatrix, regulatorName, regulonNames, numBins, outputConnection = outputConnection)
-    close(outputConnection)
+    if(!is.null(outputConnection)) {
+      close(outputConnection)
+    }
     #result[[round]] = roundResult;
     return(roundResult)
   }
@@ -168,17 +196,29 @@ testTDAracneRandomPairwise <- function(rounds, profileMatrix, time, scale, lengt
 
 }
 
-evaluateTDAracnePairwise <- function(rounds, profileMatrix, time, scale, length, regulatorName, regulonNames, errorDef, numBins) {
+evaluateTDAracnePairwise <- function(title, rounds, profilesRaw, time, rawTime, splineDFs, randomScale, randomLength, regulatorName, regulonNames, errorDef, numBins) {
+  originalProfileRaw = profilesRaw[rownames(profilesRaw) == regulatorName,]
+  if(is.null(splineDFs)) {
+    profileMatrix = profilesRaw
+    time = rawTime
+  }
+  else {
+    profileMatrix = splineProfileMatrix(profilesRaw, rawTime, time, splineDFs)
+  }
 
-  randomResults = testTDAracneRandomPairwise(rounds = rounds, profileMatrix = profileMatrix, time = time, scale = scale, length = length, regulatorName = regulatorName, regulonNames = regulonNames, errorDef = errorDef, numBins = numBins)
+  randomResults = testTDAracneRandomPairwise(
+    title = title, rounds = rounds, profileMatrix = profileMatrix, time = time, rawTime = rawTime,
+    randomScale = randomScale, randomLength = randomLength, regulatorName = regulatorName,
+    originalProfileRaw = originalProfileRaw, splineDFs = splineDFs,
+    regulonNames = regulonNames, errorDef = errorDef, numBins = numBins)
 
-  trueResults = testTDAracnePairwise(profileMatrix, regulatorName, regulonNames)
-  numTested = trueResults$numTested
-  trueRatioDirect = trueResults$direct / numTested
-  trueRatioAny = trueResults$any / numTested
+  trueResults = testTDAracnePairwise(profileMatrix, regulatorName, regulonNames, numBins = numBins)
+  numTested = sum(trueResults$tested)
+  trueRatioDirect = sum(trueResults$direct) / numTested
+  trueRatioAny = sum(trueResults$any) / numTested
 
-  randomRatiosDirect = sapply(randomResults, FUN = function(x) { x$direct / numTested })
-  randomRatiosAny = sapply(randomResults, FUN = function(x) { x$any / numTested })
+  randomRatiosDirect = sapply(randomResults, FUN = function(x) { sum(x$direct) / numTested })
+  randomRatiosAny = sapply(randomResults, FUN = function(x) { sum(x$any) / numTested })
 
   return(list(
     trueResults = trueResults,
@@ -194,8 +234,59 @@ evaluateTDAracnePairwise <- function(rounds, profileMatrix, time, scale, length,
   ))
 }
 
-printTDAracnePairwiseEvaluation <- function(caption, evaluationResult) {
-  cat(paste0(caption," Direct - True ratio: ", evaluationResult$trueRatioDirect, " overall random: ", evaluationResult$overallRandomRatioDirect, "\n"))
-  cat(paste0(caption," Any - True ratio: ", evaluationResult$trueRatioAny, " overall random: ", evaluationResult$overallRandomRatioAny, "\n"))
+printTDAracnePairwiseEvaluation <- function(caption, evaluationResult, genexpiResult) {
+  testedByGenexpi = genexpiResult$result$trueResults$tested;
+  numTestedAracne = sum(evaluationResult$trueResults$tested)
+  numTestedBoth = sum(testedByGenexpi & evaluationResult$trueResults$tested);
+
+  numTrueAracneDirect = sum(evaluationResult$trueResults$direct)
+  numTrueAracneAny = sum(evaluationResult$trueResults$any)
+
+  meanNumFalseDirect = mean(sapply(evaluationResult$randomResults, FUN = function(x) { sum(x$direct) }))
+  meanNumFalseAny = mean(sapply(evaluationResult$randomResults, FUN = function(x) { sum(x$any) }))
+
+  numTrueDirectTested = sum(evaluationResult$trueResults$direct & testedByGenexpi)
+  numTrueAnyTested = sum(evaluationResult$trueResults$any & testedByGenexpi)
+
+  trueRatioDirectTested =  numTrueDirectTested / numTestedBoth
+  trueRatioAnyTested =  numTrueAnyTested / numTestedBoth
+
+  meanNumFalseDirectTested = mean(sapply(evaluationResult$randomResults, FUN = function(x) { sum(x$direct & testedByGenexpi) }))
+  meanNumFalseAnyTested = mean(sapply(evaluationResult$randomResults, FUN = function(x) { sum(x$any & testedByGenexpi) }))
+
+  falseRatioDirectTested = meanNumFalseDirectTested / numTestedBoth
+  falseRatioAnyTested = meanNumFalseAnyTested / numTestedBoth
+
+  directF1 = f1Helper(numTrueAracneDirect, meanNumFalseDirect, numTestedAracne)
+  anyF1 = f1Helper(numTrueAracneAny, meanNumFalseAny, numTestedAracne)
+  directTestedF1 = f1Helper(numTrueDirectTested, meanNumFalseDirectTested, numTestedBoth)
+  anyTestedF1 = f1Helper(numTrueAnyTested, meanNumFalseAnyTested, numTestedBoth)
+
+  cat(caption," Direct - \t\tTP: ",
+      evaluationResult$trueRatioDirect, "\t(", numTrueAracneDirect, "/", numTestedAracne, ")  ",
+     "\tmean(FP): ",
+     evaluationResult$overallRandomRatioDirect, "\t(", meanNumFalseDirect, "/", numTestedAracne, ")  ",
+     "\tF1: ", directF1,  "\n",
+     sep = "")
+  cat(caption," DirectGenexpi - \tTP: ",
+      trueRatioDirectTested, "\t(", numTrueDirectTested, "/", numTestedBoth, ")  ",
+      "\tmean(FP): ",
+      falseRatioDirectTested, "\t(", meanNumFalseDirectTested, "/", numTestedBoth, ")  ",
+      "\tF1: ", directTestedF1,  "\n",
+      sep = "")
+
+  cat(caption," Any -\t\tTP: ",
+      evaluationResult$trueRatioAny, "\t(", numTrueAracneAny, "/", numTestedAracne, ")  ",
+      "\tmean(FP): ",
+      evaluationResult$overallRandomRatioAny, "\t(", meanNumFalseAny, "/", numTestedAracne, ")  ",
+      "\tF1: ", anyF1,  "\n",
+      sep = "")
+  cat(caption," AnyGenexpi - \tTP: ",
+      trueRatioAnyTested, "\t(", numTrueAnyTested, "/", numTestedBoth, ")  ",
+      "\tmean(FP): ",
+      falseRatioAnyTested, "\t(", meanNumFalseAnyTested, "/", numTestedBoth, ")  ",
+      "\tF1: ", anyTestedF1,  "\n",
+      sep = "")
+
 }
 

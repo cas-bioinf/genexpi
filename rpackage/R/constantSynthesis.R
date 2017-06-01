@@ -20,7 +20,11 @@ computeConstantSynthesis <- function(deviceSpecs, profilesMatrix, tasks = NULL, 
 
   tasksJava <- .jarray(taskListR, contents.class = computeJavaType("NoRegulatorInferenceTask"));
 
-  profilesJava = geneProfilesFromMatrix(profilesMatrix)
+  if(class(profilesMatrix) ==  "jobjRef") {
+    profilesJava = profilesMatrix
+  } else {
+    profilesJava = geneProfilesFromMatrix(profilesMatrix)
+  }
 
   rInt = rinterfaceJavaType("RInterface");
   results = .jcall(rInt, paste0("[L",computeJavaType("InferenceResult"),";"), "computeConstantSynthesis", deviceSpecs, profilesJava, tasksJava, as.integer(numIterations), evalArray = FALSE);

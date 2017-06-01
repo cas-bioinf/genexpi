@@ -1,4 +1,18 @@
-computeAdditiveRegulation <- function(deviceSpecs, profilesMatrix, tasks, constraints = NULL, numIterations = 128, regularizationWeight = dim(profilesMatrix)[2] / 10) {
+defaultRegularizationWeight <- function(profilesMatrix) {
+  if(class(profilesMatrix) ==  "jobjRef") {
+    if(profilesMatrix$isEmpty()) {
+      return(0);
+    }
+    else {
+      return(profilesMatrix$get(as.integer(0))$getProfile()$size() / 10);
+    }
+  }
+  else {
+    return(dim(profilesMatrix)[2] / 10)
+  }
+}
+
+computeAdditiveRegulation <- function(deviceSpecs, profilesMatrix, tasks, constraints = NULL, numIterations = 128, regularizationWeight = defaultRegularizationWeight(profilesMatrix)) {
 
   #TODO: Check parameters
   numRegulators = dim(tasks)[2] - 1;
@@ -9,7 +23,11 @@ computeAdditiveRegulation <- function(deviceSpecs, profilesMatrix, tasks, constr
     stop("More than one regulator currently not supported");
   }
 
-  profilesJava = geneProfilesFromMatrix(profilesMatrix)
+  if(class(profilesMatrix) ==  "jobjRef") {
+    profilesJava = profilesMatrix
+  } else {
+    profilesJava = geneProfilesFromMatrix(profilesMatrix)
+  }
 
   if(is.null(constraints)) {
     constraints = array("", dim(tasks)[1])
@@ -44,8 +62,6 @@ computeAdditiveRegulation <- function(deviceSpecs, profilesMatrix, tasks, constr
   tasksJava <- .jarray(taskListR, contents.class = computeJavaType("AdditiveRegulationInferenceTask"));
 
   model = J(computeJavaType("InferenceModel"))$createAdditiveRegulationModel(as.integer(numRegulators));
-
-  #TODO: Constraints
 
   rInt = rinterfaceJavaType("RInterface");
   results = .jcall(rInt, paste0("[L",computeJavaType("InferenceResult"),";"), "computeAdditiveRegulation", deviceSpecs, profilesJava, tasksJava, model, as.integer(numIterations), .jfloat(regularizationWeight), evalArray = FALSE);

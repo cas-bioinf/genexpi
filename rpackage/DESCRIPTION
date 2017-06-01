@@ -9,6 +9,7 @@ Depends: R (>= 3.1.0), rJava (>= 0.9-0), splines
 Description: A (one paragraph) description of what
   the package does and why it may be useful.
 License: LGPL (>= 2)
+LazyData: true
 SystemRequirements: Java
 URL: https://github.com/martincerny/genexpi
 BugReports: https://github.com/martincerny/genexpi/issues
