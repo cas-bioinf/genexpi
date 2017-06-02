@@ -2,13 +2,20 @@ splineProfileMatrix <- function(profileMatrix, time, targetTime, df, degree = 3)
   if(any(is.na(profileMatrix))) {
     stop("Profiles cannot be NA")
   }
+  #Create the spline basis
   splineBasis = bs(time, df = df,degree = degree)
   #Use a least-squares fit of a B-spline basis
   splineFit <- lm(t(profileMatrix) ~ 0 + splineBasis); #Without intercept
+
+  #Create the same basis but for the target time
   basisNew = bs(x = targetTime, degree = degree, knots = attr(splineBasis, "knots"), Boundary.knots = attr(splineBasis, "Boundary.knots"));
 
+  #The result is the product of the spline coefficients with the spline basis for target time
   splinedResult = t(basisNew %*% splineFit$coefficients);
+
+  #Ensure the profiles are strictly positive
   splinedResult[splinedResult < 0] = 0;
+
   rownames(splinedResult) = rownames(profileMatrix)
   return(splinedResult)
 }

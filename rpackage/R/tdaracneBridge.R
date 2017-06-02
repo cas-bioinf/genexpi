@@ -96,14 +96,18 @@ printTDAracneEvaluation <- function(caption, evaluationResult) {
 testSingleRegulationByTDAracne <- function(profileMatrix, regulatorName, targetName, numBins = defaultAracneNumBins) {
   library(Biobase)
   library(TDARACNE)
-  expressionSet = ExpressionSet(assayData = profileMatrix[rownames(profileMatrix) %in% c(regulatorName, targetName),, drop = FALSE]);
+  profileSubset = profileMatrix[rownames(profileMatrix) %in% c(regulatorName, targetName),, drop = FALSE];
+  expressionSet = ExpressionSet(assayData = profileSubset);
+
+  if(dim(profileSubset)[1] != 2) {
+    stop(paste0("Couldn't find some of the requested genes. Target: ", targetName, " regulator: ", regulatorName))
+  }
 
   if(.Platform$OS.type == "windows") {
     sink("NUL")
   } else {
     sink("/dev/null")
   }
-  cat("Starting ARACNE\n")
   aracneResult = TDARACNE(expressionSet, numBins);
   sink();
 
@@ -168,9 +172,9 @@ testTDAracneRandomPairwise <- function(title, rounds, profileMatrix, time, rawTi
   cl <- makeCluster(cores[1] - 1) #not to overload your computer
   registerDoParallel(cl)
 
-  result = foreach(round = 1:rounds) %dopar% {
-  #result = list();
-  #for(round in 1:rounds) {
+  #result = foreach(round = 1:rounds) %dopar% {
+  result = list();
+  for(round in 1:rounds) {
     randomProfileRaw = generateUsefulRandomProfile(time = rawTime, scale = randomScale, length = randomLength, errorDef = errorDef, originalProfile = originalProfileRaw)
     if(is.null(splineDFs)) {
       randomProfile = randomProfileRaw
@@ -188,8 +192,8 @@ testTDAracneRandomPairwise <- function(title, rounds, profileMatrix, time, rawTi
     if(!is.null(outputConnection)) {
       close(outputConnection)
     }
-    #result[[round]] = roundResult;
-    return(roundResult)
+    result[[round]] = roundResult;
+    #return(roundResult)
   }
   stopCluster(cl)
   return(result)
