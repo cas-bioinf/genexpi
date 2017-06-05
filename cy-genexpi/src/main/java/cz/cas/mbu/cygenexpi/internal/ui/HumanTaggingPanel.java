@@ -34,6 +34,7 @@ import cz.cas.mbu.cygenexpi.TaggingService;
 import cz.cas.mbu.cygenexpi.internal.ErrorDef;
 import cz.cas.mbu.cygenexpi.internal.TaggingInfo;
 
+import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.util.ArrayList;
@@ -58,6 +59,7 @@ import com.jgoodies.forms.layout.RowSpec;
 import javax.swing.JComboBox;
 import java.awt.Font;
 import java.awt.Paint;
+import java.awt.Stroke;
 
 public class HumanTaggingPanel extends JPanel {
 
@@ -157,12 +159,12 @@ public class HumanTaggingPanel extends JPanel {
 
 	protected DrawingSupplier createDrawingSupplier()
 	{
-		//Our paint sequence (the default contains very light yellow, which is not legible
+		//Our paint sequence (the default contains very light yellow and green, which are not legible
 		Paint[] paintSequence = new Paint[] {
 	            new Color(0xFF, 0x55, 0x55),
 	            new Color(0x55, 0x55, 0xFF),
+	            new Color(0x00, 0xC0, 0x00),
 	            new Color(116,71,48),
-	            new Color(0x55, 0xFF, 0x55),
 	            new Color(0xFF, 0x55, 0xFF),
 	            new Color(0x55, 0xFF, 0xFF),
 	            Color.pink,
@@ -216,7 +218,9 @@ public class HumanTaggingPanel extends JPanel {
 		return new DefaultDrawingSupplier(paintSequence,
 				fillPaintSequence, 
 				DefaultDrawingSupplier.DEFAULT_OUTLINE_PAINT_SEQUENCE, 
-				DefaultDrawingSupplier.DEFAULT_STROKE_SEQUENCE,
+				new Stroke[] {
+			            new BasicStroke(2.0f, BasicStroke.CAP_SQUARE,
+			                    BasicStroke.JOIN_BEVEL)},
 				DefaultDrawingSupplier.DEFAULT_OUTLINE_STROKE_SEQUENCE,
 				DefaultDrawingSupplier.DEFAULT_SHAPE_SEQUENCE);
 
@@ -290,6 +294,7 @@ public class HumanTaggingPanel extends JPanel {
 					int newIndex = ribbonDataset.getSeriesCount();
 					ribbonDataset.addSeries(seriesForchart);		
 					
+					ribbonRenderer.setSeriesPaint(newIndex, drawingSupplier.getNextPaint());
 					ribbonRenderer.setSeriesStroke(newIndex, drawingSupplier.getNextStroke());
 					ribbonRenderer.setSeriesFillPaint(newIndex, drawingSupplier.getNextFillPaint());
 				}								
@@ -304,6 +309,7 @@ public class HumanTaggingPanel extends JPanel {
 					int newIndex = lineDataset.getSeriesCount();
 					lineDataset.addSeries(getSeriesName(ts, tsRow, false /* without error*/), seriesData);							
 
+					lineRenderer.setSeriesPaint(newIndex, drawingSupplier.getNextPaint());
 					lineRenderer.setSeriesStroke(newIndex, drawingSupplier.getNextStroke());
 					lineRenderer.setSeriesFillPaint(newIndex, drawingSupplier.getNextFillPaint());
 				}							
