@@ -487,7 +487,7 @@ public class App {
     	errorOption = Option.builder("e")
     			.hasArg()
     			.longOpt("error")
-    			.desc("Use given error function. For Additive model, it can be one of [Euler, RK4, DerivativeDiff]")
+    			.desc("Use given error function. For Additive model, it can be one of [Euler, RK4, DerivativeDiff], default is Euler.")
     			.build();
     	options.addOption(errorOption);
     	
@@ -555,7 +555,7 @@ public class App {
     	timeStepOption = Option.builder("step")
     			.longOpt("time-step")
     			.hasArg()
-    			.desc("Time step between the individual time points")
+    			.desc("Time step between the individual time points (default is 1).")
     			.build();
     	options.addOption(timeStepOption);
     	
@@ -577,7 +577,8 @@ public class App {
     private static void printHelp()
     {
     	HelpFormatter formatter = new HelpFormatter();
-    	formatter.printHelp("gn-standalone names_file profiles_file tasks_file -m <model> [OPTIONS]", options);
+    	formatter.printHelp("java -jar genexpi-standalone.jar names_file profiles_file tasks_file -m <model> [OPTIONS]", options);
+    	System.out.println("For further information, visit https://github.com/cas-bioinf/genexpi/wiki/Command-line");
     }
     
     public static void main(String[] args) throws IOException {
