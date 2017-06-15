@@ -39,7 +39,13 @@ testTDAracneRandom <- function(rounds, profileMatrix, time, rawTime, splineDFs, 
   result = array(0, rounds);
   result = foreach(round = 1:rounds) %dopar% {
     randomProfileRaw = generateUsefulRandomProfile(rawTime, randomScale, randomLength, errorDef, as.numeric(originalProfileRaw))
-    randomProfile = splineProfileMatrix(randomProfileRaw, rawTime, time, splineDFs)
+
+    if(is.null(splineDFs)) {
+      randomProfile = randomProfileRaw
+    }
+    else {
+      randomProfile = splineProfileMatrix(randomProfileRaw, rawTime, time, splineDFs)
+    }
 
     customProfileMatrix = profileMatrix;
     customProfileMatrix[rownames(profileMatrix) == regulatorName,] = randomProfile;
@@ -55,7 +61,15 @@ testTDAracneRandom <- function(rounds, profileMatrix, time, rawTime, splineDFs, 
 
 evaluateTDAracne <- function(rounds, profilesRaw, rawTime, splineDFs, time, randomScale, randomLength, regulatorName, regulonNames, errorDef, numBins) {
 
-  profileMatrix = splineProfileMatrix(profilesRaw, rawTime, time, splineDFs)
+  if(is.null(splineDFs))
+  {
+    profileMatrix = profilesRaw
+    time = rawTime
+  }
+  else {
+    profileMatrix = splineProfileMatrix(profilesRaw, rawTime, time, splineDFs)
+  }
+
   randomResults = testTDAracneRandom(
     rounds = rounds, profileMatrix = profileMatrix, time = time, rawTime = rawTime, splineDFs = splineDFs,
     randomScale = randomScale, randomLength = randomLength, regulatorName = regulatorName, regulonNames = regulonNames,
@@ -87,9 +101,38 @@ evaluateTDAracne <- function(rounds, profilesRaw, rawTime, splineDFs, time, rand
   ))
 }
 
-printTDAracneEvaluation <- function(caption, evaluationResult) {
-  cat(paste0(caption," Downstream - True ratio: ", evaluationResult$trueRatioDownstream, " overall random: ", evaluationResult$overallRandomRatioDownstream, "\n"))
-  cat(paste0(caption," Connected - True ratio: ", evaluationResult$trueRatioConnected, " overall random: ", evaluationResult$overallRandomRatioConnected, "\n"))
+printTDAracneEvaluationHeader <- function() {
+  cat("DF\tType\tnumTested\tRegulator\t\tRandom\t\n");
+}
+
+printTDAracneEvaluationRow <- function(df, type, trueRatio, randomRatio, numTested) {
+  cat(df,type, numTested,round(trueRatio,2), round(numTested*trueRatio),
+      round(randomRatio, 2), numTested*randomRatio, sep = "\t")
+  cat("\n")
+}
+
+printTDAracneEvaluation <- function(df, evaluationResult, genexpiResult) {
+  testedByGenexpi = genexpiResult$result$trueResults$tested;
+  genexpiTestedNames = rownames(genexpiResult$result$trueResults$regulationResults$profilesMatrix)[testedByGenexpi]
+
+  numTestedAracne = length(evaluationResult$trueResults$graph@nodes)
+  numTestedBoth = sum(genexpiTestedNames %in% evaluationResult$trueResults$graph@nodes);
+
+  trueDownstreamNames = evaluationResult$trueResults$downstream
+  trueConnectedNames = evaluationResult$trueResults$connected
+
+  numTrueDownstreamLimited = sum(genexpiTestedNames %in% trueDownstreamNames)
+  numTrueConnectedLimited = sum(genexpiTestedNames %in% trueConnectedNames)
+
+  meanNumFalseDownstreamLimited = mean(sapply(evaluationResult$randomResults, FUN = function(x) { sum(x$downstream %in% genexpiTestedNames) }))
+  meanNumFalseConnectedLimited = mean(sapply(evaluationResult$randomResults, FUN = function(x) { sum(x$connected %in%  genexpiTestedNames) }))
+
+  #downstreamF1 = f1Helper(evaluationResult$trueRatioDownstream * numTested, evaluationResult$overallRandomRatioDownstream * numTested, numTested)
+  #connectedF1 = f1Helper(evaluationResult$trueRatioConnected * numTested, evaluationResult$overallRandomRatioConnected * numTested, numTested)
+  printTDAracneEvaluationRow(df, "Downstream  ", evaluationResult$trueRatioDownstream, evaluationResult$overallRandomRatioDownstream,numTestedAracne)
+  printTDAracneEvaluationRow(df, "Connected   ", evaluationResult$trueRatioConnected, evaluationResult$overallRandomRatioConnected, numTestedAracne)
+  printTDAracneEvaluationRow(df, "Downstream-L", numTrueDownstreamLimited / numTestedBoth, meanNumFalseDownstreamLimited / numTestedBoth,numTestedBoth)
+  printTDAracneEvaluationRow(df, "Connected-L ", numTrueConnectedLimited / numTestedBoth, meanNumFalseConnectedLimited / numTestedBoth,numTestedBoth)
 }
 
 
@@ -238,7 +281,7 @@ evaluateTDAracnePairwise <- function(title, rounds, profilesRaw, time, rawTime, 
   ))
 }
 
-printTDAracnePairwiseEvaluation <- function(caption, evaluationResult, genexpiResult) {
+printTDAracnePairwiseEvaluation <- function(df, evaluationResult, genexpiResult) {
   testedByGenexpi = genexpiResult$result$trueResults$tested;
   numTestedAracne = sum(evaluationResult$trueResults$tested)
   numTestedBoth = sum(testedByGenexpi & evaluationResult$trueResults$tested);
@@ -266,31 +309,9 @@ printTDAracnePairwiseEvaluation <- function(caption, evaluationResult, genexpiRe
   directTestedF1 = f1Helper(numTrueDirectTested, meanNumFalseDirectTested, numTestedBoth)
   anyTestedF1 = f1Helper(numTrueAnyTested, meanNumFalseAnyTested, numTestedBoth)
 
-  cat(caption," Direct - \t\tTP: ",
-      evaluationResult$trueRatioDirect, "\t(", numTrueAracneDirect, "/", numTestedAracne, ")  ",
-     "\tmean(FP): ",
-     evaluationResult$overallRandomRatioDirect, "\t(", meanNumFalseDirect, "/", numTestedAracne, ")  ",
-     "\tF1: ", directF1,  "\n",
-     sep = "")
-  cat(caption," DirectGenexpi - \tTP: ",
-      trueRatioDirectTested, "\t(", numTrueDirectTested, "/", numTestedBoth, ")  ",
-      "\tmean(FP): ",
-      falseRatioDirectTested, "\t(", meanNumFalseDirectTested, "/", numTestedBoth, ")  ",
-      "\tF1: ", directTestedF1,  "\n",
-      sep = "")
-
-  cat(caption," Any -\t\tTP: ",
-      evaluationResult$trueRatioAny, "\t(", numTrueAracneAny, "/", numTestedAracne, ")  ",
-      "\tmean(FP): ",
-      evaluationResult$overallRandomRatioAny, "\t(", meanNumFalseAny, "/", numTestedAracne, ")  ",
-      "\tF1: ", anyF1,  "\n",
-      sep = "")
-  cat(caption," AnyGenexpi - \tTP: ",
-      trueRatioAnyTested, "\t(", numTrueAnyTested, "/", numTestedBoth, ")  ",
-      "\tmean(FP): ",
-      falseRatioAnyTested, "\t(", meanNumFalseAnyTested, "/", numTestedBoth, ")  ",
-      "\tF1: ", anyTestedF1,  "\n",
-      sep = "")
-
+  printTDAracneEvaluationRow(df,"Direct  ",evaluationResult$trueRatioDirect, evaluationResult$overallRandomRatioDirect, numTestedAracne);
+  printTDAracneEvaluationRow(df,"Any     ",evaluationResult$trueRatioAny, evaluationResult$overallRandomRatioAny, numTestedAracne);
+  printTDAracneEvaluationRow(df,"Direct-L",trueRatioDirectTested, falseRatioDirectTested, numTestedBoth);
+  printTDAracneEvaluationRow(df,"Any-L   ",trueRatioAnyTested, falseRatioAnyTested, numTestedBoth);
 }
 

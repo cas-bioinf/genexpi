@@ -11,6 +11,7 @@ We will keep a lot of intermediate results in the form of Java objects in memory
 
 ```{r setup}
   options(java.parameters = "-Xmx2048m")
+  develRun = TRUE;
 ```
 
 First we install and start all the required libraries.
@@ -27,8 +28,10 @@ First we install and start all the required libraries.
   }
 
   # Install and load Genexpi from GitHub vie devtools
-  pkgTest("devtools")
-  install_github("cas-bioinf/genexpi", subdir="rpackage")
+  if(!develRun) {
+    pkgTest("devtools")
+    install_github("cas-bioinf/genexpi", subdir="rpackage")
+  }
 
   # Install and load the packages required for evaluation against TD-Aracne
   source("https://bioconductor.org/biocLite.R")
@@ -86,6 +89,56 @@ if(is.null(deviceSpecs)) {
 }
 ```
 
+# Load the sigB data from GSE6865
+
+The original source of data: (https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE6865)
+
+```{r}
+temp <- tempfile();
+download.file("ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE6nnn/GSE6865/matrix/GSE6865_series_matrix.txt.gz", temp)
+gse6865_raw_df = read.delim(gzfile(temp), comment.char = "!") #Intermediate data frame representation
+
+# Raw profile data. We scale by 1000 to get to more wieldy values
+gse6865_raw = as.matrix(gse6865_raw_df[,2:15]) / 1000
+rownames(gse6865_raw) = gse6865_raw_df$ID_REF
+
+#Times (in minutes) for the individual samples
+gse6865_raw_time = c(0,5,10,15,20,25,30,40,50,60,70,80,90,100)
+colnames(gse6865_raw) <- sapply(gse6865_raw_time,  FUN = function(x) { paste0(x,"min")})
+
+#We will compute at 1 minute resolution
+smoothTime = 0:100
+errorDef = list(relative = 0.2, absolute = 0, minimal = 0.5)
+
+# There are a few genes that have NA values for the first or second measurement
+apply(gse6865_raw, MARGIN  = 2, FUN = function(x) { sum(is.na(x)) })
+
+```
+Above, the number of values that are NA for each time point is shown. Those will be imputed.
+
+```{r}
+# For the first measurement, we can expect the value to be 0 (the series are from germination)
+gse6865_raw[is.na(gse6865_raw[,1]),1] = 0
+
+# For the second measurement we will go with a linear interpolation
+na2 = is.na(gse6865_raw[,2])
+gse6865_raw[na2,2] = 0.5 * gse6865_raw[na2,1] + 0.5 * gse6865_raw[na2,3]
+
+
+
+# Genes in the regulon according to http://subtiwiki.uni-goettingen.de/wiki/index.php/SigB_regulon as of 2017-02-09
+sigBRegulonNames = c("aag", "aldY", "bmr", "bmrR", "bmrU", "bofC", "cdd", "chaA", "clpC", "clpP", "corA", "csbA", "csbB", "csbC", "csbD", "csbX", "ctc", "ctsR", "cypC", "disA", "dps", "era", "gabD", "gsiB", "gspA", "gtaB", "guaD", "hpf", "iolW", "ispD", "ispF", "katE", "katX", "mcsA", "mcsB", "mgsR", "mhqO", "mhqP", "nadE", "nhaX", "ohrB", "opuE", "phoP", "phoR", "plsC", "radA", "rnr", "rpmEB", "rsbRD", "rsbV", "rsbW", "rsbX",  "sodA", "spo0E", "spoVC", "spx", "trxA", "yaaH", "yaaI", "yacL", "ybyB", "ycbP", "ycdF", "ycdG", "yceC", "yceD", "yceE", "yceF", "yceG", "yceH", "ydaD", "ydaE", "ydaF", "ydaG", "ydaJ", "ydaK", "ydaL", "ydaM", "ydaN", "ydaP", "ydaS", "ydaT", "ydbD", "ydeC", "ydhK", "yerD", "yfhD", "yfhE", "yfhF", "yfhK", "yfhL", "yfhM", "yfkD", "yfkH", "yfkI", "yfkJ", "yfkM", "yfkS", "yfkT", "yflA", "yflH", "yflT", "ygxB", "yhcM", "yhdF", "yhdN", "yhxD", "yitT", "yjbC", "yjgB", "yjgC", "yjgD", "yjzE", "ykgA", "ykgB", "ykuT", "ykzI", "ylxP", "ymzB", "yoaA", "yocB", "yocK", "yoxB", "yoxC", "ypuB", "ypuC", "ypuD", "yqhB", "yqhP", "yqhQ", "yqjL", "yraA", "ysdB", "ysnF", "ytaB", "ytkL", "ytxG", "ytxH", "ytxJ", "yugU", "yuzA", "yvaK", "yvgN", "yvgO", "yvrE", "ywiE", "ywjC", "ywlB", "ywmE", "ywmF", "ywsB", "ywtG", "ywzA", "yxaB", "yxbG", "yxiS", "yxjI", "yxjJ", "yxkO", "yxnA", "yxzF", "yycD", "yczO", "ydaC", "yebE", "yebG", "yflD", "yflB", "yisP", "ipi", "yjlB", "ykzN", "spo0E", "yktC", "ykzC", "rbfA", "ytkC", "ytiB", "menC", "menE", "yuzH", "yvbG", "yvzE", "ywsA", "ywjA", "yydC", "yyzG", "yyzH", "yybO")
+
+
+#cleanup the intermediate results
+rm(gse6865_raw_df)
+rm(na2)
+rm(temp)
+
+```
+
+
+
 # Random Profiles
 
 The random profiles are drawn from a [Gaussian process](https://en.wikipedia.org/wiki/Gaussian_process) with squared exponential kernel and zero mean function. To keep the profile strictly positive, it is transformed via $$f(x) = log(1 + e^x)$$
@@ -108,7 +161,7 @@ plotRandomProfiles(10,gse6865_raw_time, scale = sigBRandomScale, length = sigBRa
 ```
 
 # Splining
-Splining is done via linear regression of B-spline bases. The source for splining is in the function ```splineProfileMatrix``` which can be found at https://github.com/cas-bioinf/genexpi/blob/master/rpackage/R/workflow.R The splines are generated using the ```bs``` function from the ```splines``` package and the coefficients are found via standard ```lm``` function. Here is an example:
+Splining is done via linear regression of B-spline basis. The source for splining is in the function ```splineProfileMatrix``` which can be found at https://github.com/cas-bioinf/genexpi/blob/master/rpackage/R/workflow.R The splines are generated using the ```bs``` function from the ```splines``` package and the coefficients are found via standard ```lm``` function. Here is an example:
 
 ```{r}
 #Generated a noisy measuremets
@@ -134,49 +187,6 @@ points(time, testProfile)
 
 # Testing SigB regulon of Bacilus subtilis
 
-## Load the sigB data from GSE6865
-
-The original source of data: (https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE6865)
-
-```{r}
-temp <- tempfile();
-download.file("ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE6nnn/GSE6865/matrix/GSE6865_series_matrix.txt.gz", temp)
-gse6865_raw_df = read.delim(gzfile(temp), comment.char = "!") #Intermediate data frame representation
-
-# Raw profile data. We scale by 1000 to get to more wieldy values
-gse6865_raw = as.matrix(gse6865_raw_df[,2:15]) / 1000
-rownames(gse6865_raw) = gse6865_raw_df$ID_REF
-
-#Times (in minutes) for the individual samples
-gse6865_raw_time = c(0,5,10,15,20,25,30,40,50,60,70,80,90,100)
-colnames(gse6865_raw) <- sapply(gse6865_raw_time,  FUN = function(x) { paste0(x,"min")})
-
-#We will compute at 1 minute resolution
-smoothTime = 0:100
-errorDef = list(relative = 0.2, absolute = 0, minimal = 0.5)
-
-# There are a few genes that have NA values for the first or second measurement
-cat("Numbers of NA values per measurement (NAs will be imputed):\n")
-apply(gse6865_raw, MARGIN  = 2, FUN = function(x) { sum(is.na(x)) })
-
-# For the first measurement, we can expect the value to be 0 (the series are from germination)
-gse6865_raw[is.na(gse6865_raw[,1]),1] = 0
-
-# For the second measurement we will go with a linear interpolation
-na2 = is.na(gse6865_raw[,2])
-gse6865_raw[na2,2] = 0.5 * gse6865_raw[na2,1] + 0.5 * gse6865_raw[na2,3]
-
-
-
-# Genes in the regulon according to http://subtiwiki.uni-goettingen.de/wiki/index.php/SigB_regulon as of 2017-02-09
-sigBRegulonNames = c("aag", "aldY", "bmr", "bmrR", "bmrU", "bofC", "cdd", "chaA", "clpC", "clpP", "corA", "csbA", "csbB", "csbC", "csbD", "csbX", "ctc", "ctsR", "cypC", "disA", "dps", "era", "gabD", "gsiB", "gspA", "gtaB", "guaD", "hpf", "iolW", "ispD", "ispF", "katE", "katX", "mcsA", "mcsB", "mgsR", "mhqO", "mhqP", "nadE", "nhaX", "ohrB", "opuE", "phoP", "phoR", "plsC", "radA", "rnr", "rpmEB", "rsbRD", "rsbV", "rsbW", "rsbX",  "sodA", "spo0E", "spoVC", "spx", "trxA", "yaaH", "yaaI", "yacL", "ybyB", "ycbP", "ycdF", "ycdG", "yceC", "yceD", "yceE", "yceF", "yceG", "yceH", "ydaD", "ydaE", "ydaF", "ydaG", "ydaJ", "ydaK", "ydaL", "ydaM", "ydaN", "ydaP", "ydaS", "ydaT", "ydbD", "ydeC", "ydhK", "yerD", "yfhD", "yfhE", "yfhF", "yfhK", "yfhL", "yfhM", "yfkD", "yfkH", "yfkI", "yfkJ", "yfkM", "yfkS", "yfkT", "yflA", "yflH", "yflT", "ygxB", "yhcM", "yhdF", "yhdN", "yhxD", "yitT", "yjbC", "yjgB", "yjgC", "yjgD", "yjzE", "ykgA", "ykgB", "ykuT", "ykzI", "ylxP", "ymzB", "yoaA", "yocB", "yocK", "yoxB", "yoxC", "ypuB", "ypuC", "ypuD", "yqhB", "yqhP", "yqhQ", "yqjL", "yraA", "ysdB", "ysnF", "ytaB", "ytkL", "ytxG", "ytxH", "ytxJ", "yugU", "yuzA", "yvaK", "yvgN", "yvgO", "yvrE", "ywiE", "ywjC", "ywlB", "ywmE", "ywmF", "ywsB", "ywtG", "ywzA", "yxaB", "yxbG", "yxiS", "yxjI", "yxjJ", "yxkO", "yxnA", "yxzF", "yycD", "yczO", "ydaC", "yebE", "yebG", "yflD", "yflB", "yisP", "ipi", "yjlB", "ykzN", "spo0E", "yktC", "ykzC", "rbfA", "ytkC", "ytiB", "menC", "menE", "yuzH", "yvbG", "yvzE", "ywsA", "ywjA", "yydC", "yyzG", "yyzH", "yybO")
-
-
-#cleanup the intermediate results
-rm(gse6865_raw_df)
-rm(na2)
-rm(temp)
-```
 
 ## Genexpi in the sigB regulon
 
@@ -207,10 +217,13 @@ genexpiEnd = proc.time();
 # Calculate time per round. For each spline (df) variant I have 1 non-random round in addition to the random roudns
 genexpiTimePerRound = (genexpiEnd["elapsed"] - genexpiStart["elapsed"]) / (length(dfsToTest) * (randomRounds + 1))
 
+```
+
+```{r}
 printVariousSplinesResults(variousSplinesResult)
 cat(paste0("Genexpi time per round: ", genexpiTimePerRound, " seconds\n"))
-
 ```
+
 
 Let's plot histogram of the random results for 6DFs:
 ```{r}
@@ -233,6 +246,53 @@ aracneRawTimeIndices = c(1,3,5,7:14)
 defaultAracneNumBins = 10
 
 randomRoundsAracne = 50
+```
+
+# TD-Aracne in simple mode on SigB
+
+For completeness, here is the code to run TD-Aracne in simple mode (on the whole sigB regulon). This takes days to compute! The output has two categories: "Downstream" where every gene that has a directed path from the regulator is treated as regulated and "Connected" where the path need not be directed. Taking only the immediate connections of the regulator had very little performance. (Note that TD-Aracne is solving a much more difficult task here)
+
+```{r}
+  #Aracne in simple mode is too slow
+  randomRoundsAracneSimple = 20
+  dfsToTest_simple = dfsToTest;
+  aracneSplinedStart =  proc.time();
+  aracneSplinedResults = list()
+  for(i in 1:length(dfsToTest_simple)) {
+    aracneSplinedResults[[i]] = evaluateTDAracne(
+      rounds = randomRoundsAracneSimple, profilesRaw = gse6865_raw, time = smoothTime[aracneSmoothTimeIndices], 
+      rawTime = gse6865_raw_time, splineDFs = dfsToTest_simple[i],
+      randomScale = sigBRandomScale, randomLength = sigBRandomLength,errorDef =errorDef, regulatorName = "sigB", regulonNames = sigBRegulonNames, numBins = defaultAracneNumBins)
+  }
+  aracneSplinedEnd = proc.time();
+  aracneSplinedTimePerRound = (aracneSplinedEnd["elapsed"] - aracneSplinedStart["elapsed"]) / ((randomRoundsAracneSimple + 1) * length(dfsToTest_simple));
+  
+  
+  aracneRawStart =  proc.time();
+  aracneRawResult = evaluateTDAracne(
+      rounds = randomRoundsAracneSimple, profilesRaw = gse6865_raw[,aracneRawTimeIndices, drop=FALSE], 
+      time = NULL, 
+      rawTime = gse6865_raw_time[aracneRawTimeIndices], splineDFs = NULL,
+      randomScale = sigBRandomScale, randomLength = sigBRandomLength,errorDef =errorDef, regulatorName = "sigB", regulonNames = sigBRegulonNames, numBins = defaultAracneNumBins)
+    
+
+  aracneRawEnd =  proc.time();
+  aracneRawTimePerRound = (aracneRawEnd["elapsed"] - aracneRawStart["elapsed"]) / (randomRoundsAracneSimple + 1);
+  
+
+```
+
+## Results for simple TD-Aracne, sigB
+```{r}
+  numCoresUsed = detectCores()[1] - 1; #The script leaves one CPU idle to let you work while it computes
+  printTDAracneEvaluationHeader();
+  printTDAracneEvaluation("None", aracneRawResult, variousSplinesResult[[length(variousSplinesResult)]])
+  for(i in 1:length(dfsToTest_simple)) {
+    printTDAracneEvaluation(dfsToTest_simple[i], aracneSplinedResults[[i]], variousSplinesResult[[i]])
+  }
+  cat(paste0("Raw time per round (on ", numCoresUsed," cores): ", aracneRawTimePerRound / 60, " minutes\n"))
+  cat(paste0("Splined time per round (on ", numCoresUsed," cores): ", aracneSplinedTimePerRound / 60, " minutes\n"))
+
 ```
 
 
@@ -261,18 +321,21 @@ aracneRawPairwiseTimePerRound = (aracneRawPairwiseEnd["elapsed"] - aracneRawPair
 
 
 numCoresUsed = detectCores()[1] - 1; #The script leaves one CPU idle to let you work while it computes
+```
 
-cat("==== Results for pairwise TD-ARACNE, sigB ====\n\n")
+### Results for pairwise TD-ARACNE, sigB
+```{r}
+printTDAracneEvaluationHeader();
 #Run on raw data is compared against the highest definition spline
-printTDAracnePairwiseEvaluation("Raw data  ", aracneRawPairwiseResult, variousSplinesResult[[length(variousSplinesResult)]])
+printTDAracnePairwiseEvaluation("None", aracneRawPairwiseResult, variousSplinesResult[[length(variousSplinesResult)]])
+
 for(i in 1:length(dfsToTest)) {
-  printTDAracnePairwiseEvaluation(paste0("Spline - ", dfsToTest[i], " DF"), aracneSplinedPairwiseResults[[i]], variousSplinesResult[[i]])
+  printTDAracnePairwiseEvaluation(dfsToTest[i], aracneSplinedPairwiseResults[[i]], variousSplinesResult[[i]])
 }
-cat("\n")
 cat(paste0("Raw time per round (on ", numCoresUsed," cores): ", aracneRawPairwiseTimePerRound, " seconds\n")) 
 cat(paste0("Splined time per round (on ", numCoresUsed," cores): ", aracneSplinedPairwiseTimePerRound , " seconds\n"))
-
 ```
+
 
 # The SigR regulon of S. coelicolor
 This is basically the same as previously, just with different data.
@@ -307,6 +370,7 @@ sigRIndex = which(rownames(gse44415_raw) == sigRSco)
 plotRandomProfiles(10,gse44415_raw_time, sigRRandomScale, sigRRandomLength, trueTime = gse44415_raw_time, trueProfile = gse44415_raw[sigRIndex,], main = "Sampled random profiles and the sigR profile (dots)", ylab="expression")
 ```
 
+
 ## Genexpi and SigR regulon
 ```{r}
 dfsToTest_r = 3:11
@@ -317,43 +381,137 @@ variousSplinesResult_r = testVariousSplines(deviceSpecs, rounds = randomRounds, 
 genexpiEnd_r = proc.time();
 # Calculate time per round. For each spline (df) variant I have 1 non-random round in addition to the random roudns
 genexpiTimePerRound_r = (genexpiEnd_r["elapsed"] - genexpiStart_r["elapsed"]) / (length(dfsToTest) * (randomRounds + 1))
+```
 
-cat("\n=== Results for the sigR regulon ===\n")
+### Results for Genexpi and the SigR regulon (Kallifidas et al.)
+```{r}
 printVariousSplinesResults(variousSplinesResult_r)
 
 cat(paste0("Genexpi time per round: ", genexpiTimePerRound_r, " seconds\n"))
 
 ```
 
+
 ```{r}
 genexpiStart_r_kim = proc.time();
 genexpiOptions(verbose = FALSE) # Hide unnecessary output
-variousSplinesResult_r_kim = testVariousSplines(deviceSpecs, rounds = randomRounds, rawProfiles = gse44415_raw[rownames(gse44415_raw) %in% c(sigRSco, sigRRegulon_Kim),], rawTime = gse44415_raw_time, targetTime = smoothTime_r, dfsToTest = dfsToTest2, regulatorName = sigRSco, regulonNames = sigRRegulon_Kim,randomScale = sigRRandomScale, randomLength = sigRRandomLength, errorDef = errorDef )
+variousSplinesResult_r_kim = testVariousSplines(deviceSpecs, rounds = randomRounds, rawProfiles = gse44415_raw[rownames(gse44415_raw) %in% c(sigRSco, sigRRegulon_Kim),], rawTime = gse44415_raw_time, targetTime = smoothTime_r, dfsToTest = dfsToTest_r, regulatorName = sigRSco, regulonNames = sigRRegulon_Kim,randomScale = sigRRandomScale, randomLength = sigRRandomLength, errorDef = errorDef )
 
 genexpiEnd_r_kim = proc.time();
 # Calculate time per round. For each spline (df) variant I have 1 non-random round in addition to the random roudns
 genexpiTimePerRound_r_kim = (genexpiEnd_r_kim["elapsed"] - genexpiStart_r_kim["elapsed"]) / (length(dfsToTest) * (randomRounds + 1))
+```
 
-cat("=== Results for the whole sigR regulon of Kim et al. ===\n")
+### Results for the whole sigR regulon of Kim et al.
+```{r}
 printVariousSplinesResults(variousSplinesResult_r_kim)
 cat(paste0("Genexpi time per round: ", genexpiTimePerRound_r_kim, " seconds\n"))
+```
 
-
+```{r}
 genexpiStart_r_kim_strong = proc.time();
 genexpiOptions(verbose = FALSE) # Hide unnecessary output
-variousSplinesResult_r_kim_strong = testVariousSplines(deviceSpecs, rounds = randomRounds, rawProfiles = gse44415_raw[rownames(gse44415_raw) %in% c(sigRSco, sigRRegulon_Kim_Strong),], rawTime = gse44415_raw_time, targetTime = smoothTime_r, dfsToTest = dfsToTest2, regulatorName = sigRSco, regulonNames = sigRRegulon_Kim_Strong, randomScale = sigRRandomScale, randomLength = sigRRandomLength, errorDef = errorDef )
+variousSplinesResult_r_kim_strong = testVariousSplines(deviceSpecs, rounds = randomRounds, rawProfiles = gse44415_raw[rownames(gse44415_raw) %in% c(sigRSco, sigRRegulon_Kim_Strong),], rawTime = gse44415_raw_time, targetTime = smoothTime_r, dfsToTest = dfsToTest_r, regulatorName = sigRSco, regulonNames = sigRRegulon_Kim_Strong, randomScale = sigRRandomScale, randomLength = sigRRandomLength, errorDef = errorDef )
 
 genexpiEnd_r_kim_strong = proc.time();
 # Calculate time per round. For each spline (df) variant I have 1 non-random round in addition to the random roudns
 genexpiTimePerRound_r_kim_strong = (genexpiEnd_r_kim_strong["elapsed"] - genexpiStart_r_kim_strong["elapsed"]) / (length(dfsToTest) * (randomRounds + 1))
 
-cat("\n=== Results for the 'STRONG' subpart of sigR regulon of Kim et al. ===\n")
+```
+
+### Results for the 'STRONG' subpart of sigR regulon of Kim et al. 
+
+```{r}
 printVariousSplinesResults(variousSplinesResult_r_kim_strong)
 
 cat(paste0("Genexpi time per round: ", genexpiTimePerRound_r_kim_strong, " seconds\n"))
+
 ```
 
-## TD-Aracne and sigRRegulon
+### Simple TD-ARACNE on SigR, Kallifidas et al.
+```{r}
+  dfsToTest_simple_r = dfsToTest_r;
+  aracneSplinedStart_r =  proc.time();
+  aracneSplinedResults_r = list()
+  for(i in 1:length(dfsToTest_simple_r)) {
+    aracneSplinedResults_r[[i]] = evaluateTDAracne(
+      rounds = randomRoundsAracneSimple, profilesRaw = gse44415_raw, time = gse44415_raw_time, 
+      rawTime = gse44415_raw_time, splineDFs = dfsToTest_simple_r[i],
+      randomScale = sigRRandomScale, randomLength = sigRRandomLength,errorDef =errorDef, regulatorName = sigRSco, regulonNames = sigRRegulon_Kallifidas, numBins = defaultAracneNumBins)
+  }
+  aracneSplinedEnd_r = proc.time();
+  aracneSplinedTimePerRound_r = (aracneSplinedEnd_r["elapsed"] - aracneSplinedStart_r["elapsed"]) / ((randomRoundsAracneSimple + 1) * length(dfsToTest_simple_r));
+  
+  aracneRawStart_r =  proc.time();
+  aracneRawResult_r = evaluateTDAracne(
+      rounds = randomRoundsAracneSimple, profilesRaw = gse44415_raw, 
+      time = NULL, 
+      rawTime = gse44415_raw_time, splineDFs = NULL,
+      randomScale = sigRRandomScale, randomLength = sigRRandomLength,errorDef =errorDef, regulatorName = sigRSco, regulonNames = sigRRegulon_Kallifidas, numBins = defaultAracneNumBins)
+    
+
+  aracneRawEnd_r =  proc.time();
+  aracneRawTimePerRound_r = (aracneRawEnd_r["elapsed"] - aracneRawStart_r["elapsed"]) / (randomRoundsAracneSimple + 1);
+
+  save.image("~/Genexpi/genexpi/rpackage/.RData")
+```
+
+## Results for simple TD-Aracne, sigR 
+```{r}
+  numCoresUsed = detectCores()[1] - 1; #The script leaves one CPU idle to let you work while it computes
+  printTDAracneEvaluationHeader();
+  printTDAracneEvaluation("None", aracneRawResult_r, variousSplinesResult_r[[length(variousSplinesResult_r)]])
+  for(i in 1:length(dfsToTest_simple_r)) {
+    printTDAracneEvaluation(dfsToTest_simple_r[i], aracneSplinedResults_r[[i]], variousSplinesResult_r[[i]])
+  }
+  cat(paste0("Raw time per round (on ", numCoresUsed," cores): ", aracneRawTimePerRound_r / 60, " minutes\n"))
+  cat(paste0("Splined time per round (on ", numCoresUsed," cores): ", aracneSplinedTimePerRound_r / 60, " minutes\n"))
+
+```
+
+### Simple TD-ARACNE on SigR, Kim et al.
+```{r}
+  aracneSplinedStart_r_kim =  proc.time();
+  aracneSplinedResults_r_kim = list()
+  for(i in 1:length(dfsToTest_simple_r)) {
+    aracneSplinedResults_r_kim[[i]] = evaluateTDAracne(
+      rounds = randomRoundsAracneSimple, profilesRaw = gse44415_raw, time = gse44415_raw_time, 
+      rawTime = gse44415_raw_time, splineDFs = dfsToTest_simple_r[i],
+      randomScale = sigRRandomScale, randomLength = sigRRandomLength,errorDef =errorDef, regulatorName = sigRSco, regulonNames = sigRRegulon_Kim, numBins = defaultAracneNumBins)
+  }
+  aracneSplinedEnd_r_kim = proc.time();
+  aracneSplinedTimePerRound_r_kim = (aracneSplinedEnd_r_kim["elapsed"] - aracneSplinedStart_r_kim["elapsed"]) / ((randomRoundsAracneSimple + 1) * length(dfsToTest_simple_r));
+  
+  save.image("~/Genexpi/genexpi/rpackage/.RData")  
+  
+  aracneRawStart_r_kim =  proc.time();
+  aracneRawResult_r_kim = evaluateTDAracne(
+      rounds = randomRoundsAracneSimple, profilesRaw = gse44415_raw, 
+      time = NULL, 
+      rawTime = gse44415_raw_time, splineDFs = NULL,
+      randomScale = sigRRandomScale, randomLength = sigRRandomLength,errorDef =errorDef, regulatorName = sigRSco, regulonNames = sigRRegulon_Kim, numBins = defaultAracneNumBins)
+    
+
+  aracneRawEnd_r_kim =  proc.time();
+  aracneRawTimePerRound_r_kim = (aracneRawEnd_r["elapsed"] - aracneRawStart_r["elapsed"]) / (randomRoundsAracneSimple + 1);
+
+  save.image("~/Genexpi/genexpi/rpackage/.RData")  
+```
+
+## Results for simple TD-Aracne, sigR Kim et al.
+```{r}
+  numCoresUsed = detectCores()[1] - 1; #The script leaves one CPU idle to let you work while it computes
+  printTDAracneEvaluationHeader();
+  printTDAracneEvaluation("None", aracneRawResult_r_kim, variousSplinesResult_r_kim[[length(variousSplinesResult_r_kim)]])
+  for(i in 1:length(dfsToTest_simple_r)) {
+    printTDAracneEvaluation(dfsToTest_simple_r[i], aracneSplinedResults_r_kim[[i]], variousSplinesResult_r_kim[[i]])
+  }
+  cat(paste0("Raw time per round (on ", numCoresUsed," cores): ", aracneRawTimePerRound_r_kim / 60, " minutes\n"))
+  cat(paste0("Splined time per round (on ", numCoresUsed," cores): ", aracneSplinedTimePerRound_r_kim / 60, " minutes\n"))
+
+```
+
+## TD-Aracne Pairwise and sigRRegulon
 ```{r}
 aracneSplinedPairwiseStart_r =  proc.time();
 aracneSplinedPairwiseResults_r = list()
@@ -381,18 +539,25 @@ aracneRawPairwiseTimePerRound_r = (aracneRawPairwiseEnd_r["elapsed"] - aracneRaw
 
 
 numCoresUsed = detectCores()[1] - 1; #The script leaves one CPU idle to let you work while it computes
+```
 
-cat("==== Results for pairwise TD-ARACNE ====\n\n")
+
+
+
+### Results for pairwise TD-ARACNE on SigR Regulon of Kallifidas et al.
+```{r}
 #Run on raw data is compared against the highest definition spline
 printTDAracnePairwiseEvaluation("Raw data  ", aracneRawPairwiseResult_r, variousSplinesResult_r[[length(variousSplinesResult_r)]])
 for(i in 1:length(dfsToTest_r)) {
   printTDAracnePairwiseEvaluation(paste0("Spline - ", dfsToTest_r[i], " DF"), aracneSplinedPairwiseResults_r[[i]], variousSplinesResult_r[[i]])
 }
-cat("\n")
 cat(paste0("Raw time per round (on ", numCoresUsed," cores): ", aracneRawPairwiseTimePerRound_r, " seconds\n")) 
 cat(paste0("Splined time per round (on ", numCoresUsed," cores): ", aracneSplinedPairwiseTimePerRound_r , " seconds\n"))
+
 ```
-Most values a duplicated, since for the regulon of Kallifidas et al., at most one target was removed by Genexpi.
+
+Most values are duplicated, since for the regulon of Kallifidas et al., at most one target was removed by Genexpi.
+
 ```{r}
 aracneSplinedPairwiseStart_r_Kim =  proc.time();
 aracneSplinedPairwiseResults_r_Kim = list()
@@ -421,18 +586,20 @@ aracneRawPairwiseTimePerRound_r_Kim = (aracneRawPairwiseEnd_r_Kim["elapsed"] - a
 
 numCoresUsed = detectCores()[1] - 1; #The script leaves one CPU idle to let you work while it computes
 
-cat("==== Results for pairwise TD-ARACNE - Kim et al.====\n\n")
+```
+
+### Results for pairwise TD-ARACNE - Kim et al.
+```{r}
 #Run on raw data is compared against the highest definition spline
 printTDAracnePairwiseEvaluation("Raw data  ", aracneRawPairwiseResult_r_Kim, variousSplinesResult_r_kim[[length(variousSplinesResult_r_kim)]])
 for(i in 1:length(dfsToTest_r)) {
   printTDAracnePairwiseEvaluation(paste0("Spline - ", dfsToTest_r[i], " DF"), aracneSplinedPairwiseResults_r_Kim[[i]], variousSplinesResult_r_kim[[i]])
 }
-cat("\n")
 cat(paste0("Raw time per round (on ", numCoresUsed," cores): ", aracneRawPairwiseTimePerRound_r_Kim, " seconds\n")) 
 cat(paste0("Splined time per round (on ", numCoresUsed," cores): ", aracneSplinedPairwiseTimePerRound_r_Kim , " seconds\n"))
 
-
 ```
+
 ```{r}
 
 
@@ -463,53 +630,18 @@ aracneRawPairwiseTimePerRound_r_Kim_Strong = (aracneRawPairwiseEnd_r_Kim_Strong[
 
 numCoresUsed = detectCores()[1] - 1; #The script leaves one CPU idle to let you work while it computes
 
-cat("\n\n==== Results for pairwise TD-ARACNE Kim et al. Strong==== \n\n")
+```
+
+### Results for pairwise TD-ARACNE Kim et al. Strong
+```{r}
 #Run on raw data is compared against the highest definition spline
 printTDAracnePairwiseEvaluation("Raw data  ", aracneRawPairwiseResult_r_Kim_Strong, variousSplinesResult_r_kim_strong[[length(variousSplinesResult_r_kim_strong)]])
 for(i in 1:length(dfsToTest_r)) {
   printTDAracnePairwiseEvaluation(paste0("Spline - ", dfsToTest_r[i], " DF"), aracneSplinedPairwiseResults_r_Kim_Strong[[i]], variousSplinesResult_r_kim_strong[[i]])
 }
-cat("\n")
 cat(paste0("Raw time per round (on ", numCoresUsed," cores): ", aracneRawPairwiseTimePerRound_r_Kim_Strong, " seconds\n")) 
 cat(paste0("Splined time per round (on ", numCoresUsed," cores): ", aracneSplinedPairwiseTimePerRound_r_Kim_Strong , " seconds\n"))
+
 ```
 
-# TD-Aracne in simple mode
-
-For completeness, here is the code to run TD-Aracne in simple mode (on the whole sigB regulon). This takes days to compute! The output has two categories: "Downstream" where every gene that has a directed path from the regulator is treated as regulated and "Connected" where the path need not be directed. Taking only the immediate connections of the regulator had very little performance. (Note that TD-Aracne is solving a much more difficult task here)
-
-```{r}
-runSimpleAracne = FALSE
-if(runSimpleAracne) { #Comment this line to get results (will take long)
-  #Aracne in non-pairwise mode is too slow
-  randomRoundsAracneWhole = 10
-  
-  aracneSplinedStart =  proc.time();
-  aracneSplinedResults = list()
-  for(i in 1:length(dfsToTest)) {
-    aracneSplinedResults[[i]] = evaluateTDAracne(
-      rounds = randomRoundsAracneWhole, profilesRaw = gse6865_raw, time = smoothTime[aracneSmoothTimeIndices], 
-      rawTime = gse6865_raw_time, splineDFs = dfsToTest[i],
-      randomScale = sigBRandomScale, randomLength = sigBRandomLength,errorDef =errorDef, regulatorName = "sigB", regulonNames = sigBRegulonNames, numBins = defaultAracneNumBins)
-  }
-  aracneSplinedEnd = proc.time();
-  aracneSplinedTimePerRound = (aracneSplinedEnd["elapsed"] - aracneSplinedStart["elapsed"]) / ((randomRoundsAracne + 1) * length(dfsToTest));
-  
-  
-  aracneRawStart =  proc.time();
-  aracneRawResult = evaluateTDAracne(rounds = randomRoundsAracneWhole, profileMatrix = gse6865_raw[,aracneRawTimeIndices, drop=FALSE], time =  gse6865_raw_time[aracneRawTimeIndices], scale = sigBRandomScale, length = sigBRandomLength,errorDef =errorDef, regulatorName = "sigB", regulonNames = sigBRegulonNames, numBins = defaultAracneNumBins)
-  aracneRawEnd =  proc.time();
-  aracneRawTimePerRound = (aracneRawEnd["elapsed"] - aracneRawStart["elapsed"]) / (randomRoundsAracne + 1);
-  
-  
-  
-  numCoresUsed = detectCores()[1] - 1; #The script leaves one CPU idle to let you work while it computes
-  printTDAracneEvaluation("Raw data ", aracneRawResult)
-  cat(paste0("Raw time per round (on ", numCoresUsed," cores): ", aracneRawTimePerRound / 60, " minutes\n"))
-  for(i in 1:length(dfsToTest)) {
-    printTDAracneEvaluation(paste0("Spline - ", dfsToTest[i], " DF"), aracneSplinedResults[[i]])
-  }
-  cat(paste0("Splined time per round (on ", numCoresUsed," cores): ", aracneSplinedTimePerRound / 60, " minutes\n"))
-}
-```
 

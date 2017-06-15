@@ -86,16 +86,17 @@ f1Helper <- function(numTrue, meanNumFalse, numTested) {
   return((2 * precision * sensitivity) / (precision + sensitivity))
 }
 
+printVariousSplinesResultsHeader <- function() {
+  cat("DF\tType\tnumTested\tRegulator\t\tRandom\t\n");
+}
 
 printVariousSplinesResults <- function(results) {
   for(i in 1:length(results)) {
     numTrue = results[[i]]$result$trueResults$numRegulated
     numTested = results[[i]]$result$trueResults$numTested
     meanNumFalse = results[[i]]$result$overallRandomRatio * numTested
-    cat("DF: ", results[[i]]$df, "\tTP: ", results[[i]]$result$trueRatio, "\t(", numTrue, "/", numTested, ")",
-        "\tmean(FP): ", results[[i]]$result$overallRandomRatio,"\t(", meanNumFalse, "/", numTested, ")",
-        "\tF1:", f1Helper(numTrue, meanNumFalse, numTested),
-        "\n"
-        , sep = "");
+    cat(results[[i]]$df, "Genexpi", numTested, results[[i]]$result$trueRatio, numTrue,
+        results[[i]]$result$overallRandomRatio,meanNumFalse, "\n"
+        , sep = "\t");
   }
 }
