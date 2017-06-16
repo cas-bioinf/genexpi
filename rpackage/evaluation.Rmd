@@ -42,7 +42,7 @@ First we install and start all the required libraries.
   
   pkgTest("foreach")
   pkgTest("doParallel")
-
+  pkgTest("rJava")
 
 ```
 
@@ -220,6 +220,7 @@ genexpiTimePerRound = (genexpiEnd["elapsed"] - genexpiStart["elapsed"]) / (lengt
 ```
 
 ```{r}
+printVariousSplinesResultsHeader()
 printVariousSplinesResults(variousSplinesResult)
 cat(paste0("Genexpi time per round: ", genexpiTimePerRound, " seconds\n"))
 ```

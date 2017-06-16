@@ -87,7 +87,7 @@ f1Helper <- function(numTrue, meanNumFalse, numTested) {
 }
 
 printVariousSplinesResultsHeader <- function() {
-  cat("DF\tType\tnumTested\tRegulator\t\tRandom\t\n");
+  cat("DF\tnumTested\tRegulator\t\tRandom\t\tRatio\n");
 }
 
 printVariousSplinesResults <- function(results) {
@@ -95,8 +95,10 @@ printVariousSplinesResults <- function(results) {
     numTrue = results[[i]]$result$trueResults$numRegulated
     numTested = results[[i]]$result$trueResults$numTested
     meanNumFalse = results[[i]]$result$overallRandomRatio * numTested
-    cat(results[[i]]$df, "Genexpi", numTested, results[[i]]$result$trueRatio, numTrue,
-        results[[i]]$result$overallRandomRatio,meanNumFalse, "\n"
+    trueRatio = results[[i]]$result$trueRatio
+    randomRatio = results[[i]]$result$overallRandomRatio
+    cat(results[[i]]$df, numTested, round(trueRatio, 2), numTrue,
+        round(randomRatio, 2),meanNumFalse, trueRatio / randomRatio,  "\n"
         , sep = "\t");
   }
 }

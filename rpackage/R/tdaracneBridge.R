@@ -102,12 +102,12 @@ evaluateTDAracne <- function(rounds, profilesRaw, rawTime, splineDFs, time, rand
 }
 
 printTDAracneEvaluationHeader <- function() {
-  cat("DF\tType\tnumTested\tRegulator\t\tRandom\t\n");
+  cat("DF\tType\tnumTested\tRegulator\t\tRandom\t\tRatio\n");
 }
 
 printTDAracneEvaluationRow <- function(df, type, trueRatio, randomRatio, numTested) {
   cat(df,type, numTested,round(trueRatio,2), round(numTested*trueRatio),
-      round(randomRatio, 2), numTested*randomRatio, sep = "\t")
+      round(randomRatio, 2), round(numTested*randomRatio, 2), trueRatio / randomRatio, sep = "\t")
   cat("\n")
 }
 
