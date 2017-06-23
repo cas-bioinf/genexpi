@@ -70,7 +70,7 @@ With that in mind, let us select a device.
 
 ```{r}
 #Select the device automatically
-#deviceSpecs = getDeviceSpecs()
+deviceSpecs = getDeviceSpecs()
 
 #Select the best GPU device
 #deviceSpecs = getDeviceSpecs(deviceType = "gpu")
@@ -79,7 +79,7 @@ With that in mind, let us select a device.
 #deviceSpecs = getDeviceSpecs(deviceType = "processor")
 
 #Select device by ID reported in listOpenCLDevices()
-deviceSpecs = getDeviceSpecs(device = 1)
+#deviceSpecs = getDeviceSpecs(device = 5)
 
 #Display the selected device
 if(is.null(deviceSpecs)) {
@@ -291,8 +291,8 @@ For completeness, here is the code to run TD-Aracne in simple mode (on the whole
   for(i in 1:length(dfsToTest_simple)) {
     printTDAracneEvaluation(dfsToTest_simple[i], aracneSplinedResults[[i]], variousSplinesResult[[i]])
   }
-  cat(paste0("Raw time per round (on ", numCoresUsed," cores): ", aracneRawTimePerRound / 60, " minutes\n"))
-  cat(paste0("Splined time per round (on ", numCoresUsed," cores): ", aracneSplinedTimePerRound / 60, " minutes\n"))
+  cat(paste0("Raw time per round (on ", numCoresUsed," cores): ", aracneRawTimePerRound, " seconds\n"))
+  cat(paste0("Splined time per round (on ", numCoresUsed," cores): ", aracneSplinedTimePerRound, " seconds\n"))
 
 ```
 
@@ -386,6 +386,7 @@ genexpiTimePerRound_r = (genexpiEnd_r["elapsed"] - genexpiStart_r["elapsed"]) / 
 
 ### Results for Genexpi and the SigR regulon (Kallifidas et al.)
 ```{r}
+printVariousSplinesResultsHeader()
 printVariousSplinesResults(variousSplinesResult_r)
 
 cat(paste0("Genexpi time per round: ", genexpiTimePerRound_r, " seconds\n"))
@@ -405,6 +406,7 @@ genexpiTimePerRound_r_kim = (genexpiEnd_r_kim["elapsed"] - genexpiStart_r_kim["e
 
 ### Results for the whole sigR regulon of Kim et al.
 ```{r}
+printVariousSplinesResultsHeader()
 printVariousSplinesResults(variousSplinesResult_r_kim)
 cat(paste0("Genexpi time per round: ", genexpiTimePerRound_r_kim, " seconds\n"))
 ```
@@ -423,6 +425,7 @@ genexpiTimePerRound_r_kim_strong = (genexpiEnd_r_kim_strong["elapsed"] - genexpi
 ### Results for the 'STRONG' subpart of sigR regulon of Kim et al. 
 
 ```{r}
+printVariousSplinesResultsHeader()
 printVariousSplinesResults(variousSplinesResult_r_kim_strong)
 
 cat(paste0("Genexpi time per round: ", genexpiTimePerRound_r_kim_strong, " seconds\n"))
@@ -453,8 +456,6 @@ cat(paste0("Genexpi time per round: ", genexpiTimePerRound_r_kim_strong, " secon
 
   aracneRawEnd_r =  proc.time();
   aracneRawTimePerRound_r = (aracneRawEnd_r["elapsed"] - aracneRawStart_r["elapsed"]) / (randomRoundsAracneSimple + 1);
-
-  save.image("~/Genexpi/genexpi/rpackage/.RData")
 ```
 
 ## Results for simple TD-Aracne, sigR 
@@ -465,8 +466,8 @@ cat(paste0("Genexpi time per round: ", genexpiTimePerRound_r_kim_strong, " secon
   for(i in 1:length(dfsToTest_simple_r)) {
     printTDAracneEvaluation(dfsToTest_simple_r[i], aracneSplinedResults_r[[i]], variousSplinesResult_r[[i]])
   }
-  cat(paste0("Raw time per round (on ", numCoresUsed," cores): ", aracneRawTimePerRound_r / 60, " minutes\n"))
-  cat(paste0("Splined time per round (on ", numCoresUsed," cores): ", aracneSplinedTimePerRound_r / 60, " minutes\n"))
+  cat(paste0("Raw time per round (on ", numCoresUsed," cores): ", aracneRawTimePerRound_r , " seconds\n"))
+  cat(paste0("Splined time per round (on ", numCoresUsed," cores): ", aracneSplinedTimePerRound_r, " seconds\n"))
 
 ```
 
@@ -483,8 +484,6 @@ cat(paste0("Genexpi time per round: ", genexpiTimePerRound_r_kim_strong, " secon
   aracneSplinedEnd_r_kim = proc.time();
   aracneSplinedTimePerRound_r_kim = (aracneSplinedEnd_r_kim["elapsed"] - aracneSplinedStart_r_kim["elapsed"]) / ((randomRoundsAracneSimple + 1) * length(dfsToTest_simple_r));
   
-  save.image("~/Genexpi/genexpi/rpackage/.RData")  
-  
   aracneRawStart_r_kim =  proc.time();
   aracneRawResult_r_kim = evaluateTDAracne(
       rounds = randomRoundsAracneSimple, profilesRaw = gse44415_raw, 
@@ -496,7 +495,6 @@ cat(paste0("Genexpi time per round: ", genexpiTimePerRound_r_kim_strong, " secon
   aracneRawEnd_r_kim =  proc.time();
   aracneRawTimePerRound_r_kim = (aracneRawEnd_r["elapsed"] - aracneRawStart_r["elapsed"]) / (randomRoundsAracneSimple + 1);
 
-  save.image("~/Genexpi/genexpi/rpackage/.RData")  
 ```
 
 ## Results for simple TD-Aracne, sigR Kim et al.
@@ -507,8 +505,8 @@ cat(paste0("Genexpi time per round: ", genexpiTimePerRound_r_kim_strong, " secon
   for(i in 1:length(dfsToTest_simple_r)) {
     printTDAracneEvaluation(dfsToTest_simple_r[i], aracneSplinedResults_r_kim[[i]], variousSplinesResult_r_kim[[i]])
   }
-  cat(paste0("Raw time per round (on ", numCoresUsed," cores): ", aracneRawTimePerRound_r_kim / 60, " minutes\n"))
-  cat(paste0("Splined time per round (on ", numCoresUsed," cores): ", aracneSplinedTimePerRound_r_kim / 60, " minutes\n"))
+  cat(paste0("Raw time per round (on ", numCoresUsed," cores): ", aracneRawTimePerRound_r_kim, " seconds\n"))
+  cat(paste0("Splined time per round (on ", numCoresUsed," cores): ", aracneSplinedTimePerRound_r_kim, " seconds\n"))
 
 ```
 
@@ -547,10 +545,11 @@ numCoresUsed = detectCores()[1] - 1; #The script leaves one CPU idle to let you 
 
 ### Results for pairwise TD-ARACNE on SigR Regulon of Kallifidas et al.
 ```{r}
+printTDAracneEvaluationHeader();
 #Run on raw data is compared against the highest definition spline
-printTDAracnePairwiseEvaluation("Raw data  ", aracneRawPairwiseResult_r, variousSplinesResult_r[[length(variousSplinesResult_r)]])
+printTDAracnePairwiseEvaluation("None", aracneRawPairwiseResult_r, variousSplinesResult_r[[length(variousSplinesResult_r)]])
 for(i in 1:length(dfsToTest_r)) {
-  printTDAracnePairwiseEvaluation(paste0("Spline - ", dfsToTest_r[i], " DF"), aracneSplinedPairwiseResults_r[[i]], variousSplinesResult_r[[i]])
+  printTDAracnePairwiseEvaluation(dfsToTest_r[i], aracneSplinedPairwiseResults_r[[i]], variousSplinesResult_r[[i]])
 }
 cat(paste0("Raw time per round (on ", numCoresUsed," cores): ", aracneRawPairwiseTimePerRound_r, " seconds\n")) 
 cat(paste0("Splined time per round (on ", numCoresUsed," cores): ", aracneSplinedPairwiseTimePerRound_r , " seconds\n"))
@@ -592,9 +591,10 @@ numCoresUsed = detectCores()[1] - 1; #The script leaves one CPU idle to let you 
 ### Results for pairwise TD-ARACNE - Kim et al.
 ```{r}
 #Run on raw data is compared against the highest definition spline
-printTDAracnePairwiseEvaluation("Raw data  ", aracneRawPairwiseResult_r_Kim, variousSplinesResult_r_kim[[length(variousSplinesResult_r_kim)]])
+printTDAracneEvaluationHeader();
+printTDAracnePairwiseEvaluation("None", aracneRawPairwiseResult_r_Kim, variousSplinesResult_r_kim[[length(variousSplinesResult_r_kim)]])
 for(i in 1:length(dfsToTest_r)) {
-  printTDAracnePairwiseEvaluation(paste0("Spline - ", dfsToTest_r[i], " DF"), aracneSplinedPairwiseResults_r_Kim[[i]], variousSplinesResult_r_kim[[i]])
+  printTDAracnePairwiseEvaluation(dfsToTest_r[i], aracneSplinedPairwiseResults_r_Kim[[i]], variousSplinesResult_r_kim[[i]])
 }
 cat(paste0("Raw time per round (on ", numCoresUsed," cores): ", aracneRawPairwiseTimePerRound_r_Kim, " seconds\n")) 
 cat(paste0("Splined time per round (on ", numCoresUsed," cores): ", aracneSplinedPairwiseTimePerRound_r_Kim , " seconds\n"))
@@ -636,9 +636,10 @@ numCoresUsed = detectCores()[1] - 1; #The script leaves one CPU idle to let you 
 ### Results for pairwise TD-ARACNE Kim et al. Strong
 ```{r}
 #Run on raw data is compared against the highest definition spline
-printTDAracnePairwiseEvaluation("Raw data  ", aracneRawPairwiseResult_r_Kim_Strong, variousSplinesResult_r_kim_strong[[length(variousSplinesResult_r_kim_strong)]])
+printTDAracneEvaluationHeader();
+printTDAracnePairwiseEvaluation("None", aracneRawPairwiseResult_r_Kim_Strong, variousSplinesResult_r_kim_strong[[length(variousSplinesResult_r_kim_strong)]])
 for(i in 1:length(dfsToTest_r)) {
-  printTDAracnePairwiseEvaluation(paste0("Spline - ", dfsToTest_r[i], " DF"), aracneSplinedPairwiseResults_r_Kim_Strong[[i]], variousSplinesResult_r_kim_strong[[i]])
+  printTDAracnePairwiseEvaluation(paste0(dfsToTest_r[i]), aracneSplinedPairwiseResults_r_Kim_Strong[[i]], variousSplinesResult_r_kim_strong[[i]])
 }
 cat(paste0("Raw time per round (on ", numCoresUsed," cores): ", aracneRawPairwiseTimePerRound_r_Kim_Strong, " seconds\n")) 
 cat(paste0("Splined time per round (on ", numCoresUsed," cores): ", aracneSplinedPairwiseTimePerRound_r_Kim_Strong , " seconds\n"))

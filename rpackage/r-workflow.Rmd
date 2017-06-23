@@ -1,0 +1,109 @@
+---
+title: "Using Genexpi from R"
+output: html_notebook
+---
+
+This notebook will guide you through using Genexpi from R.
+
+#Setting up
+```{r setup}
+  develRun = TRUE;
+
+  # Helper function to install packages if they are not available
+  pkgTest <- function(x)
+  {
+    if (!require(x,character.only = TRUE))
+    {
+      install.packages(x,dep=TRUE)
+        if(!require(x,character.only = TRUE)) stop("Package not found")
+    }
+  }
+
+  # Install and load Genexpi from GitHub vie devtools
+  if(!develRun) {
+    pkgTest("devtools")
+    install_github("cas-bioinf/genexpi", subdir="rpackage")
+  }
+
+```
+
+
+Genexpi relies on OpenCL, so we need to check the available OpenCL devices:
+
+```{r}
+listOpenCLDevices()
+```
+If the list is empty or the call ends in an error, it is probably because your computer has no OpenCL driver installed. Almost all recent GPUs and CPUs (processors) support OpenCL, so you should be able to run Genexpi.
+
+* For GPUs, try updating your device driver. We also encountered cases where GPUs started being available only after installing a CPU driver (see next bullet).
+* For CPUs (the usual processors), you need to install specific drivers. As of 2017-05-22, drivers for Intel CPUs can be downloaded at https://software.intel.com/en-us/articles/opencl-drivers#latest_CPU_runtime - (you want “runtime-only”). AMD’s drivers can be found at http://support.amd.com/en-us/kb-articles/Pages/OpenCL2-Driver.aspx.
+
+If the list is non-empty, you can choose which device to use for computation. The best devices to use with Genexpi are (in the following order):
+
+* A dedicated graphics card (GPU) for computing (not connected to a display)
+* A Xeon Phi card
+* Your processor (CPU)
+* A GPU connected to a display
+
+While GPUs will run Genexpi the fastest, using a GPU connected to a display is discouraged as it interferes with the operating system (OS) and may cause your computer to freeze and/or the computations to be reset by the operating system. If you absolutely need to use the GPU running your display, and use Windows, you may want to disable [TDR - Timeout detection and recovery](https://msdn.microsoft.com/en-us/library/windows/hardware/ff569918(v=vs.85).aspx) (expert only).
+
+With that in mind, let us select a device.
+
+```{r}
+#Select the device automatically
+deviceSpecs = getDeviceSpecs()
+
+#Select the best GPU device
+#deviceSpecs = getDeviceSpecs(deviceType = "gpu")
+
+#Select the best CPU device
+#deviceSpecs = getDeviceSpecs(deviceType = "processor")
+
+#Select device by ID reported in listOpenCLDevices()
+#deviceSpecs = getDeviceSpecs(device = 5)
+
+#Display the selected device
+if(is.null(deviceSpecs)) {
+  stop("Invalid device")
+} else {
+  paste0("Using device: ",deviceSpecs$getDevice()$toString())
+}
+```
+
+
+#Determining regulons
+First let's prepare some small data
+```{r}
+#Let's start with some simple data - this is a small subset of GSE6865 (B. subtilis), rows correspond to genes, columns to time
+data = rbind(
+c(0.06194861,0.03789669,0.6681369,0.8622725,0.7018408,1.585805,2.365616,3.475488,11.206126,3.856296,2.245779,2.055110,1.884544,3.227050),
+c(0.09842821,0.08544949,2.3009278,2.9818666,2.4712067,4.341567,3.961964,2.289791,2.375474,1.302439,1.501304,1.471427,1.932162,1.365298),
+c(0.14114165,0.59965961,14.7763262,10.6310760,9.5547340,4.408280,3.439540,4.630653,2.886289,6.463053,5.845051,3.942787,4.463625,6.051177)
+)
+rownames(data) = c("sigB","codY","dnaA");
+time = c(0,5,10,15,20,25,30,40,50,60,70,80,90,100) #Time in minutes for the individual samples
+```
+
+##Smoothing data
+Genexpi workflow starts with smoothing the data. We can inspect whether the chosen degrees of freedom (DF) represent the data well.
+```{r}
+time_smooth = 0:100
+data_smooth = splineProfileMatrix(data, time, time_smooth, df = 6)
+
+#We can check how well does the smooth data approximate the raw data
+inspectSmoothing(time, data, time_smooth, data_smooth, c("sigB","dnaA"))
+```
+
+
+##The default (simple way)
+Once the data is smoothed, the whole genexpi workflow can now be run via a single command:
+```{r}
+result = computeRegulon(deviceSpecs = deviceSpecs, profiles = data_smooth, regulatorName = "sigB", regulonNames = c("codY", "dnaA"))
+result$regulated
+```
+
+
+
+##Invoking individual workflow steps manually
+
+#Other use cases

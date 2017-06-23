@@ -20,6 +20,21 @@ splineProfileMatrix <- function(profileMatrix, time, targetTime, df, degree = 3)
   return(splinedResult)
 }
 
+inspectSmoothing <- function(timeRaw, profilesRaw, timeSmooth, profilesSmooth, genes) {
+  colors = c("orange","blue", "green","black","magenta")
+  if(length(genes) > length(colors)) {
+    stop("Too many genes to inspect.")
+  }
+
+  ylim = c(0, max(max(profilesRaw[genes,]), max(profilesSmooth[genes,])))
+  plot(1, type="n", xlab="", ylab="", xlim=c(min(timeSmooth), max(timeSmooth)), ylim=ylim)
+  for(i in 1:length(genes)) {
+    lines(timeRaw, profilesRaw[genes[i],], col = colors[i],lty = 4)
+    lines(timeSmooth, profilesSmooth[genes[i],], col = colors[i])
+    cat(genes[i],"-",colors[i],"\n")
+  }
+}
+
 
 computeRegulon <- function(deviceSpecs, profiles, regulatorName, regulonNames, errorDef = list(absolute = 0, relative = 0.2, minimal = 0.5), minFitQuality = 0.8) {
   if(is.null(rownames(profiles))) {
