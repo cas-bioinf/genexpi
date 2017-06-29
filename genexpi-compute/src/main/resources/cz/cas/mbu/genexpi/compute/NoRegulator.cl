@@ -37,10 +37,6 @@ T_Value ErrorNoRegulator(
     T_Value basalSynthesis = SYNTHESIS_VALUE;
     T_Value decay = DECAY_VALUE;
 
-    T_Value derivativeAtZero = basalSynthesis - (decay * initialValue);
-    T_Value signDerivativeAtZero = (derivativeAtZero > 0) ? 1 : -1; //sign of the derivative
-    T_Value constantFactor = fabs(derivativeAtZero) / (-decay);
-    
     T_Value ratio = basalSynthesis / decay;
     
 #if CTSW(CTSW_CUSTOM_TIME_STEP)
@@ -52,7 +48,7 @@ T_Value ErrorNoRegulator(
     //Start at one (initial condition ensures that error at 0th point is 0)
     for(int time = 1; time < numTime; time++)
     {
-        T_Value value = signDerivativeAtZero * (constantFactor * exp(-decay * time * timeStep) - ratio);
+        T_Value value = ratio + exp(-decay * time * timeStep) * (initialValue - ratio);
       
         const T_Value diff = value - TARGET_VALUE(time);
         error += ERROR_FROM_DIFF(diff);        

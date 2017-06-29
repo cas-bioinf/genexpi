@@ -48,9 +48,7 @@ public class IntegrateResults {
         	initialValue = 0;
         }
 
-        double derivativeAtZero = basalSynthesis - (decay * initialValue);
-        double signDerivativeAtZero = (derivativeAtZero > 0) ? 1 : -1; //sign of the derivative
-        double constantFactor = Math.abs(derivativeAtZero) / (-decay);
+        
         
         double ratio = basalSynthesis / decay;
                 
@@ -58,7 +56,7 @@ public class IntegrateResults {
 		for(int i = 0; i < targetTimePoints.length; i++)
 		{
 			double time = targetTimePoints[i] - profileInitialTime; //the NoRegulator inference has to start at time 0 (so I shift all times)
-	        double value = signDerivativeAtZero * (constantFactor * Math.exp(-decay * time) - ratio);
+	        double value = ratio + Math.exp(-decay * time) * (initialValue - ratio);
 			result[i] = value;
 		}
 		return result;
