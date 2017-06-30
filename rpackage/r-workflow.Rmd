@@ -24,6 +24,8 @@ This notebook will guide you through using Genexpi from R.
     pkgTest("devtools")
     install_github("cas-bioinf/genexpi", subdir="rpackage")
   }
+  # ggplot is not strictly required by Genexpi, but will be useful in this workflow
+  pkgTest("ggplot2")
 
 ```
 
@@ -75,35 +77,50 @@ if(is.null(deviceSpecs)) {
 First let's prepare some small data
 ```{r}
 #Let's start with some simple data - this is a small subset of GSE6865 (B. subtilis), rows correspond to genes, columns to time
-data = rbind(
-c(0.06194861,0.03789669,0.6681369,0.8622725,0.7018408,1.585805,2.365616,3.475488,11.206126,3.856296,2.245779,2.055110,1.884544,3.227050),
+d = rbind(
+c(0.06502849,0.12641291,4.27290048,5.84100134,3.82700481,4.21407420,3.65587239,3.02349190,2.25201387,0.77122072,1.62474771,1.46329000,2.06367490,1.63831834),
 c(0.09842821,0.08544949,2.3009278,2.9818666,2.4712067,4.341567,3.961964,2.289791,2.375474,1.302439,1.501304,1.471427,1.932162,1.365298),
-c(0.14114165,0.59965961,14.7763262,10.6310760,9.5547340,4.408280,3.439540,4.630653,2.886289,6.463053,5.845051,3.942787,4.463625,6.051177)
+c(0.14114165,0.59965961,14.7763262,10.6310760,9.5547340,4.408280,3.439540,4.630653,2.886289,6.463053,5.845051,3.942787,4.463625,6.051177),
+
+c(0.08616320,0.04863760,0.08988447,0.05245469,0.10282163,0.16078622,0.08568674,0.27228996,0.34298460,0.27172434,0.12826645,0.18227842,0.22628545,0.16703423)
 )
-rownames(data) = c("sigB","codY","dnaA");
+rownames(d) = c("sigA","codY","dnaA","aldY");
 time = c(0,5,10,15,20,25,30,40,50,60,70,80,90,100) #Time in minutes for the individual samples
 ```
 
 ##Smoothing data
 Genexpi workflow starts with smoothing the data. We can inspect whether the chosen degrees of freedom (DF) represent the data well.
 ```{r}
-time_smooth = 0:100
-data_smooth = splineProfileMatrix(data, time, time_smooth, df = 6)
+time_smooth = 0:100 #Genexpi requires uniform intervals between data points
+data_smooth = splineProfileMatrix(d, time, time_smooth, df = 6)
 
-#We can check how well does the smooth data approximate the raw data
-inspectSmoothing(time, data, time_smooth, data_smooth, c("sigB","dnaA"))
+#We can check how well does the smooth data approximate the raw data by plotting the raw and smoothed data together
+inspectSmoothing(time, d, time_smooth, data_smooth, c("sigA","dnaA","codY"))
 ```
 
 
 ##The default (simple way)
 Once the data is smoothed, the whole genexpi workflow can now be run via a single command:
 ```{r}
-result = computeRegulon(deviceSpecs = deviceSpecs, profiles = data_smooth, regulatorName = "sigB", regulonNames = c("codY", "dnaA"))
-result$regulated
+result = computeRegulon(deviceSpecs = deviceSpecs, profiles = data_smooth, regulatorName = "sigA", regulonNames = c("codY", "dnaA"))
+cat("Regulated:", rownames(data_smooth)[result$regulated], "\n")
+cat("Not regulated:", rownames(data_smooth)[result$tested & !result$regulated])
+
+inspectRegulonFit(result,"codY")
+```
+
+The ```result``` contains all of the information gathered during the workflow:
+```{r}
+#The number of genes fitted by the no change model
+#The number of genes fitted by the constant synthesis model
 ```
 
 
 
 ##Invoking individual workflow steps manually
 
+
+
 #Other use cases
+
+Using multiple regulators

@@ -49,7 +49,17 @@ T_Value ErrorNoRegulator(
     for(int time = 1; time < numTime; time++)
     {
         T_Value value = ratio + exp(-decay * time * timeStep) * (initialValue - ratio);
-      
+        if(isnan(value)) {
+        	//printf("NoRegulator Nan\n");
+        	return(INFINITY);
+        }
+    	if(isinf(value)) {
+    		return(INFINITY);
+    	}
+    	if(value < 0) {
+    		value = 0;
+    	}
+     
         const T_Value diff = value - TARGET_VALUE(time);
         error += ERROR_FROM_DIFF(diff);        
 

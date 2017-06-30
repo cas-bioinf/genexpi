@@ -82,7 +82,7 @@ computeRegulon <- function(deviceSpecs, profiles, regulatorName, regulonNames, e
       tasks[,2] = which(actualTargets);
 
       regulationResults = computeAdditiveRegulation(deviceSpecs, profiles, tasks, constraints = "+")
-      regulated = testAdditiveRegulation(regulationResults, errorDef, minFitQuality)
+      testResults = testAdditiveRegulation(regulationResults, errorDef, minFitQuality)
     }
   }
 
@@ -95,7 +95,44 @@ computeRegulon <- function(deviceSpecs, profiles, regulatorName, regulonNames, e
     constantSynthesis = constantSynthesisProfiles,
     numTested = numTargets,
     tested = actualTargets,
-    numRegulated = sum(regulated),
-    regulated = regulated
+    predictedProfiles = testResults$predictedProfiles,
+    numRegulated = sum(testResults$regulated),
+    regulated = testResults$regulated,
+    regulatorName = regulatorName,
+    regulonNames = regulonNames,
+    errorDef = errorDef,
+    minFitQuality = minFitQuality
   ))
+}
+
+inspectRegulonFit <- function(regulonResult, targetGene) {
+  if(!require("ggplot2",character.only = TRUE)) stop("inspectFit requires ggplot2");
+
+  targetProfile = regulonResult$regulationResults$profilesMatrix[targetGene,];
+  err = errorMargin(targetProfile, regulonResult$errorDef)
+  targetErrorMax = targetProfile + err;
+  targetErrorMin = targetProfile - err;
+  targetErrorMin[targetErrorMin < 0] = 0;
+
+  targetLabel = paste(targetGene, " - Data")
+  predictedLabel = paste(targetGene, " - Predicted")
+
+  data = data.frame(
+    time = 1:length(targetProfile),
+    target = targetProfile,
+    regulator = regulonResult$regulationResults$profilesMatrix[regulonResult$regulatorName,],
+    predicted = regulonResult$predictedProfiles[targetGene,],
+    targetErrorMin = targetErrorMin,
+    targetErrorMax = targetErrorMax
+  )
+
+  colorMap = c("red","blue", "green")
+  names(colorMap) = c(targetLabel, regulonResult$regulatorName, predictedLabel)
+
+  ggplot(data, aes(x=time)) +
+    geom_ribbon(aes(ymin = targetErrorMin, ymax = targetErrorMax), fill = "red", alpha = 0.2) +
+    geom_line(aes(y = target, colour = targetLabel)) +
+    geom_line(aes(y = regulator, colour = regulonResult$regulatorName)) +
+    geom_line(aes(y = predicted, colour = predictedLabel)) +
+    scale_colour_manual("", values = colorMap)
 }

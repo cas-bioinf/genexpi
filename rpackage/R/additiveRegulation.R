@@ -84,11 +84,7 @@ evaluateAdditiveRegulationResult <- function(additiveRegulationResult, targetTim
                     as.numeric(targetTimePoints),
                     evalArray = TRUE,
                     simplify = TRUE
-#                    check = FALSE
                     );
- # ex =.jgetEx();
-  #.jclear();
-  #ex$printStackTrace();
   return(results);
 }
 
@@ -97,17 +93,21 @@ testAdditiveRegulation <- function(additiveRegulationResults, errorDef = default
 
   time = 0:(dim(profiles)[2] - 1);
 
+  numTasks = dim(additiveRegulationResults$tasks)[1]
   additiveRegulationEvaluated = evaluateAdditiveRegulationResult(additiveRegulationResults, time)
 
-  regulatedProfiles = logical(dim(profiles)[1])
-  for(i in 1:dim(additiveRegulationResults$tasks)[1]) {
+  profileNames = character(numTasks)
+  isRegulated = logical(dim(profiles)[1])
+  for(i in 1:numTasks) {
     #Target is the last column in tasks
     profileIndex = additiveRegulationResults$tasks[i, dim(additiveRegulationResults$tasks)[2]];
 
     if(fitQuality(profiles[profileIndex,], additiveRegulationEvaluated[i,], errorDef) >= minFitQuality) {
-      regulatedProfiles[profileIndex] = TRUE;
+      isRegulated[profileIndex] = TRUE;
     }
+    profileNames[i] = rownames(profiles)[profileIndex];
   }
+  rownames(additiveRegulationEvaluated) = profileNames
 
-  return(regulatedProfiles)
+  return(list(regulated = isRegulated, predictedProfiles = additiveRegulationEvaluated))
 }

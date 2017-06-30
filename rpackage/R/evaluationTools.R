@@ -36,8 +36,10 @@ testRandomRegulator <- function(deviceSpecs, rounds, profiles, time, randomScale
     rm(computationResult);
     rm(fittedProfiles);
     gc()
-    #cat("Free mem between: ",  (J("java.lang.Runtime")$getRuntime()$maxMemory() - J("java.lang.Runtime")$getRuntime()$totalMemory()) / (1024 * 1024), "\n")
+    J("java/lang/System")$gc()
+    #cat("Free mem between: ",  (J("java.lang.Runtime")$getRuntime()$maxMemory() - J("java.lang.Runtime")$getRuntime()$totalMemory()) / (1024 * 1024), "MB \n")
   }
+  rm(profilesWithRandomJava)
   return(list(fitQualities = fitQualities,
               randomProfiles = randomProfiles));
 }

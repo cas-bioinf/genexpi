@@ -303,7 +303,10 @@ T_Value ErrorEuler(
         if(isinf(valueEstimate))
         {
         	return INFINITY;
-        }        
+        }      
+        if(isnan(valueEstimate)){
+        	return INFINITY;
+        }
         REGULARIZATION_PER_TIME_STEP(time, regulatorSum);
 
         const T_Value diff = valueEstimate - TARGET_VALUE(time + 1);        
