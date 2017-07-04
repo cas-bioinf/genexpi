@@ -771,7 +771,11 @@ public class App {
     	
     	if(params.outputFile == null)
     	{
-    		params.outputFile = new File(params.model.toString() + "_" + params.method.name() + "_results_" + params.errorFunction.name() + "_" + params.lossFunction.name() + ".csv");    		
+    		String errFuncStr = "";
+    		if(params.errorFunction != null) {
+    			errFuncStr = params.errorFunction.name() + "_";
+    		}
+    		params.outputFile = new File(params.model.toString() + "_" + params.method.name() + "_results_" + errFuncStr + params.lossFunction.name() + ".csv");    		
     	}    	
     	
     	try {
