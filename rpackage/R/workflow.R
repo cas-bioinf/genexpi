@@ -42,6 +42,7 @@ computeRegulon <- function(deviceSpecs, profiles, regulatorName, regulonNames, e
   }
   targetProfiles = rownames(profiles) %in% regulonNames
 
+  deviceSpecs = getJavaDeviceSpecs(deviceSpecs);
 
   #Test flat
   constantProfiles = testConstant(profiles, errorDef)

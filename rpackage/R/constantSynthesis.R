@@ -27,7 +27,7 @@ computeConstantSynthesis <- function(deviceSpecs, profilesMatrix, tasks = NULL, 
   }
 
   rInt = rinterfaceJavaType("RInterface");
-  results = .jcall(rInt, paste0("[L",computeJavaType("InferenceResult"),";"), "computeConstantSynthesis", deviceSpecs, profilesJava, tasksJava, as.integer(numIterations), evalArray = FALSE);
+  results = .jcall(rInt, paste0("[L",computeJavaType("InferenceResult"),";"), "computeConstantSynthesis", getJavaDeviceSpecs(deviceSpecs), profilesJava, tasksJava, as.integer(numIterations), evalArray = FALSE);
 
   model = J(computeJavaType("InferenceModel"))$NO_REGULATOR;
 

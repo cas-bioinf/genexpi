@@ -64,7 +64,7 @@ computeAdditiveRegulation <- function(deviceSpecs, profilesMatrix, tasks, constr
   model = J(computeJavaType("InferenceModel"))$createAdditiveRegulationModel(as.integer(numRegulators));
 
   rInt = rinterfaceJavaType("RInterface");
-  results = .jcall(rInt, paste0("[L",computeJavaType("InferenceResult"),";"), "computeAdditiveRegulation", deviceSpecs, profilesJava, tasksJava, model, as.integer(numIterations), .jfloat(regularizationWeight), evalArray = FALSE);
+  results = .jcall(rInt, paste0("[L",computeJavaType("InferenceResult"),";"), "computeAdditiveRegulation", getJavaDeviceSpecs(deviceSpecs), profilesJava, tasksJava, model, as.integer(numIterations), .jfloat(regularizationWeight), evalArray = FALSE);
 
   return( inferenceResultsToR(results, model, profilesMatrix, profilesJava, tasks, tasksJava, rClass = "additiveRegulationResult"));
 }

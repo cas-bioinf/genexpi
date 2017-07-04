@@ -45,6 +45,7 @@ testRandomRegulator <- function(deviceSpecs, rounds, profiles, time, randomScale
 }
 
 evaluateRandomForRegulon <- function(deviceSpecs, rawProfiles, rounds, regulatorName, regulonNames, time, rawTime, randomScale, randomLength, splineDFs, errorDef = defaultErrorDef(), minFitQuality = 0.8) {
+  deviceSpecs = getJavaDeviceSpecs(deviceSpecs);
   profiles = splineProfileMatrix(rawProfiles, rawTime, time, splineDFs);
 
   originalRawProfile = as.numeric(rawProfiles[rownames(rawProfiles) == regulatorName,])
@@ -69,6 +70,7 @@ evaluateRandomForRegulon <- function(deviceSpecs, rawProfiles, rounds, regulator
 
 testVariousSplines <- function(deviceSpecs, rounds, rawProfiles, rawTime, targetTime, dfsToTest, regulatorName, regulonNames, randomScale, randomLength, errorDef = defaultErrorDef(), minFitQuality = 0.8) {
   results = list();
+  deviceSpecs = getJavaDeviceSpecs(deviceSpecs);
 
   #cat("Free mem before: ",  (J("java.lang.Runtime")$getRuntime()$maxMemory() - J("java.lang.Runtime")$getRuntime()$totalMemory()) / (1024 * 1024), "\n")
   for(i in 1:length(dfsToTest)) {

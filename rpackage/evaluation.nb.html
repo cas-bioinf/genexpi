@@ -259,12 +259,12 @@ $(document).ready(function () {
 #Select the best CPU device
 #deviceSpecs = getDeviceSpecs(deviceType = &quot;processor&quot;)
 #Select device by ID reported in listOpenCLDevices()
-deviceSpecs = getDeviceSpecs(device = 5)
+deviceSpecs = getDeviceSpecs(device = 7)
 #Display the selected device
 if(is.null(deviceSpecs)) {
   stop(&quot;Invalid device&quot;)
 } else {
-  paste0(&quot;Using device: &quot;,deviceSpecs$getDevice()$toString())
+  paste0(&quot;Using device: &quot;,getJavaDeviceSpecs(deviceSpecs)$getDevice()$toString())
 }</code></pre>
 <!-- rnb-source-end -->
 <!-- rnb-output-begin eyJkYXRhIjoiWzFdIFwiVXNpbmcgZGV2aWNlOiBHZUZvcmNlIEdUWCA5NjAgKE5WSURJQSBDVURBKVwiXG4ifQ== -->
