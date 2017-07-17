@@ -8,13 +8,13 @@
 		<bundle.symbolicName>cz.cas.mbu.cygenexpi</bundle.symbolicName>
 		<bundle.namespace>cz.cas.mbu.cygenexpi</bundle.namespace>
 		<cytoscape.version>3.4.0</cytoscape.version>
-		<cy-dataseries.version>0.10.0-SNAPSHOT</cy-dataseries.version>
+		<cy-dataseries.version>0.10.0</cy-dataseries.version>
 	</properties>
 
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>cz.cas.mbu.genexpi</groupId>
 	<artifactId>cy-genexpi</artifactId>
-	<version>1.3.0-SNAPSHOT</version>
+	<version>1.3.0</version>
 
 	<name>CyGenexpi</name>
     <url>https://github.com/cas-bioinf/genexpi/wiki/CyGenexpi</url>
@@ -164,7 +164,7 @@
 		<dependency>
 			<groupId>cz.cas.mbu.genexpi</groupId>
 			<artifactId>genexpi-compute</artifactId>
-			<version>1.3.0-SNAPSHOT</version>
+			<version>1.3.0</version>
 			<optional>true</optional>
 		</dependency>
 
