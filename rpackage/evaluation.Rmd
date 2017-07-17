@@ -11,7 +11,7 @@ We will keep a lot of intermediate results in the form of Java objects in memory
 
 ```{r setup}
   options(java.parameters = "-Xmx2048m")
-  develRun = TRUE;
+  develRun = FALSE;
 ```
 
 First we install and start all the required libraries.
@@ -81,13 +81,13 @@ deviceSpecs = getDeviceSpecs()
 #deviceSpecs = getDeviceSpecs(deviceType = "processor")
 
 #Select device by ID reported in listOpenCLDevices()
-deviceSpecs = getDeviceSpecs(device = 5)
+#deviceSpecs = getDeviceSpecs(device = 3)
 
 #Display the selected device
 if(is.null(deviceSpecs)) {
   stop("Invalid device")
 } else {
-  paste0("Using device: ",deviceSpecs$getDevice()$toString())
+  paste0("Using device: ", getJavaDeviceSpecs(deviceSpecs)$getDevice()$toString())
 }
 ```
 
@@ -218,7 +218,7 @@ variousSplinesResult = testVariousSplines(deviceSpecs, rounds = randomRounds, ra
 genexpiEnd = proc.time();
 # Calculate time per round. For each spline (df) variant I have 1 non-random round in addition to the random roudns
 genexpiTimePerRound = (genexpiEnd["elapsed"] - genexpiStart["elapsed"]) / (length(dfsToTest) * (randomRounds + 1))
-
+save.image(".RData")
 ```
 
 ```{r}
@@ -282,7 +282,7 @@ For completeness, here is the code to run TD-Aracne in simple mode (on the whole
   aracneRawEnd =  proc.time();
   aracneRawTimePerRound = (aracneRawEnd["elapsed"] - aracneRawStart["elapsed"]) / (randomRoundsAracneSimple + 1);
   
-
+  save.image(".RData")
 ```
 
 ## Results for simple TD-Aracne, sigB
@@ -322,6 +322,7 @@ aracneRawPairwiseResult = evaluateTDAracnePairwise(
 aracneRawPairwiseEnd =  proc.time();
 aracneRawPairwiseTimePerRound = (aracneRawPairwiseEnd["elapsed"] - aracneRawPairwiseStart["elapsed"]) / (randomRoundsAracne + 1);
 
+save.image(".RData")
 
 numCoresUsed = detectCores()[1] - 1; #The script leaves one CPU idle to let you work while it computes
 ```
@@ -384,6 +385,7 @@ variousSplinesResult_r = testVariousSplines(deviceSpecs, rounds = randomRounds, 
 genexpiEnd_r = proc.time();
 # Calculate time per round. For each spline (df) variant I have 1 non-random round in addition to the random roudns
 genexpiTimePerRound_r = (genexpiEnd_r["elapsed"] - genexpiStart_r["elapsed"]) / (length(dfsToTest) * (randomRounds + 1))
+save.image(".RData")
 ```
 
 ### Results for Genexpi and the SigR regulon (Kallifidas et al.)
@@ -404,6 +406,7 @@ variousSplinesResult_r_kim = testVariousSplines(deviceSpecs, rounds = randomRoun
 genexpiEnd_r_kim = proc.time();
 # Calculate time per round. For each spline (df) variant I have 1 non-random round in addition to the random roudns
 genexpiTimePerRound_r_kim = (genexpiEnd_r_kim["elapsed"] - genexpiStart_r_kim["elapsed"]) / (length(dfsToTest) * (randomRounds + 1))
+save.image(".RData")
 ```
 
 ### Results for the whole sigR regulon of Kim et al.
@@ -421,7 +424,7 @@ variousSplinesResult_r_kim_strong = testVariousSplines(deviceSpecs, rounds = ran
 genexpiEnd_r_kim_strong = proc.time();
 # Calculate time per round. For each spline (df) variant I have 1 non-random round in addition to the random roudns
 genexpiTimePerRound_r_kim_strong = (genexpiEnd_r_kim_strong["elapsed"] - genexpiStart_r_kim_strong["elapsed"]) / (length(dfsToTest) * (randomRounds + 1))
-
+save.image(".RData")
 ```
 
 ### Results for the 'STRONG' subpart of sigR regulon of Kim et al. 
@@ -558,7 +561,7 @@ cat(paste0("Splined time per round (on ", numCoresUsed," cores): ", aracneSpline
 
 ```
 
-Most values are duplicated, since for the regulon of Kallifidas et al., at most one target was removed by Genexpi.
+
 
 ```{r}
 aracneSplinedPairwiseStart_r_Kim =  proc.time();
