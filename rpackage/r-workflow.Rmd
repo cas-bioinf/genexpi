@@ -7,7 +7,7 @@ This notebook will guide you through using Genexpi from R.
 
 #Setting up
 ```{r setup}
-  develRun = TRUE;
+  develRun = FALSE;
 
   # Helper function to install packages if they are not available
   pkgTest <- function(x)
@@ -62,13 +62,13 @@ deviceSpecs = getDeviceSpecs()
 #deviceSpecs = getDeviceSpecs(deviceType = "processor")
 
 #Select device by ID reported in listOpenCLDevices()
-#deviceSpecs = getDeviceSpecs(device = 5)
+deviceSpecs = getDeviceSpecs(device = 7)
 
 #Display the selected device
 if(is.null(deviceSpecs)) {
   stop("Invalid device")
 } else {
-  paste0("Using device: ",deviceSpecs$getDevice()$toString())
+  paste0("Using device: ",getJavaDeviceSpecs(deviceSpecs)$getDevice()$toString())
 }
 ```
 
@@ -95,32 +95,101 @@ time_smooth = 0:100 #Genexpi requires uniform intervals between data points
 data_smooth = splineProfileMatrix(d, time, time_smooth, df = 6)
 
 #We can check how well does the smooth data approximate the raw data by plotting the raw and smoothed data together
-inspectSmoothing(time, d, time_smooth, data_smooth, c("sigA","dnaA","codY"))
+inspectSmoothing(time, d, time_smooth, data_smooth, c("sigA","dnaA","codY","aldY"))
 ```
 
 
 ##The default (simple way)
 Once the data is smoothed, the whole genexpi workflow can now be run via a single command:
 ```{r}
-result = computeRegulon(deviceSpecs = deviceSpecs, profiles = data_smooth, regulatorName = "sigA", regulonNames = c("codY", "dnaA"))
+regulonNames = c("codY", "dnaA", "aldY")
+result = computeRegulon(deviceSpecs = deviceSpecs, profiles = data_smooth, regulatorName = "sigA", regulonNames = regulonNames)
 cat("Regulated:", rownames(data_smooth)[result$regulated], "\n")
 cat("Not regulated:", rownames(data_smooth)[result$tested & !result$regulated])
 
 inspectRegulonFit(result,"codY")
 ```
+Inspecting the fit, we see the error band. The width of the error band can be modified by setting the ```errorDef``` parameter - see below for more info.
 
-The ```result``` contains all of the information gathered during the workflow:
+
+The ```result``` contains also other information gathered during the workflow:
 ```{r}
 #The number of genes fitted by the no change model
+result$numConstant
+#The actual genes (boolean indexer into the profile matrix)
+rownames(data_smooth)[result$constant]
 #The number of genes fitted by the constant synthesis model
+result$numConstantSynthesis
+#The actual genes
+rownames(data_smooth)[result$constantSynthesis]
+#The genes tested by Genexpi (the regulon after removing constant and constant synthesis)
+result$numTested
+rownames(data_smooth)[result$tested]
+
+#The genes tested for constant synthesis (indices into the profile matrix)
+rownames(data_smooth)[result$constantSynthesisResults$tasks]
+#The parameters of the constant synthesis best fit (even for genes, that eventually were not fit) - rows correspond to the tasks above
+result$constantSynthesisResults$parameters
+
+#The regulator-target pairs tested for actual regulation (indices into the profile matrix)
+result$regulationResults$tasks
+#The parameters of the best fits (rows correspond to the tasks above)
+result$regulationResults$parameters
+
 ```
 
 
 
 ##Invoking individual workflow steps manually
+We can also invoke the individual workflow steps manually. Let's start with constant profiles
+```{r}
+#First find out the constant profiles
+testConstant(data_smooth)
 
+
+#All functions support an optional errorDef argument to specify the error margins:
+errorDef = defaultErrorDef()
+errorDef
+#Let's increase the minimal error to 0.5 (which is sensible for the given data)
+errorDef$minimal = 0.5
+
+#With this error margin, aldY starts to be considered constant
+testConstant(data_smooth, errorDef = errorDef)
+```
+
+Now we can handle constant synthesis.
+```{r}
+#Now compute constant synthesis fits. Tasks specifies the rows of the profile matrix for which constant synthesis is computed
+constantSynthResults = computeConstantSynthesis(deviceSpecs, d, tasks = c(1,4))
+#The fit parameters are
+constantSynthResults$parameters
+#We can test whether the profiles defined by the parameters fall within the error margin
+constProfiles = testConstantSynthesis(constantSynthResults, errorDef =  errorDef, minFitQuality = 0.8)
+#The return value can be used to index the profile matrix
+rownames(d)[constProfiles]
+```
+
+And finally the fitting of regulator interactions
+```{r}
+#We test regulation of genes 2 and 4 (codY, aldY) by gene 1 (sigA)
+tasks = rbind(c(1,2), c(1,4))
+additiveResult = computeAdditiveRegulation(deviceSpecs, data_smooth, tasks)
+#Once again we can see the parameters
+additiveResult$parameters
+#And we can test whether the profiles fit within the error margin
+testResults = testAdditiveRegulation(additiveResult, errorDef = errorDef, minFitQuality = 0.8 )
+#And show the tasks corresponding to regulations (in this case both)
+tasks[testResults$regulatedTasks,]
+```
 
 
 #Other use cases
 
-Using multiple regulators
+To test fits with multiple regulators, we just need to expand the tasks array with additional columns. Here, we try to fit dnaA, by  combining sigA with either aldY or codY
+```{r}
+tasks2 = rbind(c(1,2,3), c(1,4,3))
+additiveResult = computeAdditiveRegulation(deviceSpecs, data_smooth, tasks = tasks2)
+#Show regulated tasks
+tasks2[testResults$regulatedTasks,]
+```
+

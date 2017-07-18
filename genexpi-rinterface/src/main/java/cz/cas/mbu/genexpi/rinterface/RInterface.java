@@ -36,15 +36,20 @@ public class RInterface {
 	private static boolean verbose = true;
 	
     public static List<CLDevice> getAllDevices() {
-    	List<CLDevice> result = new ArrayList<>();
-		for(CLPlatform platform : JavaCL.listPlatforms())					
-		{
-			for(CLDevice device: platform.listAllDevices(false))
+    	try {
+	    	List<CLDevice> result = new ArrayList<>();
+			for(CLPlatform platform : JavaCL.listPlatforms())					
 			{
-				result.add(device);
-			}						
-		}
-    	return result;
+				for(CLDevice device: platform.listAllDevices(false))
+				{
+					result.add(device);
+				}						
+			}
+	    	return result;
+    	} catch(RuntimeException ex) {
+    		ex.printStackTrace();
+    		throw ex;
+    	}
     }
     
     public static void setVerbose(boolean verbose) {
@@ -52,68 +57,88 @@ public class RInterface {
     }
     
     public static String getDeviceDescription(CLDevice device) {
-    	return device.getName() + ": " + device.getPlatform().getVersion() + ", " + device.getPlatform().getName();
+    	try {
+    		return device.getName() + ": " + device.getPlatform().getVersion() + ", " + device.getPlatform().getName();
+    	} catch(RuntimeException ex) {
+    		ex.printStackTrace();
+    		throw ex;
+    	}
     }
     
     public static List<String> getAllDevicesDescriptions() {
-    	return getAllDevices().stream()
+    	try {
+    		return getAllDevices().stream()
     			.map(RInterface::getDeviceDescription)
     			.collect(Collectors.toList());
+    	} catch(RuntimeException ex) {
+    		ex.printStackTrace();
+    		throw ex;
+    	}
     }
 	
     public static List<GeneProfile<Float>> geneProfilesFromMatrix(double[][] profileMatrix, String[] profileNames) {
-    	List<GeneProfile<Float>> result = new ArrayList<>(profileMatrix.length);
-    	for(int i = 0; i < profileMatrix.length; i++)
-    	{
-    		List<Float> profileValues = Arrays.stream(profileMatrix[i])
-    				.mapToObj(x -> (float)x)
-    				.collect(Collectors.toList());
-    		GeneProfile<Float> profile = new GeneProfile<>(profileNames[i], profileValues);
-    		result.add(profile);
-    	}
-    	return result;
+    	try {
+	    	List<GeneProfile<Float>> result = new ArrayList<>(profileMatrix.length);
+	    	for(int i = 0; i < profileMatrix.length; i++)
+	    	{
+	    		List<Float> profileValues = Arrays.stream(profileMatrix[i])
+	    				.mapToObj(x -> (float)x)
+	    				.collect(Collectors.toList());
+	    		GeneProfile<Float> profile = new GeneProfile<>(profileNames[i], profileValues);
+	    		result.add(profile);
+	    	}
+	    	return result;
+    	} catch(RuntimeException ex) {
+    		ex.printStackTrace();
+    		throw ex;
+    	}	    	
     }
     
-    public static InferenceResult[] computeAdditiveRegulation(DeviceSpecs deviceSpecs, List<GeneProfile<Float>> geneProfiles, AdditiveRegulationInferenceTask inferenceTasks[], InferenceModel model, int numIterations, float regularizationWeight) 
+    public static InferenceResult[] computeAdditiveRegulation(DeviceSpecs deviceSpecs, List<GeneProfile<Float>> geneProfiles, AdditiveRegulationInferenceTask inferenceTasks[], InferenceModel model, int numRegulators, int numIterations, float regularizationWeight) 
     {
-    	CLContext context = deviceSpecs.createContext();
-    	
         try {
+        	CLContext context = deviceSpecs.createContext();
         
 			//GNCompute<Float> compute = new GNCompute<>(Float.class, context, model, EMethod.Annealing, EErrorFunction.Euler, ELossFunction.Squared, 10);
         	
 			GNCompute<Float> compute = new GNCompute<Float>(Float.class, context, model, EMethod.Annealing, EErrorFunction.Euler, ELossFunction.Squared, false, null);
 			compute.setVerbose(verbose);
-			List<InferenceResult> result = compute.computeAdditiveRegulation(geneProfiles, Arrays.asList(inferenceTasks), 1, numIterations, regularizationWeight, false);
+			List<InferenceResult> result = compute.computeAdditiveRegulation(geneProfiles, Arrays.asList(inferenceTasks), numRegulators, numIterations, regularizationWeight, false);
 			InferenceResult[] resultArray = new InferenceResult[result.size()];
 			result.toArray(resultArray);
 			return resultArray;
         }
         catch(GNException ex)
         {
+        	ex.printStackTrace();
         	throw ex;
         }
         catch(Exception ex) {
+        	ex.printStackTrace();
         	throw new GNException(ex);
         }
     }    
     
     public static double[][] evaluateAdditiveRegulationResult(List<GeneProfile<Float>> geneProfiles, AdditiveRegulationInferenceTask inferenceTasks[], InferenceModel model, InferenceResult[] inferenceResults, double[] targetTimePoints) {
-    	double[][] result = new double[inferenceTasks.length][];
-    	IntStream.range(0, inferenceTasks.length)
-    			.forEach(index -> 
-    				{ result[index] = IntegrateResults.integrateAdditiveRegulation(model, inferenceResults[index], inferenceTasks[index], geneProfiles, 0/*initial time*/, 1/*timestep in the profile*/, targetTimePoints); }
-    			);
-    	return result;
+    	try {
+	    	double[][] result = new double[inferenceTasks.length][];
+	    	IntStream.range(0, inferenceTasks.length)
+	    			.forEach(index -> 
+	    				{ result[index] = IntegrateResults.integrateAdditiveRegulation(model, inferenceResults[index], inferenceTasks[index], geneProfiles, 0/*initial time*/, 1/*timestep in the profile*/, targetTimePoints); }
+	    			);
+	    	return result;
+    	} catch(RuntimeException ex) {
+    		ex.printStackTrace();
+    		throw ex;
+    	}	    	
     	
     }
     
     
     public static InferenceResult[] computeConstantSynthesis(DeviceSpecs deviceSpecs, List<GeneProfile<Float>> geneProfiles, NoRegulatorInferenceTask inferenceTasks[], int numIterations)
-    {
-    	CLContext context = deviceSpecs.createContext();
-    	
+    {   	
         try {
+        	CLContext context = deviceSpecs.createContext();
         
 			GNCompute<Float> compute = new GNCompute<Float>(Float.class, context, InferenceModel.NO_REGULATOR, EMethod.Annealing, EErrorFunction.Euler, ELossFunction.Squared, false, null);
 			compute.setVerbose(verbose);
@@ -125,21 +150,28 @@ public class RInterface {
         }
         catch(GNException ex)
         {
+        	ex.printStackTrace();
         	throw ex;
         }
         catch(Exception ex) {
+        	ex.printStackTrace();
         	throw new GNException(ex);
         }
     	
     }
     
     public static double[][] evaluateConstantSynthesisResult(List<GeneProfile<Float>> geneProfiles, NoRegulatorInferenceTask inferenceTasks[], InferenceResult[] inferenceResults, double[] targetTimePoints) {
-    	double[][] result = new double[inferenceTasks.length][];
-    	IntStream.range(0, inferenceTasks.length)
-    			.forEach(index -> 
-    				{ result[index] = IntegrateResults.integrateNoRegulator(inferenceResults[index], inferenceTasks[index], geneProfiles, 0/*initial time*/, targetTimePoints); }
-    			);
-    	return result;
+    	try {
+	    	double[][] result = new double[inferenceTasks.length][];
+	    	IntStream.range(0, inferenceTasks.length)
+	    			.forEach(index -> 
+	    				{ result[index] = IntegrateResults.integrateNoRegulator(inferenceResults[index], inferenceTasks[index], geneProfiles, 0/*initial time*/, targetTimePoints); }
+	    			);
+	    	return result;
+    	} catch(RuntimeException ex) {
+    		ex.printStackTrace();
+    		throw ex;
+    	}	    	
     	
     }
     

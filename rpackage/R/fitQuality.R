@@ -1,5 +1,5 @@
 defaultErrorDef <- function() {
-  return(list(absolute = 0, relative = 0.2, minimal = 0))
+  return(list(absolute = 0.1, relative = 0.2, minimal = 0))
 }
 
 errorMargin <- function(x, errorDef = defaultErrorDef()) {

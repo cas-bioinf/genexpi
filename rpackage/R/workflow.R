@@ -36,7 +36,7 @@ inspectSmoothing <- function(timeRaw, profilesRaw, timeSmooth, profilesSmooth, g
 }
 
 
-computeRegulon <- function(deviceSpecs, profiles, regulatorName, regulonNames, errorDef = list(absolute = 0, relative = 0.2, minimal = 0.5), minFitQuality = 0.8) {
+computeRegulon <- function(deviceSpecs, profiles, regulatorName, regulonNames, errorDef = defaultErrorDef(), minFitQuality = 0.8) {
   if(is.null(rownames(profiles))) {
     stop("Profiles must have associated rownames");
   }

@@ -16,11 +16,9 @@ computeAdditiveRegulation <- function(deviceSpecs, profilesMatrix, tasks, constr
 
   #TODO: Check parameters
   numRegulators = dim(tasks)[2] - 1;
+  numTasks = dim(tasks)[1];
   if(numRegulators < 1) {
     stop("The given tasks should contain at least one regulator index and one target");
-  }
-  if(numRegulators > 1) {
-    stop("More than one regulator currently not supported");
   }
 
   if(class(profilesMatrix) ==  "jobjRef") {
@@ -37,10 +35,12 @@ computeAdditiveRegulation <- function(deviceSpecs, profilesMatrix, tasks, constr
 
 
   taskListR = list();
-  for (i in 1:dim(tasks)[1])
+  for (i in 1:numTasks)
   {
-    #TODO allow multiple regulators
     #Create the inference tasks (move to 0-based indices in Java)
+    regulatorIDs = as.integer((tasks[i,1:numRegulators]) - 1)
+    targetID = as.integer(tasks[i,numRegulators + 1] - 1)
+
     if(constraints[i] == "")
     {
       regulationType = J(computeJavaType("RegulationType"))$All;
@@ -54,8 +54,15 @@ computeAdditiveRegulation <- function(deviceSpecs, profilesMatrix, tasks, constr
     else {
       stop(paste0("Unknown constraint: ", constraints[i]));
     }
+    if(numRegulators > 1) {
+      regulationTypeList = list()
+      for(regI in 1:numRegulators) {
+        regulationTypeList[[regI]] = regulationType
+      }
+      regulationType = .jarray(regulationTypeList, contents.class = computeJavaType("RegulationType"))
+    }
 
-    taskListR[[i]] = .jnew(computeJavaType("AdditiveRegulationInferenceTask"), as.integer(tasks[i,1] - 1), as.integer(tasks[i,2] - 1), regulationType)
+    taskListR[[i]] = .jnew(computeJavaType("AdditiveRegulationInferenceTask"), regulatorIDs, targetID, regulationType)
   }
 
 
@@ -64,7 +71,17 @@ computeAdditiveRegulation <- function(deviceSpecs, profilesMatrix, tasks, constr
   model = J(computeJavaType("InferenceModel"))$createAdditiveRegulationModel(as.integer(numRegulators));
 
   rInt = rinterfaceJavaType("RInterface");
-  results = .jcall(rInt, paste0("[L",computeJavaType("InferenceResult"),";"), "computeAdditiveRegulation", getJavaDeviceSpecs(deviceSpecs), profilesJava, tasksJava, model, as.integer(numIterations), .jfloat(regularizationWeight), evalArray = FALSE);
+  results = .jcall(rInt,
+                   paste0("[L",computeJavaType("InferenceResult"),";"),
+                   "computeAdditiveRegulation",
+                   getJavaDeviceSpecs(deviceSpecs),
+                   profilesJava,
+                   tasksJava, model,
+                   as.integer(numRegulators),
+                   as.integer(numIterations),
+                   .jfloat(regularizationWeight),
+                   evalArray = FALSE
+                   );
 
   return( inferenceResultsToR(results, model, profilesMatrix, profilesJava, tasks, tasksJava, rClass = "additiveRegulationResult"));
 }
@@ -98,16 +115,18 @@ testAdditiveRegulation <- function(additiveRegulationResults, errorDef = default
 
   profileNames = character(numTasks)
   isRegulated = logical(dim(profiles)[1])
+  regulatedTasks = logical(numTasks)
   for(i in 1:numTasks) {
     #Target is the last column in tasks
     profileIndex = additiveRegulationResults$tasks[i, dim(additiveRegulationResults$tasks)[2]];
 
     if(fitQuality(profiles[profileIndex,], additiveRegulationEvaluated[i,], errorDef) >= minFitQuality) {
       isRegulated[profileIndex] = TRUE;
+      regulatedTasks[i] = TRUE;
     }
     profileNames[i] = rownames(profiles)[profileIndex];
   }
   rownames(additiveRegulationEvaluated) = profileNames
 
-  return(list(regulated = isRegulated, predictedProfiles = additiveRegulationEvaluated))
+  return(list(regulated = isRegulated, regulatedTasks = regulatedTasks,predictedProfiles = additiveRegulationEvaluated))
 }
