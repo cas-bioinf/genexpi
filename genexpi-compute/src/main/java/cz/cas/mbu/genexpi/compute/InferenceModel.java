@@ -13,7 +13,7 @@ public class InferenceModel {
 	;
 	*/
 
-	public enum Family {NoRegulator, AdditiveRegulation};
+	public enum Family {NoRegulator, AdditiveRegulation, CooperativeRegulation};
 	
 	public static final String NO_REGULATOR_SYNTHESIS_PARAM_NAME = "synthesis";
 	public static final String NO_REGULATOR_DECAY_PARAM_NAME = "decay";
@@ -109,9 +109,20 @@ public class InferenceModel {
 		return kernelBaseName + kernelName;
 	}
 	
-	public String getModelSource()
+	public String[] getModelSources()
 	{
-		return kernelName + ".cl";
+		switch(family) {
+			case AdditiveRegulation: {
+				return new String[] { "BaseSigmoidDefinitions.clh", "AdditiveRegulation.cl", "BaseSigmoidRegulation.cl" };
+			}
+			case CooperativeRegulation: {
+				return new String[] { "BaseSigmoidDefinitions.clh", "CooperativeRegulation.cl", "BaseSigmoidRegulation.cl" };				
+			}
+			default: {
+				return new String[] { kernelName + ".cl" };				
+			}
+		}
+		
 	}
 
 	public int getNumParams() {

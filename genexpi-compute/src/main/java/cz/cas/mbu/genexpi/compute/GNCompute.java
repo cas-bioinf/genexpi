@@ -5,7 +5,10 @@
  */
 package cz.cas.mbu.genexpi.compute;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Writer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -18,7 +21,6 @@ import com.nativelibs4java.opencl.CLBuffer;
 import com.nativelibs4java.opencl.CLContext;
 import com.nativelibs4java.opencl.CLDevice;
 import com.nativelibs4java.opencl.CLEvent;
-import com.nativelibs4java.opencl.CLEvent.CommandExecutionStatus;
 import com.nativelibs4java.opencl.CLException;
 import com.nativelibs4java.opencl.CLKernel;
 import com.nativelibs4java.opencl.CLMem;
@@ -96,28 +98,33 @@ public class GNCompute<NUMBER_TYPE extends Number> {
 		String kernelName = model.getKernelName(method.getKernelBaseName());
 		
 		
-        String definitionsSrc = IOUtils.readText(GNCompute.class.getResource("Definitions.clh"));
-        String utilsSrc = IOUtils.readText(GNCompute.class.getResource("Utils.cl"));
-        String xorShiftSrc = IOUtils.readText(GNCompute.class.getResource("XorShift1024.cl"));
-        String modelSrc = IOUtils.readText(GNCompute.class.getResource(model.getModelSource()));
-        String methodSrc = IOUtils.readText(GNCompute.class.getResource(method.getMethodSource()));
-        
-        String combinedSource = definitionsSrc + utilsSrc + xorShiftSrc + modelSrc + methodSrc; 
+		StringBuilder sourceBuilder = new StringBuilder();
 
-        //Commented out block of debug code. Slightly ashamed of this.
-//        File srcOut = new File(kernelName + ".cl");
-//        try (Writer w = new FileWriter(srcOut))
-//		{
-//        	w.write(combinedSource);
-//		}
-        
-        program = context.createProgram(combinedSource);
+		
         if(errorFunction != null)
         {
-        	program.defineMacro(errorFunction.getMacro(), 1);
+        	sourceBuilder.append("#define ").append(errorFunction.getMacro()).append("\n");
         }
-        program.defineMacro(lossFunction.getMacro(), 1);
-        program.defineMacro("GRADIENT_UPDATE", "CTSW_OFF");
+    	sourceBuilder.append("#define ").append(lossFunction.getMacro()).append("\n");
+		
+        sourceBuilder.append(IOUtils.readText(GNCompute.class.getResource("Definitions.clh")));
+        sourceBuilder.append(IOUtils.readText(GNCompute.class.getResource("Utils.cl")));
+        sourceBuilder.append(IOUtils.readText(GNCompute.class.getResource("XorShift1024.cl")));
+        for(String sourceFile : model.getModelSources()) {
+        	sourceBuilder.append(IOUtils.readText(GNCompute.class.getResource(sourceFile)));
+        }
+        sourceBuilder.append(IOUtils.readText(GNCompute.class.getResource(method.getMethodSource())));
+        
+        String combinedSource = sourceBuilder.toString(); 
+
+        //Commented out block of debug code. Slightly ashamed of this.
+        File srcOut = new File(kernelName + ".cl");
+        try (Writer w = new FileWriter(srcOut))
+		{
+        	w.write(combinedSource);
+		}
+        
+        program = context.createProgram(combinedSource);
         
         if(useCustomTimeStep)
         {

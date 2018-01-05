@@ -15,7 +15,7 @@ kernel void KERNEL_NAME(Annealing)(XORSHIFT_PARAMS_DEF,
     GET_IDS;
 
     CHECK_IDS;  
-    
+    //pridat divnej vypocet
 	CopyProfile(geneProfilesGlobal, numGenes, numTime, targetIndicesGlobal[taskID], targetProfile, 1, 0); //the target is a single profile - stride 1, offset 0
 	PREPARE_LOCAL_DATA;
     	
@@ -30,7 +30,11 @@ kernel void KERNEL_NAME(Annealing)(XORSHIFT_PARAMS_DEF,
 #endif
 			optimizedParams);
     
-    FORCE_PARAMS_IN_BOUNDS;
+    ForceParamsInBounds(BASE_PARAMS_PASS, 
+#if CTSW(CTSW_MODEL_SPECIFIC_PARAMS)		
+			MODEL_SPECIFIC_PARAMS_PASS,
+#endif
+    		optimizedParams);
     
     const T_Value coolMultiplier = CONST(0.8);
     const T_Value initTemperature = CONST(1.0);
@@ -113,18 +117,12 @@ kernel void KERNEL_NAME(Annealing)(XORSHIFT_PARAMS_DEF,
         {
             PARAMETER_VALUE(indexToChange) = oldValue + (oldValue * randomValue * CONST(0.5));                    	
         }
-        
-#if CTSW(GRADIENT_UPDATE)        
-#error Gradient is currently broken
-        DerivativeErrorGradientUpdate(regulatorProfiles, targetProfiles, 
-            numTime, numTasks, numIterations, 
-            regulatorIndices, targetIndices,
-            numRegulators, numTargets,
-            optimizedParams, temperature);
-
+               
+        ForceParamsInBounds(BASE_PARAMS_PASS, 
+#if CTSW(CTSW_MODEL_SPECIFIC_PARAMS)		
+    			MODEL_SPECIFIC_PARAMS_PASS,
 #endif
-        
-        FORCE_PARAMS_IN_BOUNDS;
+        		optimizedParams);
         
 #if CTSW(DEBUG) 
         //if(iterationID == 0)
