@@ -5,35 +5,25 @@
  */
 package cz.cas.mbu.genexpi.compute;
 
-import java.util.List;
-
 /**
  *
  * @author MBU
  */
-public class AdditiveRegulationInferenceTask  {
-    private final int[] regulatorIDs;
-    private final int targetID;    
-	private final RegulationType[] regulationTypes;
+public class AdditiveRegulationInferenceTask extends BaseSigmoidInferenceTask  {
+    private final RegulationType[] regulationTypes;
     
 	public AdditiveRegulationInferenceTask(int regulatorID, int targetID) {
-		super();
-		this.targetID = targetID;
-		this.regulatorIDs = new int[] { regulatorID };
+		super(new int[] { regulatorID }, targetID);
 		this.regulationTypes = new RegulationType[] {RegulationType.All};
 	}
 	
 	public AdditiveRegulationInferenceTask(int regulatorID, int targetID, RegulationType regulationType) {
-		super();
-		this.targetID = targetID;
-		this.regulatorIDs = new int[] { regulatorID };
+		super(new int[] { regulatorID }, targetID);
 		this.regulationTypes = new RegulationType[] {regulationType};
 	}
 	
 	public AdditiveRegulationInferenceTask(int[] regulatorIDs, int targetID) {
-		super();
-		this.targetID = targetID;
-		this.regulatorIDs = regulatorIDs;
+		super(regulatorIDs, targetID);
 		this.regulationTypes = new RegulationType[regulatorIDs.length];
 		for(int i = 0; i < regulatorIDs.length; i++)
 		{
@@ -42,25 +32,15 @@ public class AdditiveRegulationInferenceTask  {
 	}
 	
     public AdditiveRegulationInferenceTask(int[] regulatorIDs, int targetID, RegulationType[] regulationTypes) {
-		super();
+		super(regulatorIDs, targetID);
 		if(regulatorIDs.length != regulationTypes.length)
 		{
 			throw new IllegalArgumentException("There has to be the same number of weight constraints as regulators.");
 		}
-		this.regulatorIDs = regulatorIDs;
-		this.targetID = targetID;
 		this.regulationTypes = regulationTypes;
 	}
 	
 	
-	public int getTargetID() {
-		return targetID;
-	}
-	
-	public int[] getRegulatorIDs() {
-		return regulatorIDs;
-	}
-
 	public RegulationType[] getRegulationTypes() {
 		return regulationTypes;
 	}

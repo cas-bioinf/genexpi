@@ -1,23 +1,17 @@
 //Used in combination with BaseSigmoidRegulation.cl
 
-#if !defined(NUM_REGULATORS)
-	#error NUM_REGULATORS has to be defined
-#endif
-
 #define COMPUTATION_NAME AdditiveRegulation
 
 #define KERNEL_NAME(X) X ## AdditiveRegulation
 
-#define W_VALUE(regulatorId) PARAMETER_VALUE(3 + (regulatorId))
+#define W_VALUE(regulatorId) PARAMETER_VALUE(NUM_BASE_PARAMETERS + (regulatorId))
 
 #if CTSW(CTSW_CONSTITUTIVE_EXPRESSION)
-	#define NUM_PARAMETERS (4 + NUM_REGULATORS)
-	#define CONSTITUTIVE_VALUE PARAMETER_VALUE(3 + NUM_REGULATORS)
+	#define NUM_PARAMETERS (NUM_BASE_PARAMETERS + 1 + NUM_REGULATORS)
+	#define CONSTITUTIVE_VALUE PARAMETER_VALUE(NUM_BASE_PARAMETERS + NUM_REGULATORS)
 #else
-	#define NUM_PARAMETERS (3 + NUM_REGULATORS)
+	#define NUM_PARAMETERS (NUM_BASE_PARAMETERS + NUM_REGULATORS)
 #endif
-
-#define REGULARIZATION_MAX_EFFECT 10
 
 void ForceSpecificParamsInBounds(
 		BASE_PARAMS_DEF,
@@ -30,9 +24,10 @@ void ForceSpecificParamsInBounds(
 	{ 
     	for(int __regulator = 0; __regulator < NUM_REGULATORS; __regulator++)
 		{
-    		T_Value combinedSignedValue = weightConstraints[__regulator] * W_VALUE(__regulator);
+    		T_Value constraint = weightConstraints[taskID * NUM_REGULATORS + __regulator];
+    		T_Value combinedSignedValue = constraint * W_VALUE(__regulator);
     		if(combinedSignedValue < 0) { 
-    			W_VALUE(__regulator) = weightConstraints[__regulator] * CONST(0.0001);
+    			W_VALUE(__regulator) = constraint * CONST(0.0001);
     		}
     	}
     }

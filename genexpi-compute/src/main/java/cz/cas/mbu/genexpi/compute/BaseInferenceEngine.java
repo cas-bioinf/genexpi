@@ -31,59 +31,53 @@ import com.nativelibs4java.opencl.JavaCL;
 import com.nativelibs4java.opencl.LocalSize;
 import com.nativelibs4java.util.IOUtils;
 
-public class GNCompute<NUMBER_TYPE extends Number> {
+public abstract class BaseInferenceEngine<NUMBER_TYPE extends Number, TASK_TYPE> implements IInferenceEngine<NUMBER_TYPE, TASK_TYPE> {
     
-    private final Class<NUMBER_TYPE> elementClass;
+    protected final Class<NUMBER_TYPE> elementClass;
     
-    private final CLContext context;
-    private final InferenceModel model;
-    private final EMethod method;
-    private final EErrorFunction errorFunction;
-    private final ELossFunction lossFunction;    
+    protected final CLContext context;
+    protected final InferenceModel model;
+    protected final EMethod method;
+    protected final EErrorFunction errorFunction;
+    protected final ELossFunction lossFunction;    
     
-    private final boolean useCustomTimeStep;
-    private final float customTimeStep;
+    protected final boolean useCustomTimeStep;
+    protected final float customTimeStep;
     
-    private final CLProgram program;
-    private final CLKernel kernel;
+    protected final CLProgram program;
+    protected final CLKernel kernel;
     
-    private boolean verbose = true;
+    protected final boolean verbose;
+    protected final int numIterations;
+    protected final boolean preventFullOccupation;
 
-    public static CLDevice getBestDevice()
-    {
-    	CLDevice device = JavaCL.getBestDevice(CLPlatform.DeviceFeature.OutOfOrderQueueSupport, CLPlatform.DeviceFeature.GPU, CLPlatform.DeviceFeature.MaxComputeUnits);
-    	if(device != null)
-    	{
-    		return device;
-    	}
-    	device = JavaCL.getBestDevice(CLPlatform.DeviceFeature.OutOfOrderQueueSupport, CLPlatform.DeviceFeature.MaxComputeUnits);
-    	if(device != null)
-    	{
-    		return device;
-    	}
-    	return JavaCL.getBestDevice();    	
-    	
-    }
-    
-    /**
-     * 
-     * @return null if no context available
-     */
-    public static CLContext getBestContext()
-    {
-    	CLDevice device = getBestDevice();
-    	return device.getPlatform().createContext(null, device);    	
-    }
-
-    public GNCompute(Class<NUMBER_TYPE> elementClass, CLContext context, InferenceModel model, EMethod method,
-			EErrorFunction errorFunction, ELossFunction lossFunction, boolean useCustomTimeStep, Float customTimeStep) throws IOException {
+    public BaseInferenceEngine(Class<NUMBER_TYPE> elementClass, CLContext context, InferenceModel model, EMethod method,
+			EErrorFunction errorFunction, ELossFunction lossFunction, boolean useCustomTimeStep, Float customTimeStep, boolean verbose,
+			int numIterations, boolean preventFullOccupation) throws IOException {
 		super();
+		
+		if(context == null) {
+			throw new NullPointerException("You have to provide context");
+		}
+		if(model == null) {
+			throw new NullPointerException("You have to provide inference model");
+		}
+		if(method == null) {
+			throw new NullPointerException("You have to provide method");
+		}
+		if(lossFunction == null) {
+			throw new NullPointerException("You have to provide loss function");
+		}
+		
 		this.elementClass = elementClass;
 		this.context = context;
 		this.model = model;
 		this.method = method;
 		this.errorFunction = errorFunction;
 		this.lossFunction = lossFunction;
+		this.verbose = verbose;
+		this.numIterations = numIterations;
+		this.preventFullOccupation = preventFullOccupation;
 		
 		this.useCustomTimeStep = useCustomTimeStep;
 		if(useCustomTimeStep)
@@ -106,23 +100,31 @@ public class GNCompute<NUMBER_TYPE extends Number> {
         	sourceBuilder.append("#define ").append(errorFunction.getMacro()).append("\n");
         }
     	sourceBuilder.append("#define ").append(lossFunction.getMacro()).append("\n");
+    	if(elementClass == Double.class) {
+        	sourceBuilder.append("#define USE_DOUBLE 2\n"); //see CTSW_ON in Definitions.clh    		
+    	}
+    	else if(elementClass == Float.class) {
+        	sourceBuilder.append("#define USE_DOUBLE 1\n"); //see CTSW_OFF in Definitions.clh   		
+    	} else {
+    		throw new IllegalArgumentException("Unsupported elementClass: " + elementClass);
+    	}
 		
-        sourceBuilder.append(IOUtils.readText(GNCompute.class.getResource("Definitions.clh")));
-        sourceBuilder.append(IOUtils.readText(GNCompute.class.getResource("Utils.cl")));
-        sourceBuilder.append(IOUtils.readText(GNCompute.class.getResource("XorShift1024.cl")));
+        sourceBuilder.append(IOUtils.readText(BaseInferenceEngine.class.getResource("Definitions.clh")));
+        sourceBuilder.append(IOUtils.readText(BaseInferenceEngine.class.getResource("Utils.cl")));
+        sourceBuilder.append(IOUtils.readText(BaseInferenceEngine.class.getResource("XorShift1024.cl")));
         for(String sourceFile : model.getModelSources()) {
-        	sourceBuilder.append(IOUtils.readText(GNCompute.class.getResource(sourceFile)));
+        	sourceBuilder.append(IOUtils.readText(BaseInferenceEngine.class.getResource(sourceFile)));
         }
-        sourceBuilder.append(IOUtils.readText(GNCompute.class.getResource(method.getMethodSource())));
+        sourceBuilder.append(IOUtils.readText(BaseInferenceEngine.class.getResource(method.getMethodSource())));
         
         String combinedSource = sourceBuilder.toString(); 
 
         //Commented out block of debug code. Slightly ashamed of this.
-        File srcOut = new File(kernelName + ".cl");
-        try (Writer w = new FileWriter(srcOut))
-		{
-        	w.write(combinedSource);
-		}
+//        File srcOut = new File(kernelName + ".cl");
+//        try (Writer w = new FileWriter(srcOut))
+//		{
+//        	w.write(combinedSource);
+//		}
         
         program = context.createProgram(combinedSource);
         
@@ -150,11 +152,7 @@ public class GNCompute<NUMBER_TYPE extends Number> {
 		return verbose;
 	}
 
-	public void setVerbose(boolean verbose) {
-		this.verbose = verbose;
-	}
-
-	private CLEvent[] executeKernel(CLQueue queue, int numItems, int numIterations, boolean preventFullOccupation)
+	protected CLEvent[] executeKernel(CLQueue queue, int numItems)
     {
         
         int maxComputeUnits = queue.getDevice().getMaxComputeUnits();
@@ -203,7 +201,16 @@ public class GNCompute<NUMBER_TYPE extends Number> {
         return eventsToWaitForArray; 
     }
     
-    private long prepareXorShiftParameters(List<Object> argumentList, int numItems, int numIterations)
+	protected LocalSize getLocalSizeByElementClass(long numElements) {
+		if(elementClass == Double.class) {
+			return LocalSize.ofDoubleArray(numElements);
+		} else if(elementClass == Float.class) {
+			return LocalSize.ofFloatArray(numElements);
+		}
+		throw new IllegalArgumentException("Unrecognized elementClass: " + elementClass);
+	}
+	
+    protected long prepareXorShiftParameters(List<Object> argumentList, int numItems)
     {
         ByteOrder byteOrder = context.getByteOrder();
         Pointer<Long> xorShiftStatesPtr = Pointer.allocateLongs(numItems * numIterations * 16).order(byteOrder);
@@ -230,7 +237,7 @@ public class GNCompute<NUMBER_TYPE extends Number> {
         return xorShiftStates.getByteCount() + xorShiftCounters.getByteCount();
     }
     
-    private long prepareBaseParameters(List<Object> argumentList, List<GeneProfile<NUMBER_TYPE>> genes, int[] targetIDs)
+    protected long prepareBaseParameters(List<Object> argumentList, List<GeneProfile<NUMBER_TYPE>> genes, int[] targetIDs)
     {
         ByteOrder byteOrder = context.getByteOrder();
         int numTimePoints = genes.get(0).getProfile().size();
@@ -264,7 +271,7 @@ public class GNCompute<NUMBER_TYPE extends Number> {
         
         totalBytes += prepareProfileIDParameter(argumentList, targetIDs);
                
-        argumentList.add(LocalSize.ofFloatArray(numTimePoints));
+        argumentList.add(getLocalSizeByElementClass(numTimePoints)); //local target copy
         
         argumentList.add(genes.size());
         
@@ -274,7 +281,7 @@ public class GNCompute<NUMBER_TYPE extends Number> {
     }
     
     
-    private long prepareProfileIDParameter(List<Object> argumentList, int[] profileIDs)
+    protected long prepareProfileIDParameter(List<Object> argumentList, int[] profileIDs)
     {
         ByteOrder byteOrder = context.getByteOrder();
         int numItems = profileIDs.length;
@@ -290,7 +297,7 @@ public class GNCompute<NUMBER_TYPE extends Number> {
     	
     }    
     
-    private long prepareWeightConstraintsParameter(List<Object> argumentList, int[] weightConstraints)
+    protected long prepareWeightConstraintsParameter(List<Object> argumentList, int[] weightConstraints)
     {
     	if(weightConstraints == null)
     	{
@@ -313,7 +320,7 @@ public class GNCompute<NUMBER_TYPE extends Number> {
     	}
     }
     
-    private OutputPointers prepareOutputParameters(List<Object> argumentList, int numItems, int numIterations)
+    protected OutputPointers prepareOutputParameters(List<Object> argumentList, int numItems)
     {
         CLBuffer<NUMBER_TYPE> optimizedParams = context.createBuffer(CLMem.Usage.InputOutput, elementClass, numItems * numIterations * model.getNumParams());
         CLBuffer<NUMBER_TYPE> errors = context.createBuffer(CLMem.Usage.InputOutput, elementClass, numItems * numIterations);
@@ -323,7 +330,7 @@ public class GNCompute<NUMBER_TYPE extends Number> {
     }
     
    
-    private List<InferenceResult> gatherInferenceResults(CLQueue queue, OutputPointers pointers, CLEvent[] eventsToWaitFor, int numItems, int numIterations, boolean preventFullOccupation)
+    protected List<InferenceResult> gatherInferenceResults(CLQueue queue, OutputPointers pointers, CLEvent[] eventsToWaitFor, int numItems)
     {
     	try {
 	        Pointer<NUMBER_TYPE> optimizedParamsPtr = pointers.getOptimizedParams().read(queue, eventsToWaitFor); // blocks until the kernel finished
@@ -339,7 +346,7 @@ public class GNCompute<NUMBER_TYPE extends Number> {
 	            {
 	                NUMBER_TYPE errorVal = errorPtr.get(item * numIterations+ iteration);
 	                
-	                if(Float.isNaN(errorVal.floatValue()))
+	                if(Double.isNaN(errorVal.doubleValue()))
 	                {
 	                	nanCount++;
 	                }
@@ -390,7 +397,7 @@ public class GNCompute<NUMBER_TYPE extends Number> {
     	}
     }
     
-    private int regulationTypeToInt(RegulationType w)
+    protected int regulationTypeToInt(RegulationType w)
     {
     	switch (w) {
 	    	case All : return 0;
@@ -403,174 +410,10 @@ public class GNCompute<NUMBER_TYPE extends Number> {
     	
     }
     
-    public List<InferenceResult> computeAdditiveRegulation(List<GeneProfile<NUMBER_TYPE>> geneProfiles, List<AdditiveRegulationInferenceTask> inferenceTasks, int numRegulators, int numIterations, float regularizationWeight, boolean preventFullOccupation) throws IOException
-    {
-    	if(inferenceTasks.isEmpty())
-    	{
-    		return Collections.EMPTY_LIST;
-    	}
-    	
-        long preparationStartTime = System.nanoTime();
-    	//TODO: invert the method - let the user to specify only the model specific params.
-        
-        CLQueue queue;
-        
-        try {
-            queue = context.createDefaultOutOfOrderQueue();        	
-        }
-        catch(CLException ex)
-        {
-        	if(verbose) {
-        		System.out.println("Could not create out-of-order queue. Using default queue.");
-        	}
-            queue = context.createDefaultQueue();        	
-        }
-        long totalBytes = 0;
-        
-        int numItems = inferenceTasks.size();
 
-        int[] regulatorIDs = new int[numItems * numRegulators];
-        int[] targetIDs = new int[numItems];
-        int[] weightConstraints = new int[numItems * numRegulators];
-        
-        for(int i = 0; i < numItems; i++)
-        {
-        	targetIDs[i] = inferenceTasks.get(i).getTargetID();
-        	
-        	int[] taskRegulatorIDs = inferenceTasks.get(i).getRegulatorIDs();
-        	if(numRegulators != taskRegulatorIDs.length){
-        		throw new GNException("Inconsistent regulator numbers");
-        	}
-        	for(int j = 0; j < numRegulators; j++)
-        	{
-        		regulatorIDs[i * numRegulators + j] = taskRegulatorIDs[j];
-        		weightConstraints[i * numRegulators + j] = regulationTypeToInt(inferenceTasks.get(i).getRegulationTypes()[j]);
-        	}        	
-        }
-        
-        List<Object> argumentList = new ArrayList<>();
-        
-        int numTimePoints = geneProfiles.get(0).getProfile().size();
-        
-        totalBytes += prepareXorShiftParameters(argumentList, numItems, numIterations);
-        totalBytes += prepareBaseParameters(argumentList, geneProfiles, targetIDs);
-        argumentList.add(numItems);
-        argumentList.add(numIterations);
-        totalBytes += prepareProfileIDParameter(argumentList, regulatorIDs);
-        totalBytes += prepareWeightConstraintsParameter(argumentList, weightConstraints);
-        argumentList.add(LocalSize.ofFloatArray(numTimePoints * numRegulators)); //local profiles
-        argumentList.add(LocalSize.ofFloatArray(numRegulators + 1)); //local profile maxima (including target)
-        argumentList.add(regularizationWeight);
-        argumentList.add(LocalSize.ofIntArray(numRegulators)); //local weight constraints
-        
-        OutputPointers outputPointers = prepareOutputParameters(argumentList, numItems, numIterations);
-        totalBytes += outputPointers.getByteCount();
-                      
-        long totalMB = totalBytes / (1024 * 1024);
-        
-        if(verbose) {
-        	System.out.println("Allocating " + totalMB + "MB.");
-        }
-
-        kernel.setArgs(argumentList.toArray());
-        
-        long mainStartTime = System.nanoTime();
-        long preparationDuration = mainStartTime - preparationStartTime;
-        
-        float preparationDurationMSec = (((float)preparationDuration) / 1000000);
-        if(verbose) {
-        	System.out.println("Preparation took: " + preparationDurationMSec + " ms.");        
-        }
-        
-        CLEvent[] eventsToWaitForArray = executeKernel(queue, numItems, numIterations, preventFullOccupation);
-
-        List<InferenceResult> results = gatherInferenceResults(queue, outputPointers, eventsToWaitForArray, numItems, numIterations, preventFullOccupation);
-        queue.finish();
-        long mainDuration = System.nanoTime() - mainStartTime;
-   
-        float mainDurationMSec = (((float)mainDuration) / 1000000);
-
-        if(verbose) {
-        	System.out.println("Computation took: " + mainDurationMSec + " ms.");        
-        }
-        return results;
-    }
     
-    public List<InferenceResult> computeNoRegulator(List<GeneProfile<NUMBER_TYPE>> geneProfiles, List<NoRegulatorInferenceTask> inferenceTasks, int numIterations, boolean preventFullOccupation) throws IOException
-    {
-    	if(inferenceTasks.isEmpty())
-    	{
-    		return Collections.EMPTY_LIST;
-    	}
-    	
-        long preparationStartTime = System.nanoTime();
-    	//TODO: invert the method - let the user to specify only the model specific params.
-        
-        CLQueue queue;
-        
-        try {
-            queue = context.createDefaultOutOfOrderQueue();        	
-        }
-        catch(CLException ex)
-        {
-        	if(verbose) {
-        		System.out.println("Could not create out-of-order queue. Using default queue.");
-        	}
-            queue = context.createDefaultQueue();        	
-        }
-        long totalBytes = 0;
-        
-        int numItems = inferenceTasks.size();
 
-        int[] targetIDs = new int[numItems];
-        
-        for(int i = 0; i < numItems; i++)
-        {
-        	targetIDs[i] = inferenceTasks.get(i).getTargetID();        	
-        }
-        
-        List<Object> argumentList = new ArrayList<>();
-        
-        totalBytes += prepareXorShiftParameters(argumentList, numItems, numIterations);
-        totalBytes += prepareBaseParameters(argumentList, geneProfiles, targetIDs);
-        argumentList.add(numItems);
-        argumentList.add(numIterations);
-        
-        OutputPointers outputPointers = prepareOutputParameters(argumentList, numItems, numIterations);
-        totalBytes += outputPointers.getByteCount();
-                      
-        long totalMB = totalBytes / (1024 * 1024);
-        
-        if(verbose) {
-        	System.out.println("Allocating " + totalMB + "MB.");
-        }
-
-        kernel.setArgs(argumentList.toArray());
-        
-        long mainStartTime = System.nanoTime();
-        long preparationDuration = mainStartTime - preparationStartTime;
-        
-        float preparationDurationMSec = (((float)preparationDuration) / 1000000);
-        if(verbose) {        
-        	System.out.println("Preparation took: " + preparationDurationMSec + " ms.");
-        }
-        
-        CLEvent[] eventsToWaitForArray = executeKernel(queue, numItems, numIterations, preventFullOccupation);
-
-        List<InferenceResult> results = gatherInferenceResults(queue, outputPointers, eventsToWaitForArray, numItems, numIterations, preventFullOccupation);
-        queue.finish();
-        long mainDuration = System.nanoTime() - mainStartTime;
-   
-        float mainDurationMSec = (((float)mainDuration) / 1000000);
-
-        if(verbose) {
-        	System.out.println("Computation took: " + mainDurationMSec + " ms.");
-        }
-
-        return results;
-    }    
-    
-    private class OutputPointers
+    protected class OutputPointers
     {
     	CLBuffer<NUMBER_TYPE> optimizedParams;
         CLBuffer<NUMBER_TYPE> errors;
@@ -597,6 +440,7 @@ public class GNCompute<NUMBER_TYPE extends Number> {
 
     }
 
+    @Override
 	public InferenceModel getModel() {
 		return model;
 	}
@@ -622,4 +466,20 @@ public class GNCompute<NUMBER_TYPE extends Number> {
 	}
     
     
+	protected CLQueue createQueue() {
+		CLQueue queue;
+        
+        try {
+            queue = context.createDefaultOutOfOrderQueue();        	
+        }
+        catch(CLException ex)
+        {
+        	if(verbose) {
+        		System.out.println("Could not create out-of-order queue. Using default queue.");
+        	}
+            queue = context.createDefaultQueue();        	
+        }
+		return queue;
+	}
+	
 }

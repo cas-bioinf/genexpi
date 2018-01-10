@@ -18,10 +18,16 @@ public class InferenceModel {
 	public static final String NO_REGULATOR_SYNTHESIS_PARAM_NAME = "synthesis";
 	public static final String NO_REGULATOR_DECAY_PARAM_NAME = "decay";
 	
-	public static final String ADDITIVE_MAX_SYNTH_PARAM_NAME = "k1";
-	public static final String ADDITIVE_DECAY_PARAM_NAME = "k2";
-	public static final String ADDITIVE_BIAS_PARAM_NAME = "b";
-	public static final String ADDITIVE_CONSTITUTIVE_PARAM_NAME = "const";
+	public static final InferenceModel NO_REGULATOR = new InferenceModel(Family.NoRegulator, "NoRegulator",new String[] {NO_REGULATOR_SYNTHESIS_PARAM_NAME, NO_REGULATOR_DECAY_PARAM_NAME}, null, "NoRegulator");
+
+	public static final String SIGMOID_MAX_SYNTH_PARAM_NAME = "k1";
+	public static final String SIGMOID_DECAY_PARAM_NAME = "k2";
+	public static final String SIGMOID_BIAS_PARAM_NAME = "b";
+	public static final String SIGMOID_CONSTITUTIVE_PARAM_NAME = "const";
+	
+	public static final String COOPERATIVE_WEIGHT_PARAM_NAME = "w";
+	public static final String COOPERATIVE_EQUILIBRIUM_PARAM_NAME = "eq";
+	
 	
 	private final Family family;
 	
@@ -33,7 +39,6 @@ public class InferenceModel {
 
 	private final String description;
 
-	public static final InferenceModel NO_REGULATOR = new InferenceModel(Family.NoRegulator, "NoRegulator",new String[] {NO_REGULATOR_SYNTHESIS_PARAM_NAME, NO_REGULATOR_DECAY_PARAM_NAME}, null, "NoRegulator");
 	
 	
 	public static String getAdditiveRegulatorWeightParamName(int regulator, int numRegulators)
@@ -56,9 +61,9 @@ public class InferenceModel {
 	public static InferenceModel createAdditiveRegulationModel(int numRegulators, boolean useConstitutiveExpression)
 	{
 		List<String> parameters = new ArrayList<>();
-		parameters.add(ADDITIVE_MAX_SYNTH_PARAM_NAME);
-		parameters.add(ADDITIVE_DECAY_PARAM_NAME);
-		parameters.add(ADDITIVE_BIAS_PARAM_NAME);
+		parameters.add(SIGMOID_MAX_SYNTH_PARAM_NAME);
+		parameters.add(SIGMOID_DECAY_PARAM_NAME);
+		parameters.add(SIGMOID_BIAS_PARAM_NAME);
 
 		for(int i = 0; i < numRegulators; i++)
 		{
@@ -70,12 +75,34 @@ public class InferenceModel {
 		
 		if(useConstitutiveExpression)
 		{
-			parameters.add(ADDITIVE_CONSTITUTIVE_PARAM_NAME);
+			parameters.add(SIGMOID_CONSTITUTIVE_PARAM_NAME);
 			additionalDefines.add(new String[] {"USE_CONSTITUTIVE_EXPRESSION", ""});
 		}
 		String description = "Additive-" + Integer.toString(numRegulators) + "Reg" + (useConstitutiveExpression ? "-Constitutive" : "");
 		return new InferenceModel(Family.AdditiveRegulation, "AdditiveRegulation", parameters, additionalDefines, description);
 	}
+	
+	public static InferenceModel createCooperativeRegulationModel(boolean useConstitutiveExpression)
+	{
+		List<String> parameters = new ArrayList<>();
+		parameters.add(SIGMOID_MAX_SYNTH_PARAM_NAME);
+		parameters.add(SIGMOID_DECAY_PARAM_NAME);
+		parameters.add(SIGMOID_BIAS_PARAM_NAME);
+		parameters.add(COOPERATIVE_WEIGHT_PARAM_NAME);
+		parameters.add(COOPERATIVE_EQUILIBRIUM_PARAM_NAME);
+
+	
+		List<String[]> additionalDefines = new ArrayList<>();
+		additionalDefines.add(new String[]  {"NUM_REGULATORS", Integer.toString(2)});
+		if(useConstitutiveExpression)
+		{
+			parameters.add(SIGMOID_CONSTITUTIVE_PARAM_NAME);
+			additionalDefines.add(new String[] {"USE_CONSTITUTIVE_EXPRESSION", ""});
+		}
+		String description = "Cooperative" + (useConstitutiveExpression ? "-Constitutive" : "");
+		return new InferenceModel(Family.CooperativeRegulation, "CooperativeRegulation", parameters, additionalDefines, description);
+	}
+		
 	
 	private InferenceModel(Family family, String kernelName, List<String> parameters,
 			List<String[]> additionalDefines, String description) {

@@ -14,7 +14,6 @@
 
 #define DEBUG CTSW_OFF
 #define CHECK_NAN CTSW_OFF
-#define USE_DOUBLE CTSW_OFF
 
 #if CTSW(USE_DOUBLE)
     typedef double T_Value;

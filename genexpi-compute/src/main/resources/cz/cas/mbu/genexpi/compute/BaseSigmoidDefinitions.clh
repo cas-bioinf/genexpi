@@ -4,15 +4,22 @@
 	#define CTSW_CONSTITUTIVE_EXPRESSION CTSW_OFF
 #endif
 
+#if !defined(NUM_REGULATORS)
+	#error NUM_REGULATORS should have been defined
+#endif
+
+
 #define K1_VALUE PARAMETER_VALUE(0)
 #define K2_VALUE PARAMETER_VALUE(1)
 #define B_VALUE PARAMETER_VALUE(2)
+#define NUM_BASE_PARAMETERS 3
 
 //We store the target as the last element of gene profiles
 //The rest is only the regulators
 #define REGULATOR_INDEX(regulatorId) (regulatorId)
 #define REGULATOR_VALUE(regulatorId, time) (regulatorProfiles[(time) * (NUM_REGULATORS) + REGULATOR_INDEX(regulatorId)]) 
 
+#define REGULARIZATION_MAX_EFFECT 10
 
 #if defined(USE_ERROR_EULER)
     #define ERROR_FUNCTION ErrorEuler
