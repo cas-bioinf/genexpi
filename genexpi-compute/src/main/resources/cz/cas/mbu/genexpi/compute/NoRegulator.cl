@@ -18,9 +18,14 @@
 
 
 
-#define FORCE_PARAMS_IN_BOUNDS \
-    if(SYNTHESIS_VALUE < 0) SYNTHESIS_VALUE = CONST(0.000001); \
-    if(DECAY_VALUE < CONST(0.00001)) DECAY_VALUE = CONST(0.0001); //decay has to be positive 
+void ForceParamsInBounds(
+		BASE_PARAMS_DEF,		
+        global T_Value* optimizedParams) {
+	
+	GET_IDS
+    if(SYNTHESIS_VALUE < 0) SYNTHESIS_VALUE = CONST(0.000001); 
+    if(DECAY_VALUE < CONST(0.00001)) DECAY_VALUE = CONST(0.0001); //decay has to be positive
+}
 
 #define ERROR_FUNCTION ErrorNoRegulator
 

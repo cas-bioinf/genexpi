@@ -301,7 +301,7 @@ public abstract class BaseInferenceEngine<NUMBER_TYPE extends Number, TASK_TYPE>
     {
     	if(weightConstraints == null)
     	{
-    		argumentList.add(null);
+    		argumentList.add(CLKernel.NULL_POINTER_KERNEL_ARGUMENT);
     		return 0; 
     	}
     	else

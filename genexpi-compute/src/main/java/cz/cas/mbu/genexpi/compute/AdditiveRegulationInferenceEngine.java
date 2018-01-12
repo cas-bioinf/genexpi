@@ -34,4 +34,10 @@ public class AdditiveRegulationInferenceEngine<NUMBER_TYPE extends Number> exten
 		return weightConstraints;
 	}
 
+	@Override
+	protected int getNumWeightConstraintsPerTask() {
+		return numRegulators;
+	}
+
+	
 }

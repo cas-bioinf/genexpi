@@ -30,7 +30,6 @@ public class NoRegulatorInferenceEngine<NUMBER_TYPE extends Number> extends Base
     	}
     	
         long preparationStartTime = System.nanoTime();
-    	//TODO: invert the method - let the user to specify only the model specific params.
         
         CLQueue queue = createQueue();
         

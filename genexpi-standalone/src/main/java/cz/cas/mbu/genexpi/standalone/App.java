@@ -61,7 +61,7 @@ public class App {
 		EErrorFunction errorFunction = null;
 		ELossFunction lossFunction = ELossFunction.Squared;
 		int numIterations = 128;
-		float regularizationWeight = 0;
+		float regularizationWeight = -1;
 		CLPlatform.DeviceFeature preferredFeature = null;
 		CLDevice device = null;
 		boolean preventFullOccupation = false;
@@ -106,14 +106,6 @@ public class App {
 					"No OpenCL context found. You may need to install OpenCL drivers for your GPU/processor.");
 		}
 
-		// CLContext context =
-		// JavaCL.createBestContext(CLPlatform.DeviceFeature.CPU,
-		// CLPlatform.DeviceFeature.OutOfOrderQueueSupport);
-
-		/*
-		 * CLPlatform platform = JavaCL.listPlatforms()[3]; //OCLGrind CLContext
-		 * context = platform.createContext(null, platform.getBestDevice());
-		 */
 		if(params.verbose) {
 			System.out.println("Names: " + params.namesFile + ", Profiles: " + params.profilesFile + ", Tasks: "
 					+ params.tasksFile + ", Output: " + params.outputFile);
@@ -151,10 +143,12 @@ public class App {
 
 		switch (params.modelFamily) {
 			case AdditiveRegulation: {
+				guessRegularizationWeightIfNecessary(params, profiles);
 				computeAdditiveRegulation(numberType, params, context, profiles, names);
 				break;
 			}
 			case CooperativeRegulation: {
+				guessRegularizationWeightIfNecessary(params, profiles);
 				computeCooperativeRegulation(numberType, params, context, profiles, names);
 				break;
 			}
@@ -166,6 +160,16 @@ public class App {
 				throw new IllegalArgumentException("Unrecognized model family: " + params.modelFamily);
 			}
 		}
+	}
+
+	private static <NUMBER_TYPE extends Number> void guessRegularizationWeightIfNecessary(Params params, List<GeneProfile<NUMBER_TYPE>> profiles) {
+		if(params.regularizationWeight < 0) {
+			params.regularizationWeight = (float)profiles.get(0).getProfile().size() / 10.0f;
+			if(params.verbose) {
+				System.out.println("Guessing regularization weight to be: " + params.regularizationWeight);
+			}
+		}
+		
 	}
 
 	private static <NUMBER_TYPE extends Number> void computeAdditiveRegulation(Class<NUMBER_TYPE> numberType,

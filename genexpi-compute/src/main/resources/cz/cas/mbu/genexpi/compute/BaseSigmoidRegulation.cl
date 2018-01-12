@@ -107,6 +107,18 @@ void PrepareLocalData(GLOBAL_BASE_PARAMS_DEF, BASE_PARAMS_DEF, GLOBAL_MODEL_SPEC
 			weightConstraints = 0;
 		}
 	}
+	
+	for(int wc = 0; wc < NUM_WEIGHT_CONSTRAINTS; wc++) {
+		if(weightConstraintsGlobal != 0)
+		{
+			weightConstraints[wc] = weightConstraintsGlobal[taskID * (NUM_WEIGHT_CONSTRAINTS) + wc];
+		}
+		else 
+		{
+			weightConstraints = 0;
+		}		
+	}
+	
 	profileMaxima[NUM_REGULATORS] = 0; 
     for(int time = 0; time < numTime; time++) 
 	{ 

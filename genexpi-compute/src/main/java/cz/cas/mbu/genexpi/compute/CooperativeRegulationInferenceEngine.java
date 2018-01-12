@@ -31,4 +31,10 @@ public class CooperativeRegulationInferenceEngine<NUMBER_TYPE extends Number> ex
 		return weightConstraints;
 	}
 
+	@Override
+	protected int getNumWeightConstraintsPerTask() {
+		return 1;
+	}
+
+	
 }

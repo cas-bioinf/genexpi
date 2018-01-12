@@ -13,6 +13,8 @@
 	#define NUM_PARAMETERS (NUM_BASE_PARAMETERS + NUM_REGULATORS)
 #endif
 
+#define NUM_WEIGHT_CONSTRAINTS NUM_REGULATORS
+
 void ForceSpecificParamsInBounds(
 		BASE_PARAMS_DEF,
 		MODEL_SPECIFIC_PARAMS_DEF,
@@ -75,8 +77,15 @@ void SampleSpecificInitialParams(XORSHIFT_PARAMS_DEF,
 	
     for(int regulator = 0; regulator < NUM_REGULATORS; regulator++)
     {
-    	const T_Value maxAbsW = REGULARIZATION_MAX_EFFECT / regMaxValue[regulator]; 
-    	W_VALUE(regulator) = (XORSHIFT_NEXT_VALUE * 2 *  maxAbsW) - maxAbsW;
+    	const T_Value maxAbsW = REGULARIZATION_MAX_EFFECT / regMaxValue[regulator];
+        if(weightConstraints == 0 || weightConstraints[regulator] == 0)
+    	{ 
+        	W_VALUE(regulator) = (XORSHIFT_NEXT_VALUE * 2 *  maxAbsW) - maxAbsW;
+    	} else {		
+    		W_VALUE(regulator) = XORSHIFT_NEXT_VALUE *  maxAbsW * weightConstraints[regulator];
+    	}
+    	
+    	
     }
 }
 

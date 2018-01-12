@@ -14,20 +14,21 @@
 	#define NUM_PARAMETERS (NUM_BASE_PARAMETERS + 2)
 #endif
 
+#define NUM_WEIGHT_CONSTRAINTS 1
+
 void ForceSpecificParamsInBounds(
 		BASE_PARAMS_DEF,
 		MODEL_SPECIFIC_PARAMS_DEF,
         global T_Value* optimizedParams) {
 	
 	GET_IDS
-	
 	if(EQ_VALUE <= 0) {
 		EQ_VALUE = CONST(0.0001);
 	}
 	
     if(weightConstraints != 0)
 	{ 
-		T_Value constraint = weightConstraints[taskID];
+		T_Value constraint = weightConstraints[0];
 		T_Value combinedSignedValue = constraint * W_VALUE;
 		if(combinedSignedValue < 0) { 
 			W_VALUE = constraint * CONST(0.0001);
@@ -41,21 +42,17 @@ T_Value ComputeSpecificRegularization(
 		BASE_PARAMS_DEF,
 		MODEL_SPECIFIC_PARAMS_DEF,
         global const T_Value* optimizedParams) {
-/*
- * TODO: Maybe do a similar regularization, but for the combined profile
-	GET_IDS
-		
 	
+	GET_IDS
 	T_Value __regValue;
-	for(int __regulator = 0; __regulator < NUM_REGULATORS; __regulator++)
-	{ 
-		T_Value w = W_VALUE(__regulator);
-		T_Value maxAbsEffect = fabs(w * profileMaxima[__regulator]);
-		__regValue += RegularizeUniformNormal(maxAbsEffect, REGULARIZATION_MAX_EFFECT);
-	}
+	T_Value maxMaxProfile = max(profileMaxima[0], profileMaxima[1]);
+	__regValue += RegularizeUniformNormal(EQ_VALUE, maxMaxProfile * 10);
+	
+	T_Value minMaxProfile = min(profileMaxima[0], profileMaxima[1]);
+	T_Value maxAbsEffect = fabs(W_VALUE * minMaxProfile);
+	__regValue += RegularizeUniformNormal(maxAbsEffect, REGULARIZATION_MAX_EFFECT);
 	
 	return(__regValue);
-	*/
 }
 
 void SampleSpecificInitialParams(XORSHIFT_PARAMS_DEF,
@@ -65,16 +62,26 @@ void SampleSpecificInitialParams(XORSHIFT_PARAMS_DEF,
 
 	GET_IDS
 	
-    T_Value regMaxValue = 0;
+    T_Value compoundMaxValue = 0;
+	T_Value regulatorMaxValue = 0;
     
     for(int time = 0; time < numTime - 1; time++)
     {
-       	regMaxValue = max(regMaxValue, min(REGULATOR_VALUE(0, time),REGULATOR_VALUE(1, time)));
+    	compoundMaxValue = max(compoundMaxValue, min(REGULATOR_VALUE(0, time),REGULATOR_VALUE(1, time)));
+    	regulatorMaxValue = max(regulatorMaxValue, REGULATOR_VALUE(0, time));
+    	regulatorMaxValue = max(regulatorMaxValue, REGULATOR_VALUE(1, time));
     }
 	
-	const T_Value maxAbsW = REGULARIZATION_MAX_EFFECT / regMaxValue; 
-	W_VALUE = (XORSHIFT_NEXT_VALUE * 2 *  maxAbsW) - maxAbsW;
-	EQ_VALUE = min(atanh(XORSHIFT_NEXT_VALUE),CONST(10000.0));
+	const T_Value maxAbsW = REGULARIZATION_MAX_EFFECT / compoundMaxValue;
+    if(weightConstraints == 0 || weightConstraints[0] == 0)
+	{ 
+    	W_VALUE = (XORSHIFT_NEXT_VALUE * 2 *  maxAbsW) - maxAbsW;
+	} else {		
+		W_VALUE = XORSHIFT_NEXT_VALUE * maxAbsW * weightConstraints[0];
+	}
+    
+    T_Value maxEq = regulatorMaxValue;
+    EQ_VALUE = XORSHIFT_NEXT_VALUE * maxEq;
 }
 
 T_Value CalculateRegulatoryInput(BASE_PARAMS_DEF,
@@ -88,9 +95,9 @@ T_Value CalculateRegulatoryInput(BASE_PARAMS_DEF,
     T_Value eq = EQ_VALUE;
     T_Value regDiff = reg0 - reg1;
 	T_Value discriminant = (regDiff * regDiff) / (eq * eq) + 2 * ((reg0 + reg1) / eq) + 1;  
-	T_Value freeReg1 = (-regDiff / eq) - CONST(1.0) + sqrt(discriminant) * eq * CONST(0.5);
-	T_Value complex = reg1 - freeReg1; 
-	return(complex);
+	T_Value freeReg1 = ((-regDiff / eq) - CONST(1.0) + sqrt(discriminant)) * eq * CONST(0.5);
+	T_Value complex = reg1 - freeReg1;
+	return(W_VALUE * complex);
 }
 
 void PrepareSpecificLocalData(GLOBAL_BASE_PARAMS_DEF, 

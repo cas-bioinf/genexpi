@@ -45,7 +45,6 @@ public class AdditiveRegulationODE extends BaseSigmoidODE {
 	
 	@Override
 	protected double computeRegulatoryInput(double t) {
-		// TODO Auto-generated method stub
 		double regulatoryInput = 0;
 		for(int reg = 0; reg < weights.length; reg++)
 		{

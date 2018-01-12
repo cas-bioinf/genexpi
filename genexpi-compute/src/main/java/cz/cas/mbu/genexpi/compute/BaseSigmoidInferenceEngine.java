@@ -28,6 +28,7 @@ public abstract class BaseSigmoidInferenceEngine<NUMBER_TYPE extends Number, TAS
 	}
 
 	protected abstract int[] getWeightConstraints(List<TASK_TYPE> inferenceTasks);
+	protected abstract int getNumWeightConstraintsPerTask();
 	
     @Override
 	public List<InferenceResult> compute(List<GeneProfile<NUMBER_TYPE>> geneProfiles, List<TASK_TYPE> inferenceTasks) {
@@ -73,7 +74,7 @@ public abstract class BaseSigmoidInferenceEngine<NUMBER_TYPE extends Number, TAS
         argumentList.add(getLocalSizeByElementClass(numTimePoints * numRegulators)); //local profiles
         argumentList.add(getLocalSizeByElementClass(numRegulators + 1)); //local profile maxima (including target)
         argumentList.add(regularizationWeight);
-        argumentList.add(LocalSize.ofIntArray(numRegulators)); //local weight constraints
+        argumentList.add(LocalSize.ofIntArray(getNumWeightConstraintsPerTask())); //local weight constraints
         
         OutputPointers outputPointers = prepareOutputParameters(argumentList, numItems);
         totalBytes += outputPointers.getByteCount();
