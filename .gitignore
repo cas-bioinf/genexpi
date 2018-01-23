@@ -7,9 +7,9 @@ release.properties
 dependency-reduced-pom.xml
 buildNumber.properties
 .mvn/timing.properties
-rpackage/.Rproj.user/
-rpackage/.Rhistory
-rpackage/.RData
 .Rproj.user/
 *.rds
 .Rproj.user
+.Rhistory
+*.RData
+*.nb.html
