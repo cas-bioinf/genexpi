@@ -1,17 +1,37 @@
-splineProfileMatrix <- function(profileMatrix, time, targetTime, df, degree = 3) {
-  if(any(is.na(profileMatrix))) {
-    stop("Profiles cannot be NA")
+splineProfileMatrix <- function(profileMatrix, time, targetTime, df, degree = 3, intercept = FALSE) {
+  if(any(apply(profileMatrix, 1, function(x) { sum(!is.na(x)) < 2 }))) {
+    stop("Some rows of profileMatrix contain less than two non-NA values\n")
   }
+  if(any(profileMatrix < 0, na.rm = TRUE)) {
+    stop("profileMatrix has to be strictly positive (Genexpi works better with unnormalized data)\n")
+  }
+  if(any(is.na(profileMatrix))) {
+    warning("Some values in profileMatrix are NA, computation will be slow\n")
+  }
+
   #Create the spline basis
-  splineBasis = bs(time, df = df,degree = degree)
-  #Use a least-squares fit of a B-spline basis
-  splineFit <- lm(t(profileMatrix) ~ 0 + splineBasis); #Without intercept
+  splineBasis = bs(time, df = df,degree = degree, intercept = intercept)
+
+  if(any(is.na(profileMatrix))) {
+    coefficients <- matrix(NA, ncol = nrow(profileMatrix), nrow = ncol(splineBasis))
+    for(row in 1:nrow(profileMatrix)) {
+      na_mask <- !is.na(profileMatrix[row, ])
+      maskedBasis <- splineBasis[na_mask,]
+      splineFit <- lm(t(profileMatrix[row, na_mask ,drop = FALSE]) ~ 0 + maskedBasis); #Without intercept
+      coefficients[,row] <- splineFit$coefficients
+    }
+  } else {
+    splineFit <- lm(t(profileMatrix) ~ 0 + splineBasis); #Without intercept
+    coefficients <- splineFit$splineFit$coefficients
+  }
 
   #Create the same basis but for the target time
-  basisNew = bs(x = targetTime, degree = degree, knots = attr(splineBasis, "knots"), Boundary.knots = attr(splineBasis, "Boundary.knots"));
+  basisNew = bs(x = targetTime, degree = degree,
+                knots = attr(splineBasis, "knots"), Boundary.knots = attr(splineBasis, "Boundary.knots"),
+                intercept = intercept);
 
   #The result is the product of the spline coefficients with the spline basis for target time
-  splinedResult = t(basisNew %*% splineFit$coefficients);
+  splinedResult = t(basisNew %*% coefficients);
 
   #Ensure the profiles are strictly positive
   splinedResult[splinedResult < 0] = 0;
@@ -26,7 +46,7 @@ inspectSmoothing <- function(timeRaw, profilesRaw, timeSmooth, profilesSmooth, g
     stop("Too many genes to inspect.")
   }
 
-  ylim = c(0, max(max(profilesRaw[genes,]), max(profilesSmooth[genes,])))
+  ylim = c(0, max(max(profilesRaw[genes,], na.rm = TRUE), max(profilesSmooth[genes,])))
   plot(1, type="n", xlab="", ylab="", xlim=c(min(timeSmooth), max(timeSmooth)), ylim=ylim)
   for(i in 1:length(genes)) {
     lines(timeRaw, profilesRaw[genes[i],], col = colors[i],lty = 4)
@@ -76,6 +96,8 @@ computeRegulon <- function(deviceSpecs, profiles, regulatorName, regulonNames, e
       actualTargets = logical(0);
       numTargets = 0;
       regulated = logical(0);
+      predictedProfiles = numeric(0)
+      numRegulated = 0
     }
     else {
       tasks = array(0, c(numTargets,2));
@@ -84,6 +106,9 @@ computeRegulon <- function(deviceSpecs, profiles, regulatorName, regulonNames, e
 
       regulationResults = computeAdditiveRegulation(deviceSpecs, profiles, tasks, constraints = "+")
       testResults = testAdditiveRegulation(regulationResults, errorDef, minFitQuality)
+      predictedProfiles = testResults$predictedProfiles
+      numRegulated = sum(testResults$regulated)
+      regulated = testResults$regulated
     }
   }
 
@@ -96,9 +121,9 @@ computeRegulon <- function(deviceSpecs, profiles, regulatorName, regulonNames, e
     constantSynthesis = constantSynthesisProfiles,
     numTested = numTargets,
     tested = actualTargets,
-    predictedProfiles = testResults$predictedProfiles,
-    numRegulated = sum(testResults$regulated),
-    regulated = testResults$regulated,
+    predictedProfiles = predictedProfiles,
+    numRegulated = numRegulated,
+    regulated = regulated,
     regulatorName = regulatorName,
     regulonNames = regulonNames,
     errorDef = errorDef,
