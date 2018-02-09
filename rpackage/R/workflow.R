@@ -6,7 +6,7 @@ splineProfileMatrix <- function(profileMatrix, time, targetTime, df, degree = 3,
     stop("profileMatrix has to be strictly positive (Genexpi works better with unnormalized data)\n")
   }
   if(any(is.na(profileMatrix))) {
-    warning("Some values in profileMatrix are NA, computation will be slow\n")
+    warning("Some values in profileMatrix are NA, computation of splines will be slower\n")
   }
 
   #Create the spline basis
@@ -22,7 +22,7 @@ splineProfileMatrix <- function(profileMatrix, time, targetTime, df, degree = 3,
     }
   } else {
     splineFit <- lm(t(profileMatrix) ~ 0 + splineBasis); #Without intercept
-    coefficients <- splineFit$splineFit$coefficients
+    coefficients <- splineFit$coefficients
   }
 
   #Create the same basis but for the target time
@@ -56,7 +56,7 @@ inspectSmoothing <- function(timeRaw, profilesRaw, timeSmooth, profilesSmooth, g
 }
 
 
-computeRegulon <- function(deviceSpecs, profiles, regulatorName, regulonNames, errorDef = defaultErrorDef(), minFitQuality = 0.8) {
+computeRegulon <- function(deviceSpecs, profiles, regulatorName, regulonNames, errorDef = defaultErrorDef(), minFitQuality = 0.8, checkConstantSynthesis = TRUE) {
   if(is.null(rownames(profiles))) {
     stop("Profiles must have associated rownames");
   }
@@ -81,9 +81,14 @@ computeRegulon <- function(deviceSpecs, profiles, regulatorName, regulonNames, e
     regulated = logical(0);
   } else {
 
-    constantSynthesisResults = computeConstantSynthesis(deviceSpecs, profiles, tasks = profilesToTestConstantSynthesisIndices);
+    if(checkConstantSynthesis) {
+      constantSynthesisResults = computeConstantSynthesis(deviceSpecs, profiles, tasks = profilesToTestConstantSynthesisIndices);
+      constantSynthesisProfiles = testConstantSynthesis(constantSynthesisResults, errorDef, minFitQuality);
+    } else {
+      constantSynthesisResults = NULL
+      constantSynthesisProfiles = array(FALSE,length(targetProfiles))
+    }
 
-    constantSynthesisProfiles = testConstantSynthesis(constantSynthesisResults, errorDef, minFitQuality);
 
     #Run the actual prediction
     regulatorIndex = which(rownames(profiles) == regulatorName)
@@ -127,7 +132,8 @@ computeRegulon <- function(deviceSpecs, profiles, regulatorName, regulonNames, e
     regulatorName = regulatorName,
     regulonNames = regulonNames,
     errorDef = errorDef,
-    minFitQuality = minFitQuality
+    minFitQuality = minFitQuality,
+    checkConstantSynthesis = checkConstantSynthesis
   ))
 }
 

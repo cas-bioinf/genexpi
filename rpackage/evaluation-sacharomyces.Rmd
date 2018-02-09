@@ -96,7 +96,7 @@ time_smooth <- 0:max(time_raw)
 ```
 
 ```{r}
-gds38_smooth <- splineProfileMatrix(gds38_raw[c(1,3,4),], time_raw, time_smooth, df = 5, intercept = TRUE)
+gds38_smooth <- splineProfileMatrix(gds38_raw, time_raw, time_smooth, df = 5, intercept = TRUE)
 inspectSmoothing(time_raw, gds38_raw,time_smooth, gds38_smooth, c("ACE2","FKH2"))
 
 ```
@@ -106,7 +106,7 @@ inspectSmoothing(time_raw, gds38_raw,time_smooth, gds38_smooth, c("ACE2","FKH2")
 errorDef <- defaultErrorDef()
 errorDef$relative <- 0.1
 errorDef$minimal <- 0.2
-deviceSpecs <- getDeviceSpecs(6)
+deviceSpecs <- getDeviceSpecs(1)
 
 
 regulator = "ACE2"
@@ -120,7 +120,21 @@ cat("Constant: ",rownames(gds38_smooth)[result$constant],"\n")
 cat("Constant synthesis: ",rownames(gds38_smooth)[result$constantSynthesis],"\n")
 
 ```
+```{r}
+plotRandomProfiles(20, time_raw, scale = 1.2, length = 15,trueTime = time_raw,  trueProfile = gds38_raw["ACE2",])
+```
 
+
+```{r}
+regulon_to_test <- rownames(gds38_smooth)[result$tested]
+evaluation_res <- evaluateRandomForRegulon(deviceSpecs = deviceSpecs,rawProfiles = gds38_raw, rounds = 20, regulatorName = regulator, regulonNames = regulon_to_test, checkConstantSynthesis = FALSE, time = time_smooth, rawTime = time_raw, randomScale = 1.2, randomLength = 15, splineDFs = 5, splineIntercept = TRUE, errorDef = errorDef)
+cat("True ratio: ", evaluation_res$trueRatio,"\n")
+cat("Mean random ratio: ", mean(evaluation_res$randomRatios), "\n")
+```
+
+```{r}
+res_aracne <- evaluateTDAracne(20, gds38_raw, time_raw, c(5,NULL), time_smooth, 1.2, 15, regulatorName = regulator, regulonNames = regulon_to_test, errorDef = errorDef, numBins = 10)
+```
 
 ```{r}
 g = "ACE2"

@@ -29,7 +29,7 @@ runTDAracne <- function(profileMatrix, regulatorName, regulonNames, numBins = de
     connected = connected));
 }
 
-testTDAracneRandom <- function(rounds, profileMatrix, time, rawTime, splineDFs, randomScale, randomLength, regulatorName, regulonNames, originalProfileRaw, errorDef, numBins) {
+testTDAracneRandom <- function(rounds, profileMatrix, time, rawTime, splineDFs, randomScale, randomLength, regulatorName, regulonNames, originalProfileRaw, errorDef, numBins, splineIntercept = FALSE) {
   library(foreach);
   library(doParallel);
   cores=detectCores()
@@ -44,7 +44,7 @@ testTDAracneRandom <- function(rounds, profileMatrix, time, rawTime, splineDFs, 
       randomProfile = randomProfileRaw
     }
     else {
-      randomProfile = splineProfileMatrix(randomProfileRaw, rawTime, time, splineDFs)
+      randomProfile = splineProfileMatrix(randomProfileRaw, rawTime, time, splineDFs, intercept = splineIntercept)
     }
 
     customProfileMatrix = profileMatrix;
@@ -59,7 +59,7 @@ testTDAracneRandom <- function(rounds, profileMatrix, time, rawTime, splineDFs, 
 }
 
 
-evaluateTDAracne <- function(rounds, profilesRaw, rawTime, splineDFs, time, randomScale, randomLength, regulatorName, regulonNames, errorDef, numBins) {
+evaluateTDAracne <- function(rounds, profilesRaw, rawTime, splineDFs, time, randomScale, randomLength, regulatorName, regulonNames, errorDef, numBins, splineIntercept = FALSE) {
 
   if(is.null(splineDFs))
   {
@@ -74,7 +74,7 @@ evaluateTDAracne <- function(rounds, profilesRaw, rawTime, splineDFs, time, rand
     rounds = rounds, profileMatrix = profileMatrix, time = time, rawTime = rawTime, splineDFs = splineDFs,
     randomScale = randomScale, randomLength = randomLength, regulatorName = regulatorName, regulonNames = regulonNames,
     originalProfileRaw = profilesRaw[rownames(profilesRaw) == regulatorName,],
-    errorDef = errorDef, numBins = numBins)
+    errorDef = errorDef, numBins = numBins, splineIntercept = splineIntercept)
 
   trueResults = runTDAracne(profileMatrix, regulatorName, regulonNames)
   numTested = length(trueResults$graph@nodes)
