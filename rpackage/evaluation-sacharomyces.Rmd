@@ -3,11 +3,174 @@ title: "Evaluating Sacharomyces cell cycle genes"
 output: html_notebook
 ---
 
+```{r setup}
+  options(java.parameters = "-Xmx2048m")
+  develRun = TRUE;
+```
+
+First we install and start all the required libraries.
+
 ```{r}
-library(tidyverse)
+  # Helper function to install packages if they are not available
+  pkgTest <- function(x)
+  {
+    if (!require(x,character.only = TRUE))
+    {
+      install.packages(x,dep=TRUE)
+        if(!require(x,character.only = TRUE)) stop("Package not found")
+    }
+  }
+
+  # Install and load the packages required for evaluation against TD-Aracne
+  source("https://bioconductor.org/biocLite.R")
+  biocLite(c("Biobase","TDARACNE", "RBGL"))
+  library(Biobase)
+  library(TDARACNE)
+  library(RBGL)
+  
+  pkgTest("splines")
+  pkgTest("foreach")
+  pkgTest("doParallel")
+  pkgTest("rJava")
+  pkgTest("tidyverse")
+  
+  # Install and load Genexpi from GitHub vie devtools
+  if(!develRun) {
+    pkgTest("devtools")
+    install_github("cas-bioinf/genexpi", ref = "bmc-release", subdir="rpackage")
+  }
+
+  
 ```
 
 
+
+```{r}
+yeastract_file <- 'yeastract.tsv.gz'
+if(!file.exists(yeastract_file)) {
+  download.file("http://www.yeastract.com/download/RegulationTwoColumnTable_Documented_2013927.tsv.gz", yeastract_file)
+}
+
+yeastract_df <- read.delim(gzfile(yeastract_file),sep = ";",header = FALSE, col.names = c("regulator","target"))
+```
+
+
+
+```{r}
+gds38_file <- 'gds38.soft.gz';
+if(!file.exists(gds38_file)) {
+  download.file("ftp://ftp.ncbi.nlm.nih.gov/geo/datasets/GDSnnn/GDS38/soft/GDS38_full.soft.gz", gds38_file)
+}
+
+#Intermediate data frame representation
+gds38_raw_df = read.delim(gzfile(gds38_file), skip = 149, comment.char = "!", na.strings = c("null","")) 
+
+```
+
+```{r}
+
+#genes_of_interest <- unique(c("ACE2","FKH2","FKH2","FKH2","GAT1","GAT1","GAT1","NDD1","NDD1","MCM1","MCM1","MCM1","SFL1","SFL1","SFL1","YAP1","SKN7","ROX1","ROX1","ROX1","NRG1","NRG1","NRG1","YAP1","YAP1","YAP1","SFL1","SFL1","SOK2","SOK2","SOK2","FKH1","FKH1","SWI4","MBP1","MBP1","MCM1","MCM1","MCM1","MOT3","MOT3","MOT3","NDD1","SOK2","SOK2","SOK2","SWI4","SWI4","SWI6","SWI6","CRZ1","DAL82","DOT6","FZF1","GLN3","GLN3","MAL33","MSN2","MSN2","RCS1","RFX1","RFX1","RGT1","RGT1","RTG3","RTG3","SKO1","SKO1","STP2","THI2","MDD1","SWI5","ASH1","ASH1","ASH1","FKH2","FKH2","FKH2","GAT1","GAT1","GAT3","GAT3","GAT3","MCM1","MCM1","MCM1","NDD1","NDD1","SFL1","SFL1","ABF1","IME4","IME4","IME4","FHL1","FHL1","FHL1","MSN1","MSN1","MSN1","DAL81","DAL81","DAL81","PHO2","PHO2","PHO2","PUT3","PUT3","PUT3","STP1","STP1","STP1","RIM101","RIM101","RIM101","FZF1","HAP2","HAP2","RAP1","GAT1","GAT1","GAT1","RPH1","RPH1","RPH1","RCS1","RCS1","RCS1","MSN4","MSN4","MSN4","SIP4","SIP4","SIP4","RAP1","RAP1","HSF1","HSF1","SUM1","RSF2","HAP4","GAT3"))
+
+#SWI4/6, MBP1 a re suspect as they act in complexes (BTW good test case for the cooperative model)
+#regulators <- c("FKH1", "FKH2","MCM1","MBP1","SWI4","SWI6","NDD1", "ACE2")
+regulators <- c("FKH1", "FKH2","MCM1","MBP1","SWI4","SWI6", "ACE2")
+yeastract_filtered <- yeastract_df%>% filter(regulator %in% regulators) %>%
+  filter(target %in% gds38_raw_df$IDENTIFIER) %>%
+  group_by(regulator) %>% sample_n(10)
+
+all_targets <- as.character(yeastract_filtered$target)
+genes_of_interest <- unique(as.character(c(regulators, all_targets)))
+
+gds38_raw <- aggregate(gds38_raw_df[,3:18], gds38_raw_df["IDENTIFIER"], mean, na.rm = TRUE) %>%
+  column_to_rownames("IDENTIFIER") %>%
+  as.matrix() %>% exp()
+  
+gds38_raw_filtered <- gds38_raw[genes_of_interest,]
+
+#Exclude all that contain only NA
+#gds38_raw <- gds38_raw[apply(gds38_raw, 1, function(x) { sum(!is.na(x)) > 5}),]
+
+time_raw <- seq(0,by = 7, length.out = 16)
+time_smooth <- 0:max(time_raw)
+```
+
+```{r}
+splineDF = 5
+gds38_smooth_filtered <- splineProfileMatrix(gds38_raw_filtered, time_raw, time_smooth, df = splineDF, intercept = TRUE)
+inspectSmoothing(time_raw, gds38_raw_filtered,time_smooth, gds38_smooth_filtered, c("ACE2","FKH2"))
+
+```
+
+
+```{r}
+errorDef <- defaultErrorDef()
+errorDef$relative <- 0.1
+errorDef$minimal <- 0.2
+deviceSpecs <- getDeviceSpecs(2)
+minFitQuality <- 0.8
+randomRounds <- 3
+```
+
+#Filter out constant synthesis
+```{r}
+regulators_logical <- rownames(gds38_smooth_filtered) %in% regulators 
+constantProfiles = testConstant(gds38_smooth_filtered, errorDef)
+profilesToTestConstantSynthesisIndices = which(!constantProfiles & !regulators_logical)
+
+constantSynthesisResults = computeConstantSynthesis(deviceSpecs, gds38_smooth_filtered, tasks = profilesToTestConstantSynthesisIndices);
+
+constantSynthesisProfiles = testConstantSynthesis(constantSynthesisResults, errorDef, minFitQuality);
+
+profilesToTest_logical <- regulators_logical | (!constantProfiles & !constantSynthesisProfiles)
+
+gds38_raw_to_test <- gds38_raw_filtered[profilesToTest_logical,]
+gds38_smooth_to_test <- gds38_smooth_filtered[profilesToTest_logical,]
+
+profilesToTest <- rownames(gds38_smooth_filtered[profilesToTest_logical])
+```
+
+#Test random with Genexpi
+
+```{r}
+randomScale = 1.6
+randomLength = 10
+plotRandomProfiles(20, time_raw, scale = randomScale, length = randomLength,trueTime = time_raw,  trueProfile = gds38_raw["ACE2",])
+plotRandomProfiles(20, time_raw, scale = randomScale, length = randomLength,trueTime = time_raw,  trueProfile = gds38_raw["FKH1",])
+plotRandomProfiles(20, time_raw, scale = randomScale, length =                randomLength,trueTime = time_raw,  trueProfile = gds38_raw["SWI4",])
+```
+
+
+```{r}
+results_genexpi <- list()
+for(regulator in regulators) {
+  cat("======", regulator, "=====\n")
+  regulon_to_test <- yeastract_filtered %>% filter(regulator == get("regulator")) %>%  # Using get to take refer to the regulator local variabl (not the column)
+    get("target", .)
+  evaluation_res <- evaluateRandomForRegulon(deviceSpecs = deviceSpecs,rawProfiles = gds38_raw_to_test, rounds = randomRounds, regulatorName = regulator, regulonNames = regulon_to_test, checkConstantSynthesis = FALSE, time = time_smooth, rawTime = time_raw, randomScale = randomScale, randomLength = randomLength, splineDFs = splineDF, splineIntercept = TRUE, errorDef = errorDef)
+  cat("True ratio: ", evaluation_res$trueRatio,"\n")
+  cat("Mean random ratio: ", mean(evaluation_res$randomRatios), "\n")
+  results_genexpi[[regulator]] <- evaluation_res
+}
+```
+
+```{r}
+results_aracne <- list()
+for(regulator in regulators[2]) {
+  cat("======", regulator, "=====\n")
+  regulon_to_test <- yeastract_filtered %>% filter(regulator == get("regulator"))%>%  # Using get to take refer to the regulator local variabl (not the column)
+    get("target", .)
+  res_aracne <- evaluateTDAracne(randomRounds, gds38_raw, time_raw, c(splineDF,NULL), time_smooth, randomScale, randomLength, regulatorName = regulator, regulonNames = regulon_to_test, errorDef = errorDef, numBins = 10)
+  results_aracne[[regulator]] <- res_aracne
+}
+```
+
+```{r}
+g = "ACE2"
+matplot(t(gds38_raw[rownames(gds38_raw) == g,, drop = FALSE]), type = "l")
+matplot(log(t(gds38_raw[rownames(gds38_raw) == g,, drop = FALSE])), type = "l")
+```
+
+#Backup access to GSE24771
 
 ```{r}
 temp_gse24771 <- tempfile();
@@ -39,106 +202,4 @@ gse24771_tidy %>%
 
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-```{r}
-temp_yeastract <- tempfile()
-download.file("http://www.yeastract.com/download/RegulationTwoColumnTable_Documented_2013927.tsv.gz", temp_yeastract)
-
-yeastract_df <- read.delim(gzfile(temp_yeastract),sep = ";",header = FALSE, col.names = c("regulator","target"))
-```
-
-
-
-```{r}
-temp_gds38 <- tempfile();
-download.file("ftp://ftp.ncbi.nlm.nih.gov/geo/datasets/GDSnnn/GDS38/soft/GDS38_full.soft.gz", temp_gds38)
-
-#Intermediate data frame representation
-gds38_raw_df = read.delim(gzfile(temp_gds38), skip = 149, comment.char = "!", na.strings = c("null","")) 
-
-```
-
-```{r}
-
-#genes_of_interest <- unique(c("ACE2","FKH2","FKH2","FKH2","GAT1","GAT1","GAT1","NDD1","NDD1","MCM1","MCM1","MCM1","SFL1","SFL1","SFL1","YAP1","SKN7","ROX1","ROX1","ROX1","NRG1","NRG1","NRG1","YAP1","YAP1","YAP1","SFL1","SFL1","SOK2","SOK2","SOK2","FKH1","FKH1","SWI4","MBP1","MBP1","MCM1","MCM1","MCM1","MOT3","MOT3","MOT3","NDD1","SOK2","SOK2","SOK2","SWI4","SWI4","SWI6","SWI6","CRZ1","DAL82","DOT6","FZF1","GLN3","GLN3","MAL33","MSN2","MSN2","RCS1","RFX1","RFX1","RGT1","RGT1","RTG3","RTG3","SKO1","SKO1","STP2","THI2","MDD1","SWI5","ASH1","ASH1","ASH1","FKH2","FKH2","FKH2","GAT1","GAT1","GAT3","GAT3","GAT3","MCM1","MCM1","MCM1","NDD1","NDD1","SFL1","SFL1","ABF1","IME4","IME4","IME4","FHL1","FHL1","FHL1","MSN1","MSN1","MSN1","DAL81","DAL81","DAL81","PHO2","PHO2","PHO2","PUT3","PUT3","PUT3","STP1","STP1","STP1","RIM101","RIM101","RIM101","FZF1","HAP2","HAP2","RAP1","GAT1","GAT1","GAT1","RPH1","RPH1","RPH1","RCS1","RCS1","RCS1","MSN4","MSN4","MSN4","SIP4","SIP4","SIP4","RAP1","RAP1","HSF1","HSF1","SUM1","RSF2","HAP4","GAT3"))
-
-regulators <- c("ACE2", "FKH2")
-all_targets <- as.character((yeastract_df %>% filter(regulator %in% regulators))$target)
-genes_of_interest <- unique(c(regulators, all_targets))
-
-genes_of_interest <- genes_of_interest[genes_of_interest %in% gds38_raw_df$IDENTIFIER]
-
-gds38_raw <- aggregate(gds38_raw_df[,3:18], gds38_raw_df["IDENTIFIER"], mean, na.rm = TRUE) %>%
-  column_to_rownames("IDENTIFIER") %>%
-  as.matrix() %>% exp()
-  
-
-#to_remove <- data.frame(gene = rownames(gds38_raw), na_mean = rowMeans(is.na(gds38_raw))) %>% filter(na_mean > 0.1) %>% get("gene",.) %>% as.character()
-#genes_of_interest <- setdiff(genes_of_interest, to_remove)
-
-gds38_raw <- gds38_raw[genes_of_interest,]
-
-#Exclude all that contain only NA
-#gds38_raw <- gds38_raw[apply(gds38_raw, 1, function(x) { sum(!is.na(x)) > 5}),]
-
-time_raw <- seq(0,by = 7, length.out = 16)
-time_smooth <- 0:max(time_raw)
-```
-
-```{r}
-gds38_smooth <- splineProfileMatrix(gds38_raw, time_raw, time_smooth, df = 5, intercept = TRUE)
-inspectSmoothing(time_raw, gds38_raw,time_smooth, gds38_smooth, c("ACE2","FKH2"))
-
-```
-
-
-```{r}
-errorDef <- defaultErrorDef()
-errorDef$relative <- 0.1
-errorDef$minimal <- 0.2
-deviceSpecs <- getDeviceSpecs(1)
-
-
-regulator = "ACE2"
-targets = (yeastract_df %>% filter(regulator == regulator & target %in% genes_of_interest))$target
-result <- computeRegulon(deviceSpecs, profiles = gds38_smooth, regulatorName = regulator, regulonNames = targets)
-
-cat("Regulated: ", rownames(gds38_smooth)[result$regulated], "\n")
-cat("Not Regulated: ", rownames(gds38_smooth)[result$tested & !result$regulated], "\n")
-
-cat("Constant: ",rownames(gds38_smooth)[result$constant],"\n")
-cat("Constant synthesis: ",rownames(gds38_smooth)[result$constantSynthesis],"\n")
-
-```
-```{r}
-plotRandomProfiles(20, time_raw, scale = 1.2, length = 15,trueTime = time_raw,  trueProfile = gds38_raw["ACE2",])
-```
-
-
-```{r}
-regulon_to_test <- rownames(gds38_smooth)[result$tested]
-evaluation_res <- evaluateRandomForRegulon(deviceSpecs = deviceSpecs,rawProfiles = gds38_raw, rounds = 20, regulatorName = regulator, regulonNames = regulon_to_test, checkConstantSynthesis = FALSE, time = time_smooth, rawTime = time_raw, randomScale = 1.2, randomLength = 15, splineDFs = 5, splineIntercept = TRUE, errorDef = errorDef)
-cat("True ratio: ", evaluation_res$trueRatio,"\n")
-cat("Mean random ratio: ", mean(evaluation_res$randomRatios), "\n")
-```
-
-```{r}
-res_aracne <- evaluateTDAracne(20, gds38_raw, time_raw, c(5,NULL), time_smooth, 1.2, 15, regulatorName = regulator, regulonNames = regulon_to_test, errorDef = errorDef, numBins = 10)
-```
-
-```{r}
-g = "ACE2"
-matplot(t(gds38_raw[rownames(gds38_raw) == g,, drop = FALSE]), type = "l")
-matplot(log(t(gds38_raw[rownames(gds38_raw) == g,, drop = FALSE])), type = "l")
-```
 

@@ -27,7 +27,7 @@ plotRandomProfiles <- function(n, time, scale, length, trueTime = time, trueProf
 
   ymax = max(profiles)
   if(!is.null(trueProfile)) {
-    ymax = max(ymax, max(trueProfile))
+    ymax = max(ymax, max(trueProfile, na.rm = TRUE))
   }
 
   matplot(time, t(profiles), type = "l", ylim = c(0, ymax), ...)
@@ -45,11 +45,12 @@ generateUsefulRandomProfile <- function(time, scale, length, errorDef, originalP
     numTries = numTries + 1
     if(!testConstant(randomProfile, errorDef)) {
         if(!is.null(originalProfile)) {
+          na_mask = !is.na(originalProfile)
           if(numTries > 100) {
             warning("Could not find different profile - scale: ", scale, " length: ", length, " time: ", time);
             break;
           }
-          else if(cor(originalProfile, randomProfile[1,]) < 0.9) {
+          else if(cor(originalProfile[na_mask], randomProfile[1,na_mask]) < 0.9) {
             break;
           }
         }

@@ -27,12 +27,6 @@ First we install and start all the required libraries.
     }
   }
 
-  # Install and load Genexpi from GitHub vie devtools
-  if(!develRun) {
-    pkgTest("devtools")
-    install_github("cas-bioinf/genexpi", ref = "bmc-release", subdir="rpackage")
-  }
-
   # Install and load the packages required for evaluation against TD-Aracne
   source("https://bioconductor.org/biocLite.R")
   biocLite(c("Biobase","TDARACNE", "RBGL"))
@@ -46,6 +40,11 @@ First we install and start all the required libraries.
   pkgTest("rJava")
   pkgTest("ggplot2")
 
+  # Install and load Genexpi from GitHub vie devtools
+  if(!develRun) {
+    pkgTest("devtools")
+    install_github("cas-bioinf/genexpi", ref = "bmc-release", subdir="rpackage")
+  }
 ```
 
 
