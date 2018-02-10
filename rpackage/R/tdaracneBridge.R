@@ -1,9 +1,11 @@
+defaultAracneNumBins <- 10
+
 runTDAracne <- function(profileMatrix, regulatorName, regulonNames, numBins = defaultAracneNumBins) {
   library(Biobase)
   library(TDARACNE)
   library(RBGL)
 
-  expressionSet = ExpressionSet(assayData = profileMatrix[rownames(profileMatrix) %in% c(regulatorName, regulonNames),]);
+  expressionSet = ExpressionSet(assayData = as.matrix(profileMatrix[rownames(profileMatrix) %in% c(regulatorName, regulonNames),]));
   aracneResult = TDARACNE(expressionSet, numBins);
 
   transClosure = transitive.closure(aracneResult)
@@ -50,7 +52,7 @@ testTDAracneRandom <- function(rounds, profileMatrix, time, rawTime, splineDFs, 
     customProfileMatrix = profileMatrix;
     customProfileMatrix[rownames(profileMatrix) == regulatorName,] = randomProfile;
 
-    runTDAracne(customProfileMatrix, regulatorName, regulonNames, numBins)
+    runTDAracne(profileMatrix = customProfileMatrix, regulatorName = regulatorName, regulonNames = regulonNames, numBins = numBins)
   }
   stopCluster(cl)
 
