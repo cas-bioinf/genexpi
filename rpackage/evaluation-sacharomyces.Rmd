@@ -5,12 +5,11 @@ output: html_notebook
 
 ```{r setup}
   options(java.parameters = "-Xmx2048m")
-  develRun = TRUE;
 ```
 
 First we install and start all the required libraries.
 
-```{r}
+```{r eval=FALSE}
   # Helper function to install packages if they are not available
   pkgTest <- function(x)
   {
@@ -21,11 +20,21 @@ First we install and start all the required libraries.
     }
   }
 
-  # Install and load the packages required for evaluation against TD-Aracne
-  if(!develRun) {
-    source("https://bioconductor.org/biocLite.R")
-    biocLite(c("Biobase","TDARACNE", "RBGL"))
-  }
+  source("https://bioconductor.org/biocLite.R")
+  biocLite(c("Biobase","TDARACNE", "RBGL"))
+
+  pkgTest("splines")
+  pkgTest("foreach")
+  pkgTest("doParallel")
+  pkgTest("rJava")
+  pkgTest("tidyverse")
+  
+  pkgTest("devtools")
+  install_github("cas-bioinf/genexpi", ref = "bmc-release", subdir="rpackage")
+
+```
+
+```{r}
   library(Biobase)
   library(TDARACNE)
   library(RBGL)
@@ -35,14 +44,7 @@ First we install and start all the required libraries.
   pkgTest("doParallel")
   pkgTest("rJava")
   pkgTest("tidyverse")
-  
-  # Install and load Genexpi from GitHub vie devtools
-  if(!develRun) {
-    pkgTest("devtools")
-    install_github("cas-bioinf/genexpi", ref = "bmc-release", subdir="rpackage")
-  }
 
-  
 ```
 
 
@@ -70,13 +72,14 @@ gds38_raw_df = read.delim(gzfile(gds38_file), skip = 149, comment.char = "!", na
 ```
 
 ```{r}
-
+set.seed(51246522)
 #SWI4/6, MBP1 a re suspect as they act in complexes (BTW good test case for the cooperative model)
+
 regulators <- c("FKH1", "FKH2","MCM1","MBP1","SWI4","SWI6","NDD1", "ACE2")
 #regulators <- c("FKH1", "FKH2","MCM1","MBP1","SWI4","SWI6", "ACE2")
 yeastract_filtered <- yeastract_df%>% filter(regulator %in% regulators) %>%
   filter(target %in% gds38_raw_df$IDENTIFIER) %>%
-  group_by(regulator) 
+  group_by(regulator)
 
 all_targets <- as.character(yeastract_filtered$target)
 genes_of_interest <- unique(as.character(c(regulators, all_targets)))
@@ -108,7 +111,7 @@ errorDef$relative <- 0.1
 errorDef$minimal <- 0.2
 deviceSpecs <- getDeviceSpecs(2)
 minFitQuality <- 0.8
-randomRounds <- 3
+randomRounds <- 20
 ```
 
 #Filter out constant synthesis
@@ -139,39 +142,47 @@ plotRandomProfiles(20, time_raw, scale = randomScale, length = randomLength,true
 plotRandomProfiles(20, time_raw, scale = randomScale, length =                randomLength,trueTime = time_raw,  trueProfile = gds38_raw["SWI4",])
 ```
 
-
 ```{r}
 results_genexpi <- list()
-for(regulator_to_test in regulators) {
-  cat("======", regulator_to_test, "=====\n")
-  regulon_to_test <- yeastract_filtered %>% filter(regulator == regulator_to_test) %>%  # Using get to take refer to the regulator local variabl (not the column)
-    get("target", .) %>% as.character()
-  evaluation_res <- evaluateRandomForRegulon(deviceSpecs = deviceSpecs,rawProfiles = gds38_raw_to_test, rounds = randomRounds, regulatorName = regulator_to_test, regulonNames = regulon_to_test, checkConstantSynthesis = FALSE, time = time_smooth, rawTime = time_raw, randomScale = randomScale, randomLength = randomLength, splineDFs = splineDF, splineIntercept = TRUE, errorDef = errorDef)
-  cat("True ratio: ", evaluation_res$trueRatio,"\n")
-  cat("Mean random ratio: ", mean(evaluation_res$randomRatios), "\n")
-  results_genexpi[[regulator_to_test]] <- evaluation_res
-}
+results_aracne <- list()
 ```
 
 ```{r}
-results_aracne <- list()
 for(regulator_to_test in regulators) {
   cat("======", regulator_to_test, "=====\n")
-  regulon_to_test <- yeastract_filtered %>% filter(regulator == regulator_to_test) %>%  # Using get to take refer to the regulator local variabl (not the column)
-    get("target", .) %>% as.character()
-  res_aracne <- evaluateTDAracne(randomRounds, gds38_raw, time_raw, c(splineDF), time_smooth, randomScale, randomLength, regulatorName = regulator_to_test, regulonNames = regulon_to_test, errorDef = errorDef, numBins = 10)
-  results_aracne[[regulator_to_test]] <- res_aracne
+  regulon_to_test_df <- yeastract_filtered %>% filter(regulator == regulator_to_test)
+  if(nrow(regulon_to_test_df) > 50) {
+    regulon_to_test_df <- regulon_to_test_df %>% sample_n(50)
+  }
+  regulon_to_test <- regulon_to_test_df$target %>% as.character()
+  
+  if(is.null(results_genexpi[[regulator_to_test]])) {
+    evaluation_res <- evaluateRandomForRegulon(deviceSpecs = deviceSpecs,rawProfiles = gds38_raw_to_test, rounds = randomRounds, regulatorName = regulator_to_test, regulonNames = regulon_to_test, checkConstantSynthesis = FALSE, time = time_smooth, rawTime = time_raw, randomScale = randomScale, randomLength = randomLength, splineDFs = splineDF, splineIntercept = TRUE, errorDef = errorDef)
+    results_genexpi[[regulator_to_test]] <- evaluation_res
+    save.image("evaluation_sacharomyces.RData")
+  }
+  
+  cat("====== Aracne:", regulator_to_test, "=====\n")
+  if(is.null(results_aracne[[regulator_to_test]])) {
+    res_aracne <- evaluateTDAracne(randomRounds, gds38_raw, time_raw, c(splineDF), time_smooth, randomScale, randomLength, regulatorName = regulator_to_test, regulonNames = regulon_to_test, errorDef = errorDef, numBins = 10)
+    results_aracne[[regulator_to_test]] <- res_aracne
+    save.image("evaluation_sacharomyces.RData")
+  }
+  
 }
 ```
+
 ```{r}
 results_aracne_formatted <- list()
 step = 1
 for(regulator in regulators) {
+  if(!is.null(results_aracne[[regulator]])) {
   evaluationResult <- results_aracne[[regulator]]
   results_aracne_formatted[[step]] <- data.frame(regulator = regulator, type = "Downstream", true = evaluationResult$trueRatioDownstream, random = evaluationResult$overallRandomRatioDownstream)
   step <- step + 1
   results_aracne_formatted[[step]] <- data.frame(regulator = regulator, type = "Connected", true = evaluationResult$trueRatioConnected, random = evaluationResult$overallRandomRatioConnected)
   step <- step + 1
+  }
 }
 
 results_aracne_formatted <- do.call(rbind, results_aracne_formatted)
