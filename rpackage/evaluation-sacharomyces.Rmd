@@ -72,7 +72,6 @@ gds38_raw_df = read.delim(gzfile(gds38_file), skip = 149, comment.char = "!", na
 ```
 
 ```{r}
-set.seed(51246522)
 #SWI4/6, MBP1 a re suspect as they act in complexes (BTW good test case for the cooperative model)
 
 regulators <- c("FKH1", "FKH2","MCM1","MBP1","SWI4","SWI6","NDD1", "ACE2")
@@ -129,7 +128,7 @@ profilesToTest_logical <- regulators_logical | (!constantProfiles & !constantSyn
 gds38_raw_to_test <- gds38_raw_filtered[profilesToTest_logical,]
 gds38_smooth_to_test <- gds38_smooth_filtered[profilesToTest_logical,]
 
-profilesToTest <- rownames(gds38_smooth_filtered[profilesToTest_logical])
+targets_to_test <- rownames(gds38_smooth_filtered)[(!constantProfiles & !constantSynthesisProfiles)]
 ```
 
 #Test random with Genexpi
@@ -148,9 +147,11 @@ results_aracne <- list()
 ```
 
 ```{r}
+set.seed(51246522)
+
 for(regulator_to_test in regulators) {
   cat("======", regulator_to_test, "=====\n")
-  regulon_to_test_df <- yeastract_filtered %>% filter(regulator == regulator_to_test)
+  regulon_to_test_df <- yeastract_filtered %>% filter(regulator == regulator_to_test & target %in% targets_to_test)
   if(nrow(regulon_to_test_df) > 50) {
     regulon_to_test_df <- regulon_to_test_df %>% sample_n(50)
   }
@@ -173,58 +174,25 @@ for(regulator_to_test in regulators) {
 ```
 
 ```{r}
-results_aracne_formatted <- list()
+results_formatted <- list()
 step = 1
 for(regulator in regulators) {
+  if(!is.null(results_genexpi[[regulator]])) {
+    res_genexpi <- results_genexpi[[regulator]]
+    results_formatted[[step]] <- data.frame(regulator = regulator, type = "Genexpi", true = res_genexpi$trueRatio, random = mean(res_genexpi$randomRatios))
+    step <- step + 1
+  }
+  
   if(!is.null(results_aracne[[regulator]])) {
-  evaluationResult <- results_aracne[[regulator]]
-  results_aracne_formatted[[step]] <- data.frame(regulator = regulator, type = "Downstream", true = evaluationResult$trueRatioDownstream, random = evaluationResult$overallRandomRatioDownstream)
-  step <- step + 1
-  results_aracne_formatted[[step]] <- data.frame(regulator = regulator, type = "Connected", true = evaluationResult$trueRatioConnected, random = evaluationResult$overallRandomRatioConnected)
-  step <- step + 1
+    res_aracne <- results_aracne[[regulator]]
+    results_formatted[[step]] <- data.frame(regulator = regulator, type = "Downstream", true = res_aracne$trueRatioDownstream, random = res_aracne$overallRandomRatioDownstream)
+    step <- step + 1
+    results_formatted[[step]] <- data.frame(regulator = regulator, type = "Connected", true = res_aracne$trueRatioConnected, random = res_aracne$overallRandomRatioConnected)
+    step <- step + 1
   }
 }
 
-results_aracne_formatted <- do.call(rbind, results_aracne_formatted)
-results_aracne_formatted
+results_formatted <- do.call(rbind, results_formatted)
+results_formatted
 ```
-
-```{r}
-g = "ACE2"
-matplot(t(gds38_raw[rownames(gds38_raw) == g,, drop = FALSE]), type = "l")
-matplot(log(t(gds38_raw[rownames(gds38_raw) == g,, drop = FALSE])), type = "l")
-```
-
-#Backup access to GSE24771
-
-```{r}
-temp_gse24771 <- tempfile();
-#download.file("https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE24771&format=file&file=GSE24771%5Fcomplete%5Fnormalized%2Etxt%2Egz", temp)
-
-download.file("ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE24nnn/GSE24771/suppl/GSE24771_complete_normalized.txt.gz", temp_gse24771)
-
-
-gse24771_raw_df = read.delim(gzfile(temp_gse24771)) 
-```
-
-```{r}
-gse24771_tidy <- gse24771_raw_df %>% 
-  gather("sample","expression", -ID_REF) %>% 
-  mutate(time = as.integer(gsub("^[^.]*\\.T([0-9]*)","\\1", sample)), 
-         sample = gsub("^([^.]*)\\.T[0-9]*","\\1", sample))
-```
-
-
-```{r}
-genes = c("YFL021W","YLR131C","YNL068C") #GAT1, ACE2, FKH2
-gse24771_tidy %>% 
-  filter(ID_REF %in% genes) %>%
-  ggplot(aes(x = time, y = expression, color = sample)) + geom_line() + facet_wrap( ~ ID_REF, ncol = 1, scales = "free")
-
-# gse24771_tidy %>% 
-#   filter(ID_REF == gene) %>% 
-#   summarise(m = mean(expression), s = sd(expression))
-
-```
-
 
