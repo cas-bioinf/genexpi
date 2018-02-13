@@ -56,7 +56,7 @@ inspectSmoothing <- function(timeRaw, profilesRaw, timeSmooth, profilesSmooth, g
 }
 
 
-computeRegulon <- function(deviceSpecs, profiles, regulatorName, regulonNames, errorDef = defaultErrorDef(), minFitQuality = 0.8, checkConstantSynthesis = TRUE) {
+computeRegulon <- function(deviceSpecs, profiles, regulatorName, regulonNames, errorDef = defaultErrorDef(), minFitQuality = 0.8, checkConstantSynthesis = TRUE, constraints = "+") {
   if(is.null(rownames(profiles))) {
     stop("Profiles must have associated rownames");
   }
@@ -109,7 +109,7 @@ computeRegulon <- function(deviceSpecs, profiles, regulatorName, regulonNames, e
       tasks[,1] = regulatorIndex;
       tasks[,2] = which(actualTargets);
 
-      regulationResults = computeAdditiveRegulation(deviceSpecs, profiles, tasks, constraints = "+")
+      regulationResults = computeAdditiveRegulation(deviceSpecs, profiles, tasks, constraints = constraints)
       testResults = testAdditiveRegulation(regulationResults, errorDef, minFitQuality)
       predictedProfiles = testResults$predictedProfiles
       numRegulated = sum(testResults$regulated)

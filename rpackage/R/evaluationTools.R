@@ -1,5 +1,5 @@
 #Measures performance of a set of random profiles in explaining the profiles in regulon
-testRandomRegulator <- function(deviceSpecs, rounds, profiles, time, randomScale, randomLength, rawTime, originalRawProfile, splineDFs, errorDef = defaultErrorDef(), splineIntercept = FALSE) {
+testRandomRegulator <- function(deviceSpecs, rounds, profiles, time, randomScale, randomLength, rawTime, originalRawProfile, splineDFs, errorDef = defaultErrorDef(), splineIntercept = FALSE, constraints = "+") {
   profilesDim = dim(profiles);
   numProfiles = profilesDim[1];
   numTime = profilesDim[2];
@@ -18,9 +18,6 @@ testRandomRegulator <- function(deviceSpecs, rounds, profiles, time, randomScale
   #The first element (regulator) of tasks changes, the second stays the same
   tasks = array(0, c(numProfiles,2));
   tasks[,2] = 1:numProfiles; #The targets
-
-  #Force only positive interactions
-  constraints = "+";
 
   for(round in 1:rounds) {
     tasks[,1] = numProfiles + round; #The (random) regulator
@@ -44,16 +41,16 @@ testRandomRegulator <- function(deviceSpecs, rounds, profiles, time, randomScale
               randomProfiles = randomProfiles));
 }
 
-evaluateRandomForRegulon <- function(deviceSpecs, rawProfiles, rounds, regulatorName, regulonNames, time, rawTime, randomScale, randomLength, splineDFs, errorDef = defaultErrorDef(), minFitQuality = 0.8, checkConstantSynthesis = TRUE, splineIntercept = FALSE) {
+evaluateRandomForRegulon <- function(deviceSpecs, rawProfiles, rounds, regulatorName, regulonNames, time, rawTime, randomScale, randomLength, splineDFs, errorDef = defaultErrorDef(), minFitQuality = 0.8, checkConstantSynthesis = TRUE, splineIntercept = FALSE, constraints = "+") {
   deviceSpecs = getJavaDeviceSpecs(deviceSpecs);
   profiles = splineProfileMatrix(rawProfiles, rawTime, time, splineDFs, intercept = splineIntercept);
 
   originalRawProfile = as.numeric(rawProfiles[rownames(rawProfiles) == regulatorName,])
 
-  trueResults = computeRegulon(deviceSpecs, profiles, regulatorName, regulonNames, errorDef = errorDef, minFitQuality = minFitQuality, checkConstantSynthesis = checkConstantSynthesis)
+  trueResults = computeRegulon(deviceSpecs, profiles, regulatorName, regulonNames, errorDef = errorDef, minFitQuality = minFitQuality, checkConstantSynthesis = checkConstantSynthesis, constraints = constraints)
 
 
-  randomResults = testRandomRegulator(deviceSpecs, rounds = rounds, profiles = profiles[trueResults$tested,], time = time, rawTime = rawTime, randomScale = randomScale, randomLength = randomLength, splineDFs = splineDFs, originalRawProfile =  originalRawProfile, errorDef = errorDef, splineIntercept = splineIntercept);
+  randomResults = testRandomRegulator(deviceSpecs, rounds = rounds, profiles = profiles[trueResults$tested,], time = time, rawTime = rawTime, randomScale = randomScale, randomLength = randomLength, splineDFs = splineDFs, originalRawProfile =  originalRawProfile, errorDef = errorDef, splineIntercept = splineIntercept, constraints = constraints);
 
   trueRatio = trueResults$numRegulated / trueResults$numTested;
   randomRatios = rowMeans(randomResults$fitQualities > minFitQuality);
