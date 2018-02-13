@@ -1,0 +1,223 @@
+---
+title: "Evaluating Sacharomyces cell cycle genes"
+output: html_notebook
+---
+# Setting up
+
+```{r setup}
+  options(java.parameters = "-Xmx2048m")
+```
+
+The code below should install all required packages for the evaluation.
+
+```{r eval=FALSE}
+  # Helper function to install packages if they are not available
+  pkgTest <- function(x)
+  {
+    if (!require(x,character.only = TRUE))
+    {
+      install.packages(x,dep=TRUE)
+        if(!require(x,character.only = TRUE)) stop("Package not found")
+    }
+  }
+
+  source("https://bioconductor.org/biocLite.R")
+  biocLite(c("Biobase","TDARACNE", "RBGL"))
+
+  pkgTest("splines")
+  pkgTest("foreach")
+  pkgTest("doParallel")
+  pkgTest("rJava")
+  pkgTest("tidyverse")
+  
+  pkgTest("devtools")
+  install_github("cas-bioinf/genexpi", ref = "bmc-release", subdir="rpackage")
+
+```
+
+Load the packages
+
+```{r results='hide'}
+  library(Biobase)
+  library(TDARACNE)
+  library(RBGL)
+  
+  library(splines)
+  library(foreach)
+  library(doParallel)
+  library(rJava)
+  library(tidyverse)
+  library(rGenexpi)
+```
+
+## Download the data from Yeastract and GEO datasets
+
+```{r}
+yeastract_file <- 'yeastract.tsv.gz'
+if(!file.exists(yeastract_file)) {
+  download.file("http://www.yeastract.com/download/RegulationTwoColumnTable_Documented_2013927.tsv.gz", yeastract_file)
+}
+
+yeastract_df <- read.delim(gzfile(yeastract_file),sep = ";",header = FALSE, col.names = c("regulator","target"))
+```
+
+
+
+```{r}
+gds38_file <- 'gds38.soft.gz';
+if(!file.exists(gds38_file)) {
+  download.file("ftp://ftp.ncbi.nlm.nih.gov/geo/datasets/GDSnnn/GDS38/soft/GDS38_full.soft.gz", gds38_file)
+}
+
+#Intermediate data frame representation
+gds38_raw_df = read.delim(gzfile(gds38_file), skip = 149, comment.char = "!", na.strings = c("null","")) 
+
+```
+
+## Data processing
+
+```{r}
+#SWI4/6, MBP1 a re suspect as they act in complexes (BTW good test case for the cooperative model)
+
+regulators <- c("FKH1", "FKH2","MCM1","MBP1","SWI4","SWI6","NDD1", "ACE2")
+yeastract_filtered <- yeastract_df%>% filter(regulator %in% regulators) %>%
+  filter(target %in% gds38_raw_df$IDENTIFIER) %>%
+  group_by(regulator)
+
+all_targets <- as.character(yeastract_filtered$target)
+genes_of_interest <- unique(as.character(c(regulators, all_targets)))
+
+gds38_raw <- aggregate(gds38_raw_df[,3:18], gds38_raw_df["IDENTIFIER"], mean, na.rm = TRUE) %>%
+  column_to_rownames("IDENTIFIER") %>%
+  as.matrix() %>% exp()
+  
+gds38_raw_filtered <- gds38_raw[genes_of_interest,]
+
+time_raw <- seq(0,by = 7, length.out = 16)
+time_smooth <- 0:max(time_raw)
+```
+
+## Splining the profiles + inspecting results
+```{r}
+splineDF = 6
+gds38_smooth_filtered <- splineProfileMatrix(gds38_raw_filtered, time_raw, time_smooth, df = splineDF, intercept = TRUE)
+inspectSmoothing(time_raw, gds38_raw_filtered,time_smooth, gds38_smooth_filtered, c("ACE2","FKH2","SWI4"))
+
+```
+# The evaluation itself
+
+```{r}
+errorDef <- defaultErrorDef()
+errorDef$relative <- 0.1
+errorDef$minimal <- 0.2
+deviceSpecs <- getDeviceSpecs(deviceType = "processor")
+minFitQuality <- 0.8
+randomRounds <- 20
+```
+
+## Filter out constant synthesis
+```{r}
+regulators_logical <- rownames(gds38_smooth_filtered) %in% regulators 
+constantProfiles = testConstant(gds38_smooth_filtered, errorDef)
+profilesToTestConstantSynthesisIndices = which(!constantProfiles & !regulators_logical)
+
+constantSynthesisResults = computeConstantSynthesis(deviceSpecs, gds38_smooth_filtered, tasks = profilesToTestConstantSynthesisIndices);
+
+constantSynthesisProfiles = testConstantSynthesis(constantSynthesisResults, errorDef, minFitQuality);
+
+profilesToTest_logical <- regulators_logical | (!constantProfiles & !constantSynthesisProfiles)
+
+gds38_raw_to_test <- gds38_raw_filtered[profilesToTest_logical,]
+gds38_smooth_to_test <- gds38_smooth_filtered[profilesToTest_logical,]
+
+targets_to_test <- rownames(gds38_smooth_filtered)[(!constantProfiles & !constantSynthesisProfiles)]
+```
+
+## Test random profile generation
+
+Here the dots are actual measured profiles of several regulators, while the lines are randomly generated profiles.
+
+```{r}
+randomScale = 1.6
+randomLength = 10
+#See ACE2
+plotRandomProfiles(20, time_raw, scale = randomScale, length = randomLength,trueTime = time_raw,  trueProfile = gds38_raw["ACE2",])
+#See FKH1
+plotRandomProfiles(20, time_raw, scale = randomScale, length = randomLength,trueTime = time_raw,  trueProfile = gds38_raw["FKH1",])
+#See SWI4
+plotRandomProfiles(20, time_raw, scale = randomScale, length =                randomLength,trueTime = time_raw,  trueProfile = gds38_raw["SWI4",])
+```
+
+## Subsample the regulons
+
+```{r}
+results_genexpi <- list()
+results_aracne <- list()
+
+set.seed(21345678)
+regulons_to_test = list()
+for(regulator_to_test in regulators) {
+  regulon_to_test_df <- yeastract_filtered %>% filter(regulator == regulator_to_test & target %in% targets_to_test)
+  if(nrow(regulon_to_test_df) > 30) {
+    regulon_to_test_df <- regulon_to_test_df %>% sample_n(30)
+  }
+  regulons_to_test[[regulator_to_test]] <- regulon_to_test_df$target %>% as.character()
+}
+
+```
+
+## Execute Genexpi and TD-Aracne
+```{r results='hide'}
+
+for(regulator_to_test in regulators) {
+  cat("======", regulator_to_test, "=====\n")
+  regulon_to_test <- regulons_to_test[[regulator_to_test]]
+  
+  #This is tu support restarts of the computation
+  if(is.null(results_genexpi[[regulator_to_test]])) {
+    evaluation_res <- evaluateRandomForRegulon(deviceSpecs = deviceSpecs,rawProfiles = gds38_raw_to_test, rounds = randomRounds, regulatorName = regulator_to_test, regulonNames = regulon_to_test, checkConstantSynthesis = FALSE, time = time_smooth, rawTime = time_raw, randomScale = randomScale, randomLength = randomLength, splineDFs = splineDF, splineIntercept = TRUE, errorDef = errorDef)
+    results_genexpi[[regulator_to_test]] <- evaluation_res
+    save.image("evaluation_sacharomyces.RData")
+  }
+}
+
+for(regulator_to_test in regulators) {
+  cat("====== Aracne:", regulator_to_test, "=====\n")
+  regulon_to_test <- regulons_to_test[[regulator_to_test]]
+  #This is tu support restarts of the computation
+  if(is.null(results_aracne[[regulator_to_test]])) {
+    res_aracne <- evaluateTDAracne(randomRounds, gds38_raw, time_raw, c(splineDF), time_smooth, randomScale, randomLength, regulatorName = regulator_to_test, regulonNames = regulon_to_test, errorDef = errorDef, numBins = 10)
+    results_aracne[[regulator_to_test]] <- res_aracne
+    save.image("evaluation_sacharomyces.RData")
+  }
+  
+}
+```
+
+## Output the results
+
+For the publication, we chose the better result for TD-Aracne (either downstream or connected) separately for each regulator.
+
+```{r}
+results_formatted <- list()
+step = 1
+for(regulator in regulators) {
+  if(!is.null(results_genexpi[[regulator]])) {
+    res_genexpi <- results_genexpi[[regulator]]
+    results_formatted[[step]] <- data.frame(regulator = regulator, type = "Genexpi", true = res_genexpi$trueRatio, random = mean(res_genexpi$randomRatios))
+    step <- step + 1
+  }
+  
+  if(!is.null(results_aracne[[regulator]])) {
+    res_aracne <- results_aracne[[regulator]]
+    results_formatted[[step]] <- data.frame(regulator = regulator, type = "TD-Aracne-Downstream", true = res_aracne$trueRatioDownstream, random = res_aracne$overallRandomRatioDownstream)
+    step <- step + 1
+    results_formatted[[step]] <- data.frame(regulator = regulator, type = "TD-Aracne-Connected", true = res_aracne$trueRatioConnected, random = res_aracne$overallRandomRatioConnected)
+    step <- step + 1
+  }
+}
+
+results_formatted <- do.call(rbind, results_formatted)
+results_formatted
+```
+
