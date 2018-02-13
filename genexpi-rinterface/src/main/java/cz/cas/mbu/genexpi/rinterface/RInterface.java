@@ -20,9 +20,11 @@ import cz.cas.mbu.genexpi.compute.AdditiveRegulationInferenceTask;
 import cz.cas.mbu.genexpi.compute.EErrorFunction;
 import cz.cas.mbu.genexpi.compute.ELossFunction;
 import cz.cas.mbu.genexpi.compute.EMethod;
-import cz.cas.mbu.genexpi.compute.GNCompute;
+import cz.cas.mbu.genexpi.compute.BaseInferenceEngine;
 import cz.cas.mbu.genexpi.compute.GNException;
 import cz.cas.mbu.genexpi.compute.GeneProfile;
+import cz.cas.mbu.genexpi.compute.IInferenceEngine;
+import cz.cas.mbu.genexpi.compute.InferenceEngineBuilder;
 import cz.cas.mbu.genexpi.compute.InferenceModel;
 import cz.cas.mbu.genexpi.compute.InferenceResult;
 import cz.cas.mbu.genexpi.compute.IntegrateResults;
@@ -100,10 +102,16 @@ public class RInterface {
         	CLContext context = deviceSpecs.createContext();
         
 			//GNCompute<Float> compute = new GNCompute<>(Float.class, context, model, EMethod.Annealing, EErrorFunction.Euler, ELossFunction.Squared, 10);
-        	
-			GNCompute<Float> compute = new GNCompute<Float>(Float.class, context, model, EMethod.Annealing, EErrorFunction.Euler, ELossFunction.Squared, false, null);
-			compute.setVerbose(verbose);
-			List<InferenceResult> result = compute.computeAdditiveRegulation(geneProfiles, Arrays.asList(inferenceTasks), numRegulators, numIterations, regularizationWeight, false);
+        	 
+			IInferenceEngine<Float, AdditiveRegulationInferenceTask> compute = new InferenceEngineBuilder<>(Float.class)
+					.setContext(context)
+					.setErrorFunction(EErrorFunction.Euler)
+					.setLossFunction(ELossFunction.Squared)
+					.setVerbose(verbose)
+					.setNumIterations(numIterations)
+					.buildAdditiveRegulation(numRegulators, false, regularizationWeight);
+					
+			List<InferenceResult> result = compute.compute(geneProfiles, Arrays.asList(inferenceTasks));
 			InferenceResult[] resultArray = new InferenceResult[result.size()];
 			result.toArray(resultArray);
 			return resultArray;
@@ -140,10 +148,15 @@ public class RInterface {
         try {
         	CLContext context = deviceSpecs.createContext();
         
-			GNCompute<Float> compute = new GNCompute<Float>(Float.class, context, InferenceModel.NO_REGULATOR, EMethod.Annealing, EErrorFunction.Euler, ELossFunction.Squared, false, null);
-			compute.setVerbose(verbose);
-				
-			List<InferenceResult> result = compute.computeNoRegulator(geneProfiles, Arrays.asList(inferenceTasks), numIterations, false);
+			IInferenceEngine<Float, NoRegulatorInferenceTask> compute = new InferenceEngineBuilder<>(Float.class)
+					.setContext(context)
+					.setErrorFunction(EErrorFunction.Euler)
+					.setLossFunction(ELossFunction.Squared)
+					.setVerbose(verbose)
+					.setNumIterations(numIterations)
+					.buildNoRegulator();
+									
+			List<InferenceResult> result = compute.compute(geneProfiles, Arrays.asList(inferenceTasks));
 			InferenceResult[] resultArray = new InferenceResult[result.size()];
 			result.toArray(resultArray);
 			return resultArray;

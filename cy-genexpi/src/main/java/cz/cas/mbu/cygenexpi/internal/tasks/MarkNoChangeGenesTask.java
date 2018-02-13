@@ -41,7 +41,7 @@ import cz.cas.mbu.cygenexpi.TaggingService;
 import cz.cas.mbu.cygenexpi.internal.ErrorDef;
 import cz.cas.mbu.genexpi.compute.ELossFunction;
 import cz.cas.mbu.genexpi.compute.EMethod;
-import cz.cas.mbu.genexpi.compute.GNCompute;
+import cz.cas.mbu.genexpi.compute.BaseInferenceEngine;
 import cz.cas.mbu.genexpi.compute.GeneProfile;
 import cz.cas.mbu.genexpi.compute.InferenceModel;
 import cz.cas.mbu.genexpi.compute.InferenceResult;

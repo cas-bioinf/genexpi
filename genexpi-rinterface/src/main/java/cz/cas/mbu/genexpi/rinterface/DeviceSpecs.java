@@ -6,7 +6,8 @@ import com.nativelibs4java.opencl.CLPlatform;
 import com.nativelibs4java.opencl.JavaCL;
 import com.nativelibs4java.opencl.CLPlatform.DeviceFeature;
 
-import cz.cas.mbu.genexpi.compute.GNCompute;
+import cz.cas.mbu.genexpi.compute.BaseInferenceEngine;
+import cz.cas.mbu.genexpi.compute.ComputeUtils;
 
 public class DeviceSpecs {
 	private final CLDevice chosenDevice;
@@ -34,7 +35,7 @@ public class DeviceSpecs {
 			return JavaCL.getBestDevice(preferredFeature, DeviceFeature.MaxComputeUnits,
 					DeviceFeature.OutOfOrderQueueSupport);
 		} else {
-			return GNCompute.getBestDevice();
+			return ComputeUtils.getBestDevice();
 		}
 		
 	}

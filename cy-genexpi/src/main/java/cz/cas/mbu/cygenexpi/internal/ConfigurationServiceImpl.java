@@ -27,8 +27,10 @@ import cz.cas.mbu.genexpi.compute.AdditiveRegulationInferenceTask;
 import cz.cas.mbu.genexpi.compute.EErrorFunction;
 import cz.cas.mbu.genexpi.compute.ELossFunction;
 import cz.cas.mbu.genexpi.compute.EMethod;
-import cz.cas.mbu.genexpi.compute.GNCompute;
+import cz.cas.mbu.genexpi.compute.BaseInferenceEngine;
 import cz.cas.mbu.genexpi.compute.GeneProfile;
+import cz.cas.mbu.genexpi.compute.IInferenceEngine;
+import cz.cas.mbu.genexpi.compute.InferenceEngineBuilder;
 import cz.cas.mbu.genexpi.compute.InferenceModel;
 
 public class ConfigurationServiceImpl implements ConfigurationService {
@@ -124,11 +126,17 @@ public class ConfigurationServiceImpl implements ConfigurationService {
 			//Create a simple simple data
 			try {
 				CLContext context = device.getPlatform().createContext(Collections.EMPTY_MAP, device);
-				GNCompute<Float> compute = new GNCompute<Float>(Float.class, context, InferenceModel.createAdditiveRegulationModel(1), EMethod.Annealing, EErrorFunction.Euler, ELossFunction.Squared, false, 0.0f);
+				IInferenceEngine<Float, AdditiveRegulationInferenceTask> compute =
+						new InferenceEngineBuilder<>(Float.class)
+							.setContext(context)
+							.setMethod(EMethod.Annealing)
+							.setErrorFunction(EErrorFunction.Euler)
+							.setLossFunction(ELossFunction.Squared)
+							.buildAdditiveRegulation(1, false, 0.0f);
 				GeneProfile<Float> p1 = new GeneProfile<>("test1", Arrays.asList(0.f,0.1f,0.2f,0.3f,0.4f));
 				GeneProfile<Float> p2 = new GeneProfile<>("test2", Arrays.asList(0.4f,0.3f,0.2f,0.1f,0.0f));
 				
-				compute.computeAdditiveRegulation(Arrays.asList(p1, p2), Collections.singletonList(new AdditiveRegulationInferenceTask(0, 1)), 1, 16, 10.0f, true);
+				compute.compute(Arrays.asList(p1, p2), Collections.singletonList(new AdditiveRegulationInferenceTask(0, 1)));
 			}
 			catch(GNException ex)
 			{

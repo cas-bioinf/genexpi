@@ -21,9 +21,6 @@ import org.cytoscape.work.TunableValidator.ValidationState;
 
 import com.nativelibs4java.opencl.CLContext;
 import com.nativelibs4java.opencl.CLDevice;
-import com.nativelibs4java.opencl.CLPlatform;
-import com.nativelibs4java.opencl.JavaCL;
-import com.nativelibs4java.opencl.CLException.OutOfHostMemory;
 
 import cz.cas.mbu.cydataseries.DataSeriesFactory;
 import cz.cas.mbu.cydataseries.DataSeriesManager;
@@ -35,18 +32,20 @@ import cz.cas.mbu.cygenexpi.PredictionService;
 import cz.cas.mbu.cygenexpi.ProfileTags;
 import cz.cas.mbu.cygenexpi.TaggingService;
 import cz.cas.mbu.genexpi.compute.AdditiveRegulationInferenceTask;
+import cz.cas.mbu.genexpi.compute.BaseInferenceEngine;
+import cz.cas.mbu.genexpi.compute.ComputeUtils;
 import cz.cas.mbu.genexpi.compute.EErrorFunction;
 import cz.cas.mbu.genexpi.compute.ELossFunction;
 import cz.cas.mbu.genexpi.compute.EMethod;
-import cz.cas.mbu.genexpi.compute.GNCompute;
 import cz.cas.mbu.genexpi.compute.GNException;
 import cz.cas.mbu.genexpi.compute.GeneProfile;
+import cz.cas.mbu.genexpi.compute.IInferenceEngine;
+import cz.cas.mbu.genexpi.compute.InferenceEngineBuilder;
 import cz.cas.mbu.genexpi.compute.InferenceModel;
 import cz.cas.mbu.genexpi.compute.InferenceResult;
 import cz.cas.mbu.genexpi.compute.IntegrateResults;
 import cz.cas.mbu.genexpi.compute.NoRegulatorInferenceTask;
 import cz.cas.mbu.genexpi.compute.RegulationType;
-import cz.cas.mbu.genexpi.compute.SuspectGPUResetByOSException;
 
 public class PredictionServiceImpl implements PredictionService {
 
@@ -62,53 +61,6 @@ public class PredictionServiceImpl implements PredictionService {
 		this.registrar = registrar;
 	}
 
-	/*
-	protected CLDevice getDeviceFromCyCLPreferred()
-	{	
-		CyCLDevice cyCLPreferredDevice = CyCL.getPreferredDevice();
-		if(cyCLPreferredDevice == null)
-		{
-			return null;
-		}
-		
-		String cyCLPreferredName = cyCLPreferredDevice.openCLName;
-		String cyCLPreferredVersion = cyCLPreferredDevice.version;
-
-		CLDevice bestDevice = null;
-		for(CLPlatform platform : JavaCL.listPlatforms())
-		{
-			for(CLDevice device : platform.listAllDevices(false))
-			{
-				String javaCLName = device.getName();
-				if (cyCLPreferredName.equals(javaCLName) && cyCLPreferredVersion.equals(device.getVersion()))
-				{
-					//full match, immediately return
-					return device;
-				}
-				//Check only for a name match
-				else if (cyCLPreferredName.equals(javaCLName) && (bestDevice == null || !cyCLPreferredName.equals(bestDevice.getName())))
-				{
-					bestDevice = device;
-				}
-				//Check if tha JavaCL name is the last part of the CyCL name (lowest priority)
-				else if (cyCLPreferredName.endsWith(javaCLName))
-				{
-					if(bestDevice == null)
-					{
-						bestDevice = device;
-					}
-					//Override the best device only if it was a partial match and I have a version match
-					else if (!cyCLPreferredName.equals(bestDevice.getName()) && cyCLPreferredVersion.equals(device.getVersion())) 
-					{
-						bestDevice = device;
-					}
-				}
-			}
-		}
-		
-		return bestDevice;
-	}*/
-	
 	protected CLContext getContext()
 	{
 		CLDevice preferred = registrar.getService(ConfigurationService.class).getPreferredDevice();
@@ -127,7 +79,7 @@ public class PredictionServiceImpl implements PredictionService {
 		{
 			CLContext context;
 			try {
-				context = GNCompute.getBestContext();
+				context = ComputeUtils.getBestContext();
 			}
 			catch(Exception ex)
 			{
@@ -256,17 +208,22 @@ public class PredictionServiceImpl implements PredictionService {
 					});
 				
 				
-				InferenceModel model = InferenceModel.NO_REGULATOR;
-				EMethod method = EMethod.Annealing;
-				ELossFunction lossFunction = ELossFunction.Squared;
-				float regularizationWeight = 24;
+				
+				int numIterations = 128;
 				
 				CLContext context = getContext();
 				taskMonitor.setStatusMessage("Predicting, using " + context.getDevices()[0].getName() +  "\n(if running on a GPU, computer may be unresponsive during computation)");
-				GNCompute<Float> compute = new GNCompute<>(Float.class, context, model, method, null /*No error function*/, lossFunction, useCustomTimeStep, (float)timeStep);
+				IInferenceEngine<Float, NoRegulatorInferenceTask> compute = new InferenceEngineBuilder<>(Float.class)
+						.setContext(context)
+						.setMethod(EMethod.Annealing)
+						.setLossFunction(ELossFunction.Squared)
+						.setCustomTimeStep((float)timeStep)
+						.setUseCustomTimeStep(useCustomTimeStep)
+						.setNumIterations(numIterations)
+						.setPreventFullOccupation(registrar.getService(ConfigurationService.class).isPreventFullOccupation())
+						.buildNoRegulator();
 				
-				int numIterations = 128;
-				List<InferenceResult> results = compute.computeNoRegulator(geneProfiles, inferenceTasks, numIterations, registrar.getService(ConfigurationService.class).isPreventFullOccupation());
+				List<InferenceResult> results = compute.compute(geneProfiles, inferenceTasks);
 				
 			
 				//Calculate the best profiles + error rate
@@ -332,6 +289,7 @@ public class PredictionServiceImpl implements PredictionService {
 				{
 					String errorColumnName = parametersPrefix + "error";
 					
+					InferenceModel model = compute.getModel();
 					for(String param: model.getParameterNames())
 					{
 						String columnName = parametersPrefix + param;
@@ -505,16 +463,22 @@ public class PredictionServiceImpl implements PredictionService {
 					return;
 				}
 				
-				InferenceModel model = InferenceModel.createAdditiveRegulationModel(1);
-				EMethod method = EMethod.Annealing;
-				EErrorFunction errorFunction = EErrorFunction.Euler;
-				ELossFunction lossFunction = ELossFunction.Squared;
+				int numIterations = 128;
 				float regularizationWeight = (float)expressionSeries.getIndexArray().length / 10.0f;
 				
 				CLContext context = getContext();
-				GNCompute<Float> compute = new GNCompute<>(Float.class, context, model, method, errorFunction, lossFunction, useCustomTimeStep, (float)timeStep);
+				IInferenceEngine<Float, AdditiveRegulationInferenceTask> compute = new InferenceEngineBuilder<>(Float.class)
+						.setContext(context)
+						.setMethod(EMethod.Annealing)
+						.setErrorFunction(EErrorFunction.Euler)
+						.setLossFunction(ELossFunction.Squared)
+						.setUseCustomTimeStep(useCustomTimeStep)
+						.setCustomTimeStep((float)timeStep)
+						.setNumIterations(numIterations)
+						.setPreventFullOccupation(registrar.getService(ConfigurationService.class).isPreventFullOccupation())
+						.buildAdditiveRegulation(1, false, regularizationWeight);
+												
 				
-				int numIterations = 128;
 				List<InferenceResult> results = new ArrayList<>();
 				int numSteps = ((inferenceTasks.size() - 1) / MAX_TASKS_PER_EXECUTION) + 1;
 				for(int step = 0; step < numSteps; step++)
@@ -523,7 +487,7 @@ public class PredictionServiceImpl implements PredictionService {
 					taskMonitor.setProgress((double)step / (double)numSteps);
 					int minIndex = step * MAX_TASKS_PER_EXECUTION;
 					int maxIndex = Math.min((step + 1) * MAX_TASKS_PER_EXECUTION, inferenceTasks.size());
-					List<InferenceResult> partialResults = compute.computeAdditiveRegulation(geneProfiles, inferenceTasks.subList(minIndex, maxIndex), 1, numIterations, regularizationWeight, registrar.getService(ConfigurationService.class).isPreventFullOccupation());
+					List<InferenceResult> partialResults = compute.compute(geneProfiles, inferenceTasks.subList(minIndex, maxIndex));
 					results.addAll(partialResults);
 				}
 				
@@ -540,6 +504,7 @@ public class PredictionServiceImpl implements PredictionService {
 					InferenceResult result = results.get(taskId);
 
 					StringBuilder rowNameSuffix = new StringBuilder(" [");
+					InferenceModel model = compute.getModel();
 					for(int paramId = 0; paramId < model.getNumParams(); paramId++)
 					{
 						if(paramId > 0)
@@ -613,6 +578,7 @@ public class PredictionServiceImpl implements PredictionService {
 					edgeTable.createColumn(resultsColumnName, DataSeriesMappingManager.MAPPING_COLUMN_CLASS, false);
 				}
 				
+				InferenceModel model = compute.getModel();
 				String errorColumnName = parametersPrefix + "error";
 				if(storeParametersInEdgeTable)
 				{

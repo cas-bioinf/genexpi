@@ -30,7 +30,7 @@ public abstract class BaseSigmoidODE implements FirstOrderDifferentialEquations 
 	public BaseSigmoidODE(InferenceModel model, InferenceResult result, BaseSigmoidInferenceTask inferenceTask,
 			List<? extends GeneProfile<?>> geneProfiles, double initialTime, double timeStep) {
 		super();
-		if(model.getFamily() != InferenceModel.Family.AdditiveRegulation || model.getFamily() != InferenceModel.Family.CooperativeRegulation)
+		if(model.getFamily() != InferenceModel.Family.AdditiveRegulation && model.getFamily() != InferenceModel.Family.CooperativeRegulation)
 		{
 			throw new IllegalArgumentException("Invalid model family (" + model.getFamily().name() + ")");
 		}
