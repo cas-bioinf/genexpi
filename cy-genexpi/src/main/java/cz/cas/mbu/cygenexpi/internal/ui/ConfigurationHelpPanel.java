@@ -56,8 +56,11 @@ public class ConfigurationHelpPanel extends JPanel {
 		add(btnDriversForAmd, "1, 8");
 		btnDriversForAmd.addActionListener(evt -> LinkSupport.openLink(AMD_DRIVERS_LINK));
 		
+		JLabel lblOnDebianAnd = new JLabel("On Debian and Ubuntu the package opencl-icd should be installed");
+		add(lblOnDebianAnd, "1, 10");
+		
 		JLabel lblCytoscapeRestartMay = new JLabel("<html>Cytoscape restart may be required to show any freshly installed devices.</html>");
-		add(lblCytoscapeRestartMay, "1, 10");
+		add(lblCytoscapeRestartMay, "1, 12");
 
 	}
 
