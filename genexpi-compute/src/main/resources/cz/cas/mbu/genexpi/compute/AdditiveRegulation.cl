@@ -26,7 +26,7 @@ void ForceSpecificParamsInBounds(
 	{ 
     	for(int __regulator = 0; __regulator < NUM_REGULATORS; __regulator++)
 		{
-    		T_Value constraint = weightConstraints[taskID * NUM_REGULATORS + __regulator];
+    		T_Value constraint = weightConstraints[__regulator];
     		T_Value combinedSignedValue = constraint * W_VALUE(__regulator);
     		if(combinedSignedValue < 0) { 
     			W_VALUE(__regulator) = constraint * CONST(0.0001);
