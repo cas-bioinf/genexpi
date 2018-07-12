@@ -1,3 +1,18 @@
+log1pexp <- function(x) {
+  #The logic taken from https://cran.r-project.org/web/packages/Rmpfr/vignettes/log1mexp-note.pdf
+  res = x
+  case1 = x <= -37
+  res[case1] = exp(x[case1])
+
+  case2 = x > - 37 & x <= 18
+  res[case2] = log1p(exp(x[case2]))
+
+  case3 = x > 18
+  res[case3] = x[case3] + exp(-x[case3])
+
+  res
+}
+
 generateRandomProfile <- function(time, scale, length) {
   # Construct the squared exponential covariance matrix
   covMatrix = array(0,c(length(time), length(time)));
@@ -15,7 +30,7 @@ generateRandomProfile <- function(time, scale, length) {
   cholCov = t(chol(covMatrix));
   rawProfile = cholCov %*% rnorm(length(time));
   # Transform to strictly positive values
-  positiveProfile = log1p(exp(rawProfile))
+  positiveProfile = log1pexp(rawProfile)
   return(t(positiveProfile))
 }
 

@@ -1,4 +1,4 @@
-splineProfileMatrix <- function(profileMatrix, time, targetTime, df, degree = 3, intercept = FALSE) {
+splineProfileMatrix <- function(profileMatrix, time, targetTime, df, degree = 3, intercept = FALSE, knots = NULL) {
   if(any(apply(profileMatrix, 1, function(x) { sum(!is.na(x)) < 2 }))) {
     stop("Some rows of profileMatrix contain less than two non-NA values\n")
   }
@@ -10,7 +10,7 @@ splineProfileMatrix <- function(profileMatrix, time, targetTime, df, degree = 3,
   }
 
   #Create the spline basis
-  splineBasis = bs(time, df = df,degree = degree, intercept = intercept)
+  splineBasis = bs(time, df = df,degree = degree, intercept = intercept, knots = knots)
 
   if(any(is.na(profileMatrix))) {
     coefficients <- matrix(NA, ncol = nrow(profileMatrix), nrow = ncol(splineBasis))
