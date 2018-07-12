@@ -12,10 +12,10 @@ public class CooperativeRegulationInferenceEngine<NUMBER_TYPE extends Number> ex
 	public CooperativeRegulationInferenceEngine(Class<NUMBER_TYPE> elementClass, CLContext context, 
 			EMethod method, EErrorFunction errorFunction, ELossFunction lossFunction, boolean useCustomTimeStep,
 			Float customTimeStep, boolean verbose, int numIterations, boolean preventFullOccupation, 
-			float regularizationWeight, boolean useConstitutiveExpression) throws IOException {
+			float regularizationWeight, boolean useConstitutiveExpression, boolean useFixedSeed, long fixedSeed) throws IOException {
 		super(elementClass, context, InferenceModel.createCooperativeRegulationModel(useConstitutiveExpression), 
 				method, errorFunction, lossFunction, useCustomTimeStep, customTimeStep, verbose,
-				numIterations, preventFullOccupation, 2/*numRegulators*/, regularizationWeight);		
+				numIterations, preventFullOccupation, 2/*numRegulators*/, regularizationWeight, useFixedSeed, fixedSeed);		
 	}
 
 	@Override

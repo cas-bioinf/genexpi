@@ -18,21 +18,23 @@ public class InferenceEngineBuilder<NUMBER_TYPE extends Number> {
 	protected int numIterations = 256;
 	protected boolean preventFullOccupation = false;
 
+	protected boolean useFixedSeed = false;
+	protected long fixedSeed = 0;
 		
 	public InferenceEngineBuilder(Class<NUMBER_TYPE> elementClass) {
 		this.elementClass = elementClass;
 	}
 
 	public IInferenceEngine<NUMBER_TYPE, NoRegulatorInferenceTask> buildNoRegulator() throws IOException {
-		return new NoRegulatorInferenceEngine<>(elementClass, context, method, errorFunction, lossFunction, useCustomTimeStep, customTimeStep, verbose, numIterations, preventFullOccupation);
+		return new NoRegulatorInferenceEngine<>(elementClass, context, method, errorFunction, lossFunction, useCustomTimeStep, customTimeStep, verbose, numIterations, preventFullOccupation, useFixedSeed, fixedSeed);
 	}
 		
 	public IInferenceEngine<NUMBER_TYPE, AdditiveRegulationInferenceTask> buildAdditiveRegulation(int numRegulators, boolean useConstitutiveExpression, float regularizationWeight) throws IOException {
-		return new AdditiveRegulationInferenceEngine<>(elementClass, context, method, errorFunction, lossFunction, useCustomTimeStep, customTimeStep, verbose, numIterations, preventFullOccupation, numRegulators, regularizationWeight, useConstitutiveExpression);
+		return new AdditiveRegulationInferenceEngine<>(elementClass, context, method, errorFunction, lossFunction, useCustomTimeStep, customTimeStep, verbose, numIterations, preventFullOccupation, numRegulators, regularizationWeight, useConstitutiveExpression, useFixedSeed, fixedSeed);
 	}
 
 	public IInferenceEngine<NUMBER_TYPE, CooperativeRegulationInferenceTask> buildCooperativeRegulation(boolean useConstitutiveExpression, float regularizationWeight) throws IOException {
-		return new CooperativeRegulationInferenceEngine<>(elementClass, context, method, errorFunction, lossFunction, useCustomTimeStep, customTimeStep, verbose, numIterations, preventFullOccupation, regularizationWeight, useConstitutiveExpression);
+		return new CooperativeRegulationInferenceEngine<>(elementClass, context, method, errorFunction, lossFunction, useCustomTimeStep, customTimeStep, verbose, numIterations, preventFullOccupation, regularizationWeight, useConstitutiveExpression, useFixedSeed, fixedSeed);
 	}
 		
 	public InferenceEngineBuilder<NUMBER_TYPE> setContext(CLContext context) {
@@ -65,6 +67,16 @@ public class InferenceEngineBuilder<NUMBER_TYPE extends Number> {
 		return (this);
 	}
 
+	public InferenceEngineBuilder<NUMBER_TYPE> setUseFixedSeed(boolean useFixedSeed) {
+		this.useFixedSeed = useFixedSeed;
+		return (this);
+	}
+	
+	public InferenceEngineBuilder<NUMBER_TYPE> setFixedSeed(long fixedSeed) {
+		this.fixedSeed = fixedSeed;
+		return (this);
+	}
+	
 	public InferenceEngineBuilder<NUMBER_TYPE> setVerbose(boolean verbose) {
 		this.verbose = verbose;
 		return (this);

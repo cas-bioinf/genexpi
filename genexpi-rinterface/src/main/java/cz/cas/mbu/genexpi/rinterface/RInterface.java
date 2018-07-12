@@ -96,7 +96,7 @@ public class RInterface {
     	}	    	
     }
     
-    public static InferenceResult[] computeAdditiveRegulation(DeviceSpecs deviceSpecs, List<GeneProfile<Float>> geneProfiles, AdditiveRegulationInferenceTask inferenceTasks[], InferenceModel model, int numRegulators, int numIterations, float regularizationWeight) 
+    public static InferenceResult[] computeAdditiveRegulation(DeviceSpecs deviceSpecs, List<GeneProfile<Float>> geneProfiles, AdditiveRegulationInferenceTask inferenceTasks[], InferenceModel model, int numRegulators, int numIterations, float regularizationWeight, boolean useCustomTimeStep, float customTimeStep) 
     {
         try {
         	CLContext context = deviceSpecs.createContext();
@@ -109,8 +109,10 @@ public class RInterface {
 					.setLossFunction(ELossFunction.Squared)
 					.setVerbose(verbose)
 					.setNumIterations(numIterations)
+					.setUseCustomTimeStep(useCustomTimeStep)
+					.setCustomTimeStep(customTimeStep)
 					.buildAdditiveRegulation(numRegulators, false, regularizationWeight);
-					
+						
 			List<InferenceResult> result = compute.compute(geneProfiles, Arrays.asList(inferenceTasks));
 			InferenceResult[] resultArray = new InferenceResult[result.size()];
 			result.toArray(resultArray);
@@ -143,7 +145,7 @@ public class RInterface {
     }
     
     
-    public static InferenceResult[] computeConstantSynthesis(DeviceSpecs deviceSpecs, List<GeneProfile<Float>> geneProfiles, NoRegulatorInferenceTask inferenceTasks[], int numIterations)
+    public static InferenceResult[] computeConstantSynthesis(DeviceSpecs deviceSpecs, List<GeneProfile<Float>> geneProfiles, NoRegulatorInferenceTask inferenceTasks[], int numIterations, boolean useCustomTimeStep, float customTimeStep)
     {   	
         try {
         	CLContext context = deviceSpecs.createContext();
@@ -154,6 +156,8 @@ public class RInterface {
 					.setLossFunction(ELossFunction.Squared)
 					.setVerbose(verbose)
 					.setNumIterations(numIterations)
+					.setUseCustomTimeStep(useCustomTimeStep)
+					.setCustomTimeStep(customTimeStep)
 					.buildNoRegulator();
 									
 			List<InferenceResult> result = compute.compute(geneProfiles, Arrays.asList(inferenceTasks));

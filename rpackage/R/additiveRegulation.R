@@ -12,7 +12,7 @@ defaultRegularizationWeight <- function(profilesMatrix) {
   }
 }
 
-computeAdditiveRegulation <- function(deviceSpecs, profilesMatrix, tasks, constraints = NULL, numIterations = 128, regularizationWeight = defaultRegularizationWeight(profilesMatrix)) {
+computeAdditiveRegulation <- function(deviceSpecs, profilesMatrix, tasks, constraints = NULL, numIterations = 256, regularizationWeight = defaultRegularizationWeight(profilesMatrix), timeStep = NULL) {
 
   #TODO: Check parameters
   numRegulators = dim(tasks)[2] - 1;
@@ -71,6 +71,15 @@ computeAdditiveRegulation <- function(deviceSpecs, profilesMatrix, tasks, constr
   model = J(computeJavaType("InferenceModel"))$createAdditiveRegulationModel(as.integer(numRegulators));
 
   rInt = rinterfaceJavaType("RInterface");
+
+  if(is.null(timeStep)) {
+    useCustomTimeStep = FALSE
+    customTimeStep = .jfloat(-1.0)
+  } else {
+    useCustomTimeStep = TRUE
+    customTimeStep = .jfloat(timeStep)
+  }
+
   results = .jcall(rInt,
                    paste0("[L",computeJavaType("InferenceResult"),";"),
                    "computeAdditiveRegulation",
@@ -80,6 +89,8 @@ computeAdditiveRegulation <- function(deviceSpecs, profilesMatrix, tasks, constr
                    as.integer(numRegulators),
                    as.integer(numIterations),
                    .jfloat(regularizationWeight),
+                   useCustomTimeStep,
+                   customTimeStep,
                    evalArray = FALSE
                    );
 

@@ -20,9 +20,9 @@ public abstract class BaseSigmoidInferenceEngine<NUMBER_TYPE extends Number, TAS
 	public BaseSigmoidInferenceEngine(Class<NUMBER_TYPE> elementClass, CLContext context, InferenceModel model,
 			EMethod method, EErrorFunction errorFunction, ELossFunction lossFunction, boolean useCustomTimeStep,
 			Float customTimeStep, boolean verbose, int numIterations, boolean preventFullOccupation, int numRegulators,
-			float regularizationWeight) throws IOException {
+			float regularizationWeight, boolean useFixedSeed, long fixedSeed) throws IOException {
 		super(elementClass, context, model, method, errorFunction, lossFunction, useCustomTimeStep, customTimeStep,
-				verbose, numIterations, preventFullOccupation);
+				verbose, numIterations, preventFullOccupation, useFixedSeed, fixedSeed);
 		this.numRegulators = numRegulators;
 		this.regularizationWeight = regularizationWeight;
 	}

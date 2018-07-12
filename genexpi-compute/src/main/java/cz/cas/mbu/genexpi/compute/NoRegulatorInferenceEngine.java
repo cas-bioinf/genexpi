@@ -15,10 +15,10 @@ public class NoRegulatorInferenceEngine<NUMBER_TYPE extends Number> extends Base
 	
 	public NoRegulatorInferenceEngine(Class<NUMBER_TYPE> elementClass, CLContext context, 
 			EMethod method, EErrorFunction errorFunction, ELossFunction lossFunction, boolean useCustomTimeStep,
-			Float customTimeStep, boolean verbose, int numIterations, boolean preventFullOccupation)
+			Float customTimeStep, boolean verbose, int numIterations, boolean preventFullOccupation, boolean useFixedSeed, long fixedSeed)
 			throws IOException {
 		super(elementClass, context, InferenceModel.NO_REGULATOR, method, errorFunction, lossFunction, useCustomTimeStep, customTimeStep, verbose,
-				numIterations, preventFullOccupation);
+				numIterations, preventFullOccupation, useFixedSeed, fixedSeed);
 	}
 
 	@Override

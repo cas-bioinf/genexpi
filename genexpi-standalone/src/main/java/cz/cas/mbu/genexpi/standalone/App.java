@@ -68,6 +68,9 @@ public class App {
 		boolean useCustomTimeStep = false;
 		float customTimeStep = 1.f;
 		boolean useConstitutiveExpression = false;
+		
+		boolean useFixedSeed = false;
+		long fixedSeed = 0;
 
 		public <NUMBER_TYPE extends Number> InferenceEngineBuilder<NUMBER_TYPE> getEngineBuilder(
 				Class<NUMBER_TYPE> numberType) {
@@ -75,7 +78,9 @@ public class App {
 					.setLossFunction(lossFunction).setUseCustomTimeStep(useCustomTimeStep)
 					.setCustomTimeStep(customTimeStep).setNumIterations(numIterations)
 					.setPreventFullOccupation(preventFullOccupation))
-					.setVerbose(verbose);
+					.setVerbose(verbose)
+					.setUseFixedSeed(useFixedSeed)
+					.setFixedSeed(fixedSeed);
 		}
 	}
 	
@@ -135,7 +140,8 @@ public class App {
 			}
 
 			if (i > 0 && profile.size() != profiles.get(i - 1).getProfile().size()) {
-				throw new IllegalArgumentException("All profiles must have the same length");
+				throw new IllegalArgumentException("All profiles must have the same length (expected : " + 
+						profiles.get(i - 1).getProfile().size() + " got: " + profile.size());
 			}
 
 			profiles.add(new GeneProfile<>(names.get(i), profile));
@@ -248,6 +254,7 @@ public class App {
 	private static Option timeStepOption;
 	private static Option preventFullOccupationOption;
 	private static Option verboseOption;
+	private static Option fixedSeedOption;
 
 	// static initializer for options
 	static {
@@ -322,6 +329,10 @@ public class App {
 
 		verboseOption = Option.builder("v").longOpt("verbose").desc("Show information about the computation taking place.").build();
 		options.addOption(verboseOption);
+		
+		fixedSeedOption = Option.builder("s").longOpt("seed").hasArg()
+				.desc("Set random seed to make results fully reproducible").build();
+		options.addOption(fixedSeedOption);
 	}
 
 	private static void inputError(String msg) {
@@ -485,6 +496,17 @@ public class App {
 			
 			if(line.hasOption(verboseOption.getOpt())){
 				params.verbose = true;
+			}
+			
+			if(line.hasOption(fixedSeedOption.getOpt())) {
+				String seedValue = line.getOptionValue(fixedSeedOption.getOpt());
+				try {
+					long seed = Long.parseLong(seedValue);
+					params.useFixedSeed = true;
+					params.fixedSeed = seed;
+				} catch (NumberFormatException ex) {
+					inputError("Invalid seed value (has to be at most 64bit integer): " + seedValue);
+				}
 			}
 			
 			String precisionValue = line.getOptionValue(precisionOption.getOpt());

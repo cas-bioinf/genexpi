@@ -38,6 +38,16 @@ public class XorShift1024 {
         }
     }
     
+	public void InitFromFixedSeed(long fixedSeed) {
+		//Seed with splitMix
+		SplittableRandom rand = new SplittableRandom(fixedSeed);
+        for(int i = 0; i < 16; i++)
+        {
+            s[i] = rand.nextLong();
+        }
+	}
+    
+    
     public long[] GetState()
     {
         return s;

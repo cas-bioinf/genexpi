@@ -6,7 +6,7 @@ testConstant <- function(profilesMatrix, errorDef = defaultErrorDef() ) {
   return(minUpperBound > maxLowerBound)
 }
 
-computeConstantSynthesis <- function(deviceSpecs, profilesMatrix, tasks = NULL, numIterations = 128) {
+computeConstantSynthesis <- function(deviceSpecs, profilesMatrix, tasks = NULL, numIterations = 256, timeStep = NULL) {
   if(is.null(tasks)) {
     tasks = 1:(dim(profilesMatrix)[1]);
   }
@@ -26,8 +26,25 @@ computeConstantSynthesis <- function(deviceSpecs, profilesMatrix, tasks = NULL, 
     profilesJava = geneProfilesFromMatrix(profilesMatrix)
   }
 
+  if(is.null(timeStep)) {
+    useCustomTimeStep = FALSE
+    customTimeStep = .jfloat(-1.0)
+  } else {
+    useCustomTimeStep = TRUE
+    customTimeStep = .jfloat(timeStep)
+  }
+
   rInt = rinterfaceJavaType("RInterface");
-  results = .jcall(rInt, paste0("[L",computeJavaType("InferenceResult"),";"), "computeConstantSynthesis", getJavaDeviceSpecs(deviceSpecs), profilesJava, tasksJava, as.integer(numIterations), evalArray = FALSE);
+  results = .jcall(rInt, paste0("[L",computeJavaType("InferenceResult"),";"),
+                   "computeConstantSynthesis",
+                   getJavaDeviceSpecs(deviceSpecs),
+                   profilesJava,
+                   tasksJava,
+                   as.integer(numIterations),
+                   useCustomTimeStep,
+                   customTimeStep,
+
+                   evalArray = FALSE);
 
   model = J(computeJavaType("InferenceModel"))$NO_REGULATOR;
 

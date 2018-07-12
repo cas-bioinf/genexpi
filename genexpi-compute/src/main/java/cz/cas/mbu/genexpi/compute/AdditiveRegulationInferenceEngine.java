@@ -12,10 +12,10 @@ public class AdditiveRegulationInferenceEngine<NUMBER_TYPE extends Number> exten
 	public AdditiveRegulationInferenceEngine(Class<NUMBER_TYPE> elementClass, CLContext context, 
 			EMethod method, EErrorFunction errorFunction, ELossFunction lossFunction, boolean useCustomTimeStep,
 			Float customTimeStep, boolean verbose, int numIterations, boolean preventFullOccupation, int numRegulators,
-			float regularizationWeight, boolean useConstitutiveExpression) throws IOException {
+			float regularizationWeight, boolean useConstitutiveExpression, boolean useFixedSeed, long fixedSeed) throws IOException {
 		super(elementClass, context, InferenceModel.createAdditiveRegulationModel(numRegulators, useConstitutiveExpression), 
 				method, errorFunction, lossFunction, useCustomTimeStep, customTimeStep, verbose,
-				numIterations, preventFullOccupation, numRegulators, regularizationWeight);		
+				numIterations, preventFullOccupation, numRegulators, regularizationWeight, useFixedSeed, fixedSeed);		
 	}
 
 	@Override

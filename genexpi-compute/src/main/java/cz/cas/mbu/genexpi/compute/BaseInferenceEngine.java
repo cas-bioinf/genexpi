@@ -50,10 +50,12 @@ public abstract class BaseInferenceEngine<NUMBER_TYPE extends Number, TASK_TYPE>
     protected final boolean verbose;
     protected final int numIterations;
     protected final boolean preventFullOccupation;
+    
+    private final Long fixedSeed;
 
     public BaseInferenceEngine(Class<NUMBER_TYPE> elementClass, CLContext context, InferenceModel model, EMethod method,
-			EErrorFunction errorFunction, ELossFunction lossFunction, boolean useCustomTimeStep, Float customTimeStep, boolean verbose,
-			int numIterations, boolean preventFullOccupation) throws IOException {
+			EErrorFunction errorFunction, ELossFunction lossFunction, boolean useCustomTimeStep, float customTimeStep, boolean verbose,
+			int numIterations, boolean preventFullOccupation, boolean useFixedSeed, long fixedSeed) throws IOException {
 		super();
 		
 		if(context == null) {
@@ -88,6 +90,12 @@ public abstract class BaseInferenceEngine<NUMBER_TYPE extends Number, TASK_TYPE>
 		{
 			this.customTimeStep = Float.NaN;
 		}
+		
+		if(useFixedSeed) {
+			this.fixedSeed = fixedSeed;
+		} else {
+			this.fixedSeed = null;
+		}
 
 		String kernelName = model.getKernelName(method.getKernelBaseName());
 		
@@ -99,7 +107,7 @@ public abstract class BaseInferenceEngine<NUMBER_TYPE extends Number, TASK_TYPE>
         {
         	sourceBuilder.append("#define ").append(errorFunction.getMacro()).append("\n");
         }
-    	sourceBuilder.append("#define ").append(lossFunction.getMacro()).append("\n");
+    	sourceBuilder.append("#define ").append(lossFunction.getMacro()).append("\n");    	
     	if(elementClass == Double.class) {
         	sourceBuilder.append("#define USE_DOUBLE 2\n"); //see CTSW_ON in Definitions.clh    		
     	}
@@ -109,6 +117,21 @@ public abstract class BaseInferenceEngine<NUMBER_TYPE extends Number, TASK_TYPE>
     		throw new IllegalArgumentException("Unsupported elementClass: " + elementClass);
     	}
 		
+        if(useCustomTimeStep)
+        {
+        	sourceBuilder.append("#define CUSTOM_TIME_STEP ").append(Float.toString(customTimeStep)).append("\n");
+        }
+               
+        if(model.getAdditionalDefines() != null)
+        {
+        	for(int define = 0; define < model.getAdditionalDefines().length; define++)
+        	{
+    			sourceBuilder.append("#define ").append(model.getAdditionalDefines()[define][0])
+    			  .append(" ").append(model.getAdditionalDefines()[define][1]).append("\n");
+        	}
+        }
+    	
+    	
         sourceBuilder.append(IOUtils.readText(BaseInferenceEngine.class.getResource("Definitions.clh")));
         sourceBuilder.append(IOUtils.readText(BaseInferenceEngine.class.getResource("Utils.cl")));
         sourceBuilder.append(IOUtils.readText(BaseInferenceEngine.class.getResource("XorShift1024.cl")));
@@ -126,21 +149,7 @@ public abstract class BaseInferenceEngine<NUMBER_TYPE extends Number, TASK_TYPE>
 //        	w.write(combinedSource);
 //		}
         
-        program = context.createProgram(combinedSource);
-        
-        if(useCustomTimeStep)
-        {
-        	program.defineMacro("CUSTOM_TIME_STEP", Float.toString(customTimeStep));
-        }
-               
-        if(model.getAdditionalDefines() != null)
-        {
-        	for(int define = 0; define < model.getAdditionalDefines().length; define++)
-        	{
-    			program.defineMacro(model.getAdditionalDefines()[define][0], model.getAdditionalDefines()[define][1]);
-        	}
-        }
-        
+        program = context.createProgram(combinedSource);              
         
         kernel = program.createKernel(kernelName);		
         
@@ -215,7 +224,12 @@ public abstract class BaseInferenceEngine<NUMBER_TYPE extends Number, TASK_TYPE>
         ByteOrder byteOrder = context.getByteOrder();
         Pointer<Long> xorShiftStatesPtr = Pointer.allocateLongs(numItems * numIterations * 16).order(byteOrder);
         XorShift1024 xorShiftBase = new XorShift1024();
-        xorShiftBase.InitFromSecureRandomAndSplitMix();
+        
+        if(fixedSeed == null) {
+        	xorShiftBase.InitFromSecureRandomAndSplitMix();
+        } else {
+        	xorShiftBase.InitFromFixedSeed(fixedSeed);
+        }
         
         for(int inferenceUnit = 0; inferenceUnit < numItems; inferenceUnit++)
         {
