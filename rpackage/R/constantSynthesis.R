@@ -51,7 +51,7 @@ computeConstantSynthesis <- function(deviceSpecs, profilesMatrix, tasks = NULL, 
   return( inferenceResultsToR(results, model, profilesMatrix, profilesJava, tasks, tasksJava, rClass = "constantSynthesisResult"));
 }
 
-evaluateConstantSynthesisResult <- function(constantSynthesisResult, targetTimePoints) {
+evaluateConstantSynthesisResult <- function(constantSynthesisResult, targetTimePoints, timeStep) {
   if(class(constantSynthesisResult) != "constantSynthesisResult") {
     stop("Must provide an object of class 'constantSynthesisResult'");
   }
@@ -59,16 +59,21 @@ evaluateConstantSynthesisResult <- function(constantSynthesisResult, targetTimeP
   results = J(rInt)$evaluateConstantSynthesisResult(constantSynthesisResult$profilesJava,
                                           constantSynthesisResult$tasksJava,
                                           constantSynthesisResult$resultsJava,
+                                          as.numeric(0),
                                           as.numeric(targetTimePoints));
   return(.jevalArray(results, simplify = TRUE));
 }
 
-testConstantSynthesis <- function(constantSynthesisResults, errorDef = defaultErrorDef(), minFitQuality = 0.8 ) {
+testConstantSynthesis <- function(constantSynthesisResults, errorDef = defaultErrorDef(), minFitQuality = 0.8, timeStep = NULL ) {
   profiles = constantSynthesisResults$profilesMatrix;
+
+  if(is.null(timeStep)) {
+    timeStep = 1
+  }
 
   time = 0:(dim(profiles)[2] - 1);
 
-  constantSynthesisEvaluated = evaluateConstantSynthesisResult(constantSynthesisResults, time)
+  constantSynthesisEvaluated = evaluateConstantSynthesisResult(constantSynthesisResults, time, timeStep)
 
   constantSynthesisProfiles = logical(dim(profiles)[1])
   for(i in 1:length(constantSynthesisResults$tasks)) {

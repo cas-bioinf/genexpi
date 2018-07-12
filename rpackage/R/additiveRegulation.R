@@ -99,7 +99,7 @@ computeAdditiveRegulation <- function(deviceSpecs, profilesMatrix, tasks, constr
 
 
 #Returns a matrix of integrated profiles according to the fit parameters
-evaluateAdditiveRegulationResult <- function(additiveRegulationResult, targetTimePoints) {
+evaluateAdditiveRegulationResult <- function(additiveRegulationResult, targetTimePoints, initialTime, timeStep) {
   if(class(additiveRegulationResult) != "additiveRegulationResult") {
     stop("Must provide an object of class 'additiveRegulationResult'");
   }
@@ -109,6 +109,8 @@ evaluateAdditiveRegulationResult <- function(additiveRegulationResult, targetTim
                     additiveRegulationResult$tasksJava,
                     additiveRegulationResult$model,
                     additiveRegulationResult$resultsJava,
+                    as.numeric(initialTime),
+                    as.numeric(timeStep),
                     as.numeric(targetTimePoints),
                     evalArray = TRUE,
                     simplify = TRUE
@@ -116,13 +118,13 @@ evaluateAdditiveRegulationResult <- function(additiveRegulationResult, targetTim
   return(results);
 }
 
-testAdditiveRegulation <- function(additiveRegulationResults, errorDef = defaultErrorDef(), minFitQuality = 0.8 ) {
+testAdditiveRegulation <- function(additiveRegulationResults, errorDef = defaultErrorDef(), minFitQuality = 0.8, timeStep = NULL) {
   profiles = additiveRegulationResults$profilesMatrix;
 
-  time = 0:(dim(profiles)[2] - 1);
+  time = (0:(dim(profiles)[2] - 1)) * timeStep;
 
   numTasks = dim(additiveRegulationResults$tasks)[1]
-  additiveRegulationEvaluated = evaluateAdditiveRegulationResult(additiveRegulationResults, time)
+  additiveRegulationEvaluated = evaluateAdditiveRegulationResult(additiveRegulationResults, time, initialTime = 0, timeStep = timeStep)
 
   profileNames = character(numTasks)
   isRegulated = logical(dim(profiles)[1])

@@ -56,7 +56,7 @@ inspectSmoothing <- function(timeRaw, profilesRaw, timeSmooth, profilesSmooth, g
 }
 
 
-computeRegulon <- function(deviceSpecs, profiles, regulatorName, regulonNames, errorDef = defaultErrorDef(), minFitQuality = 0.8, checkConstantSynthesis = TRUE, constraints = "+") {
+computeRegulon <- function(deviceSpecs, profiles, regulatorName, regulonNames, errorDef = defaultErrorDef(), minFitQuality = 0.8, checkConstantSynthesis = TRUE, constraints = "+", timeStep = NULL) {
   if(is.null(rownames(profiles))) {
     stop("Profiles must have associated rownames");
   }
@@ -82,7 +82,7 @@ computeRegulon <- function(deviceSpecs, profiles, regulatorName, regulonNames, e
   } else {
 
     if(checkConstantSynthesis) {
-      constantSynthesisResults = computeConstantSynthesis(deviceSpecs, profiles, tasks = profilesToTestConstantSynthesisIndices);
+      constantSynthesisResults = computeConstantSynthesis(deviceSpecs, profiles, tasks = profilesToTestConstantSynthesisIndices, timeStep = timeStep);
       constantSynthesisProfiles = testConstantSynthesis(constantSynthesisResults, errorDef, minFitQuality);
     } else {
       constantSynthesisResults = NULL
@@ -109,8 +109,8 @@ computeRegulon <- function(deviceSpecs, profiles, regulatorName, regulonNames, e
       tasks[,1] = regulatorIndex;
       tasks[,2] = which(actualTargets);
 
-      regulationResults = computeAdditiveRegulation(deviceSpecs, profiles, tasks, constraints = constraints)
-      testResults = testAdditiveRegulation(regulationResults, errorDef, minFitQuality)
+      regulationResults = computeAdditiveRegulation(deviceSpecs, profiles, tasks, constraints = constraints, timeStep = timeStep)
+      testResults = testAdditiveRegulation(regulationResults, errorDef, minFitQuality, timeStep = timeStep)
       predictedProfiles = testResults$predictedProfiles
       numRegulated = sum(testResults$regulated)
       regulated = testResults$regulated

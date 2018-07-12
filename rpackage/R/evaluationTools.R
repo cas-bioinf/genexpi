@@ -4,6 +4,8 @@ testRandomRegulator <- function(deviceSpecs, rounds, profiles, time, randomScale
   numProfiles = profilesDim[1];
   numTime = profilesDim[2];
 
+  timeStep = getTimeStep(time)
+
   fitQualities = array(0, c(rounds, numProfiles));
 
   randomProfilesRaw = array(0, c(rounds, length(rawTime)));
@@ -24,8 +26,8 @@ testRandomRegulator <- function(deviceSpecs, rounds, profiles, time, randomScale
 
     computationResult = computeAdditiveRegulation(
       deviceSpecs = deviceSpecs, profilesMatrix = profilesWithRandomJava,
-      tasks = tasks, constraints = constraints);
-    fittedProfiles = evaluateAdditiveRegulationResult(computationResult, time);
+      tasks = tasks, constraints = constraints, timeStep = timeStep);
+    fittedProfiles = evaluateAdditiveRegulationResult(computationResult, time, time[1], timeStep);
     numFits = 0;
     for(i in 1:numProfiles) {
       fitQualities[round,i] = fitQuality(profiles[i,], fittedProfiles[i,], errorDef)
@@ -41,13 +43,29 @@ testRandomRegulator <- function(deviceSpecs, rounds, profiles, time, randomScale
               randomProfiles = randomProfiles));
 }
 
+getTimeStep <- function(time) {
+  uniqueDiffTime = unique(diff(time))
+  if(length(uniqueDiffTime) > 1) {
+    stop("Time must be evenly spaced")
+  }
+  if(uniqueDiffTime == 1) {
+    timeStep = NULL
+  } else {
+    timeStep = uniqueDiffTime
+  }
+
+}
+
 evaluateRandomForRegulon <- function(deviceSpecs, rawProfiles, rounds, regulatorName, regulonNames, time, rawTime, randomScale, randomLength, splineDFs, errorDef = defaultErrorDef(), minFitQuality = 0.8, checkConstantSynthesis = TRUE, splineIntercept = FALSE, constraints = "+") {
   deviceSpecs = getJavaDeviceSpecs(deviceSpecs);
+
+  timeStep = getTimeStep(time)
+
   profiles = splineProfileMatrix(rawProfiles, rawTime, time, splineDFs, intercept = splineIntercept);
 
   originalRawProfile = as.numeric(rawProfiles[rownames(rawProfiles) == regulatorName,])
 
-  trueResults = computeRegulon(deviceSpecs, profiles, regulatorName, regulonNames, errorDef = errorDef, minFitQuality = minFitQuality, checkConstantSynthesis = checkConstantSynthesis, constraints = constraints)
+  trueResults = computeRegulon(deviceSpecs, profiles, regulatorName, regulonNames, errorDef = errorDef, minFitQuality = minFitQuality, checkConstantSynthesis = checkConstantSynthesis, constraints = constraints, timeStep = timeStep)
 
 
   randomResults = testRandomRegulator(deviceSpecs, rounds = rounds, profiles = profiles[trueResults$tested,], time = time, rawTime = rawTime, randomScale = randomScale, randomLength = randomLength, splineDFs = splineDFs, originalRawProfile =  originalRawProfile, errorDef = errorDef, splineIntercept = splineIntercept, constraints = constraints);
