@@ -118,7 +118,7 @@ evaluateAdditiveRegulationResult <- function(additiveRegulationResult, targetTim
   return(results);
 }
 
-testAdditiveRegulation <- function(additiveRegulationResults, errorDef = defaultErrorDef(), minFitQuality = 0.8, timeStep = NULL) {
+testAdditiveRegulation <- function(additiveRegulationResults, errorDef = defaultErrorDef(), minFitQuality = 0.8, timeStep = 1) {
   profiles = additiveRegulationResults$profilesMatrix;
 
   time = (0:(dim(profiles)[2] - 1)) * timeStep;
@@ -129,11 +129,13 @@ testAdditiveRegulation <- function(additiveRegulationResults, errorDef = default
   profileNames = character(numTasks)
   isRegulated = logical(dim(profiles)[1])
   regulatedTasks = logical(numTasks)
+  fitQualities = numeric(numTasks)
   for(i in 1:numTasks) {
     #Target is the last column in tasks
     profileIndex = additiveRegulationResults$tasks[i, dim(additiveRegulationResults$tasks)[2]];
 
-    if(fitQuality(profiles[profileIndex,], additiveRegulationEvaluated[i,], errorDef) >= minFitQuality) {
+    fitQualities[i] = fitQuality(profiles[profileIndex,], additiveRegulationEvaluated[i,], errorDef)
+    if(fitQualities[i] >= minFitQuality) {
       isRegulated[profileIndex] = TRUE;
       regulatedTasks[i] = TRUE;
     }
@@ -141,5 +143,5 @@ testAdditiveRegulation <- function(additiveRegulationResults, errorDef = default
   }
   rownames(additiveRegulationEvaluated) = profileNames
 
-  return(list(regulated = isRegulated, regulatedTasks = regulatedTasks,predictedProfiles = additiveRegulationEvaluated))
+  return(list(regulated = isRegulated, regulatedTasks = regulatedTasks,predictedProfiles = additiveRegulationEvaluated, fitQualities = fitQualities))
 }

@@ -7,7 +7,7 @@ This notebook will guide you through using Genexpi from R.
 
 #Setting up
 ```{r setup}
-  develRun = FALSE;
+  develRun = TRUE;
 
   # Helper function to install packages if they are not available
   pkgTest <- function(x)
@@ -62,7 +62,7 @@ deviceSpecs = getDeviceSpecs()
 #deviceSpecs = getDeviceSpecs(deviceType = "processor")
 
 #Select device by ID reported in listOpenCLDevices()
-deviceSpecs = getDeviceSpecs(device = 7)
+deviceSpecs = getDeviceSpecs(device = 2)
 
 #Display the selected device
 if(is.null(deviceSpecs)) {

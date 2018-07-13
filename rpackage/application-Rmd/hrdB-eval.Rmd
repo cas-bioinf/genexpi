@@ -1,0 +1,253 @@
+---
+title: "HrdB - Evaluation against random"
+output: html_notebook
+---
+
+
+```{r setup}
+options(java.parameters = "-Xmx2048m")
+library(rGenexpi)
+library(here)
+library(readxl)
+library(tidyverse)
+library(R.matlab)
+```
+
+```{r}
+listOpenCLDevices()
+deviceSpecs = getDeviceSpecs(device = 5)
+paste0("Using device: ", getJavaDeviceSpecs(deviceSpecs)$getDevice()$toString())
+```
+
+```{r}
+mat <- here("data","hrdB pro martina.mat")
+mat_contents <- readMat(mat, drop = "singletonLists")
+profiles <- mat_contents$allGenesSingle[["profiles",1,1]]
+rownames(profiles) <- unlist(mat_contents$allGenesSingle[["names",1,1]])
+time_raw <- mat_contents$settingsHrdB[["timeRaw",1,1]][,1]
+time <- mat_contents$settingsHrdB[["time",1,1]][,1]
+```
+
+
+```{r}
+xls <- here("data","HrdB model parameters.xlsx")
+# profiles_raw <- readxl::read_excel(xls, sheet = "profiles")
+# profiles <- profiles_raw %>% as.data.frame() %>%
+#   select(-"Time [h]") %>%
+#   distinct() %>%
+#   remove_rownames() %>%
+#   column_to_rownames("SCO") %>%
+#   as.matrix()
+
+
+regulator = "SCO5820"
+results = readxl::read_excel(xls, sheet = "Sheet1") %>% select(target:"fit quality")
+targets = results$target
+```
+
+
+# Find the same spline used in the Matlab code
+
+```{r}
+all(mat_contents$settingsHrdB[["profiles",1,1]] == mat_contents$allGenesSingle[["hundredSpline4",1,1]])
+
+orig_profiles = mat_contents$settingsHrdB[["profiles",1,1]]
+orig_profiles[orig_profiles < 0] = 0
+
+spline_intercept = TRUE
+spline_df = 7
+
+splined_profiles = splineProfileMatrix(profiles, time_raw, time, df = spline_df, intercept = spline_intercept)
+mean(splined_profiles == orig_profiles)
+mean((splined_profiles - orig_profiles) ^ 2)
+
+candidate_indices = which(rowMeans(splined_profiles) > 500)
+indices_to_compare = sample(candidate_indices, 20)
+matplot(time, t(splined_profiles[indices_to_compare,]), type = "l")
+matplot(time, t(orig_profiles[indices_to_compare,]), type = "l")
+```
+
+```{r}
+xls_fits = here("data","supplementary file 1 hrdBfitComparison1.xlsx")
+hrdb_regulated_data = read_excel(xls_fits, sheet = "hrdB or complex controlled", range = "A10:H10000") %>% 
+                    filter(!is.na(target) & target != "")
+hrdb_regulated = hrdb_regulated_data$target %>% unique() 
+```
+
+
+
+```{r}
+# randomScale = 300
+# randomLength = 800
+randomScale = 500
+randomLength = 500
+regIndex = which(rownames(profiles) == regulator)
+plotRandomProfiles(20,time_raw, scale = randomScale, length = randomLength, trueTime = time_raw, trueProfile = profiles[regIndex,], main = "Sampled random profiles and the hrdB profile (dots)", ylab="expression")
+
+```
+
+```{r}
+mat_settings = mat_contents$settingsHrdB
+errorDef = list(relative = mat_settings[["relativeError",1,1]][1,1], absolute = 0, minimal = mat_settings[["minError",1,1]][1,1])
+errorDef
+
+
+timeStep = mat_settings[["modelSettings",1,1]][["timeStep",1,1]][1,1]
+```
+
+# Test if we get similar results when fitting
+
+```{r}
+tasks = c(which(rownames(profiles) == regulator), which(rownames(profiles) == targets[115])) 
+dim(tasks) <- c(1,2)
+plot(time, splined_profiles[tasks[1,2],])
+x = computeAdditiveRegulation(deviceSpecs, splined_profiles, tasks = tasks, timeStep = timeStep)
+x$parameters
+x$errors
+results[115,]
+```
+
+# Results randomized as in CyGenexpi paper
+
+```{r}
+result_rand = evaluateRandomForRegulon(deviceSpecs, rounds = 20, rawProfiles = profiles,regulatorName =  regulator, regulonNames = hrdb_regulated, time = time, rawTime = time_raw, randomScale = randomScale, randomLength = randomLength, errorDef = errorDef, splineDFs = spline_df, splineIntercept = spline_intercept, constraints = NULL)
+
+```
+```{r}
+paste0("Proportion of true regulations discovered: ",result_rand$trueRatio)
+paste0("Overall proportion of regulations by random profiles: ", result_rand$overallRandomRatio)
+```
+
+```{r}
+not_reg = result_rand$trueResults$tested & !result_rand$trueResults$regulated
+
+matplot(t(splined_profiles[not_reg,]), type = "l")
+rowMeans(splined_profiles[not_reg,])
+
+my_fit_data = as.data.frame(result_rand$trueResults$regulationResults$parameters) %>%
+  mutate(error = result_rand$trueResults$regulationResults$errors,
+         target = rownames(splined_profiles)[result_rand$trueResults$regulationResults$tasks[,2]]
+         )
+hrdb_regulated_data %>% 
+  full_join(my_fit_data, by = c("target" = "target")) %>%
+  filter(target %in% rownames(profiles)[not_reg]) %>% 
+  ggplot(aes(x= error.x, y = error.y)) + geom_point()
+```
+
+
+Save the weights
+
+```{r}
+n_runs = length(result_rand$randomResults$parameters)
+rand_weight_matrix = matrix(NA, nrow = result_rand$trueResults$numTested, ncol = n_runs)
+for(i in 1:n_runs) {
+  rand_weight_matrix[,i] = result_rand$randomResults$parameters[[i]][,"w"]
+}
+rownames(rand_weight_matrix) = rownames(splined_profiles)[result_rand$trueResults$tested]
+colnames(rand_weight_matrix) = paste0("w_Random_", 1:n_runs)
+
+fitQualitites = result_rand$randomResults$fitQualities
+rownames(fitQualitites) = paste0("quality_Random_", 1:n_runs)
+
+write.csv(cbind(rand_weight_matrix, t(fitQualitites)), "random_weights_quality.csv")
+```
+
+
+#Testing with randomized time points
+
+```{r}
+n_runs = 50
+
+fit_qualities = matrix(NA, nrow = length(hrdb_regulated), ncol = n_runs)
+prop_regulated = numeric(n_runs)
+rand_perms = list()
+
+rand_tasks = matrix(-1, nrow = length(hrdb_regulated), ncol = 2)
+rand_tasks[,2] = which(rownames(profiles) %in% hrdb_regulated)
+rand_tasks[,1] = which(rownames(profiles) == regulator)
+
+for(i in 1:n_runs) {
+  rand_perms[[i]] = sample(1:length(time_raw))
+  splined_rand = splineProfileMatrix(profiles[,rand_perms[[i]]], time = time_raw, targetTime = time,  df = spline_df, intercept = spline_intercept)
+  results = computeAdditiveRegulation(deviceSpecs, splined_rand, tasks = rand_tasks, constraints = "", timeStep = timeStep)
+  test_results = testAdditiveRegulation(results, errorDef = errorDef, timeStep = timeStep)
+  fit_qualities[,i] = test_results$fitQualities
+}
+
+toShow = sample(hrdb_regulated, 20)
+matplot(t(profiles[toShow,]), type = "l")
+matplot(t(profiles[toShow,rand_perms[[1]]]), type = "l")
+
+mean(fit_qualities[,i] > 0.8)
+mean(fit_qualities[,i] > 0.9)
+
+```
+
+```{r}
+matplot(time, t(splined_profiles[hrdb_regulated,]), type ="l")
+matplot(time_raw,t(profiles[hrdb_regulated,]), type ="l")
+
+```
+
+
+# Additional hacky code
+
+```{r}
+alt_quality = testAdditiveRegulation(result_rand$trueResults$regulationResults, errorDef = errorDef, minFitQuality = 1, timeStep = timeStep)
+sum(alt_quality$regulated) / result_rand$trueResults$numTested
+
+sum(result_rand$trueResults$numTested)
+avg_rand_qualities = colMeans(result_rand$randomResults$fitQualities)
+tested_genes = which(result_rand$trueResults$tested)
+toShow = sample(tested_genes[avg_rand_qualities == 1], 20)
+matplot(t(splined_profiles[toShow,]), type = "l")
+
+toShow = sample(tested_genes[avg_rand_qualities < 0.6], 20)
+matplot(t(splined_profiles[toShow,]), type = "l")
+```
+
+
+```{r}
+rep_tasks = matrix(-1, nrow = length(unique(targets)), ncol = 2)
+rep_tasks[,2] = which(rownames(splined_profiles) %in% targets)
+rep_tasks[,1] = which(rownames(splined_profiles) == regulator)
+
+timeStep = 1
+
+result_rep = computeAdditiveRegulation(deviceSpecs, splined_profiles,rep_tasks, timeStep = timeStep)
+
+test_rep = testAdditiveRegulation(result_rep, errorDef, timeStep = timeStep)
+mean(test_rep$regulated[rep_tasks[,2]])
+
+errors2 =  (test_rep$predictedProfiles - splined_profiles[rep_tasks[,2],]) ^ 2 %>% rowMeans() %>% sqrt()
+
+tolerated = splined_profiles[rep_tasks[,2],] * errorDef$relative + errorDef$absolute
+tolerated[tolerated < errorDef$minimal] = errorDef$minimal
+
+fit_quality = (abs(test_rep$predictedProfiles - splined_profiles[rep_tasks[,2],]) < tolerated) %>% rowMeans()
+head(fit_quality)
+mean(fit_quality > 0.8)
+
+comparison = result_rep$parameters %>% as.data.frame() %>%
+  mutate(target = rownames(splined_profiles)[rep_tasks[,2]], error = errors2) %>% 
+  full_join(results, by = c("target" = "target")) %>% 
+  #filter(error.x - error.y > 10 | error.x / error.y > 2 | error.y / error.x > 2) %>%
+  select(error.x,error.y, target)
+  #filter(sign(w.x) != sign(w.y) & (abs(w.x) > 1e-04 | abs(w.y) > 1e-04)) %>%
+  #select(w.x,w.y, b.x, b.y, target)
+plot(comparison$error.x, comparison$error.y)
+
+
+to_show = sample(1:length(rep_tasks[,2]), 20)
+matplot(t(test_rep$predictedProfiles[to_show,]), type = "l")
+matplot(t(splined_profiles[rep_tasks[to_show,2],]), type = "l")
+```
+
+
+```{r}
+# write.table(splined_profiles[c(regulator, targets[115]),], here("..","genexpi-standalone","target","profiles.csv"), row.names = FALSE, col.names = FALSE, sep = ",")
+# write.table(c(regulator, targets[115]), here("..","genexpi-standalone","target","names.txt"), row.names = FALSE, col.names = FALSE, quote = FALSE, sep=",")
+# 
+# write.table(t(c(regulator, targets[115])), here("..","genexpi-standalone","target","tasks.txt"), row.names = FALSE, col.names = FALSE, quote = FALSE, sep=",")
+```
+

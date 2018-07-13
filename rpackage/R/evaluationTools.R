@@ -8,6 +8,8 @@ testRandomRegulator <- function(deviceSpecs, rounds, profiles, time, randomScale
 
   fitQualities = array(0, c(rounds, numProfiles));
 
+  parameters = list()
+
   randomProfilesRaw = array(0, c(rounds, length(rawTime)));
   for(round in 1:rounds) {
     randomProfilesRaw[round,] = generateUsefulRandomProfile(rawTime, randomScale, randomLength, errorDef, originalRawProfile)
@@ -27,11 +29,17 @@ testRandomRegulator <- function(deviceSpecs, rounds, profiles, time, randomScale
     computationResult = computeAdditiveRegulation(
       deviceSpecs = deviceSpecs, profilesMatrix = profilesWithRandomJava,
       tasks = tasks, constraints = constraints, timeStep = timeStep);
+
+    parameters[[round]] = computationResult$parameters
+
     fittedProfiles = evaluateAdditiveRegulationResult(computationResult, time, time[1], timeStep);
     numFits = 0;
+
     for(i in 1:numProfiles) {
       fitQualities[round,i] = fitQuality(profiles[i,], fittedProfiles[i,], errorDef)
     }
+
+
     rm(computationResult);
     rm(fittedProfiles);
     gc()
@@ -40,7 +48,9 @@ testRandomRegulator <- function(deviceSpecs, rounds, profiles, time, randomScale
   }
   rm(profilesWithRandomJava)
   return(list(fitQualities = fitQualities,
-              randomProfiles = randomProfiles));
+              randomProfiles = randomProfiles,
+              parameters = parameters
+              ));
 }
 
 getTimeStep <- function(time) {

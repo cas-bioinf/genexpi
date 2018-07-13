@@ -83,7 +83,7 @@ computeRegulon <- function(deviceSpecs, profiles, regulatorName, regulonNames, e
 
     if(checkConstantSynthesis) {
       constantSynthesisResults = computeConstantSynthesis(deviceSpecs, profiles, tasks = profilesToTestConstantSynthesisIndices, timeStep = timeStep);
-      constantSynthesisProfiles = testConstantSynthesis(constantSynthesisResults, errorDef, minFitQuality);
+      constantSynthesisProfiles = testConstantSynthesis(constantSynthesisResults, errorDef, minFitQuality, timeStep = timeStep);
     } else {
       constantSynthesisResults = NULL
       constantSynthesisProfiles = array(FALSE,length(targetProfiles))
