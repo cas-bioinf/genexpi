@@ -129,12 +129,12 @@ public class RInterface {
         }
     }    
     
-    public static double[][] evaluateAdditiveRegulationResult(List<GeneProfile<Float>> geneProfiles, AdditiveRegulationInferenceTask inferenceTasks[], InferenceModel model, InferenceResult[] inferenceResults, double[] targetTimePoints) {
+    public static double[][] evaluateAdditiveRegulationResult(List<GeneProfile<Float>> geneProfiles, AdditiveRegulationInferenceTask inferenceTasks[], InferenceModel model, InferenceResult[] inferenceResults, double initialTime, double timeStep, double[] targetTimePoints) {
     	try {
 	    	double[][] result = new double[inferenceTasks.length][];
 	    	IntStream.range(0, inferenceTasks.length)
 	    			.forEach(index -> 
-	    				{ result[index] = IntegrateResults.integrateAdditiveRegulation(model, inferenceResults[index], inferenceTasks[index], geneProfiles, 0/*initial time*/, 1/*timestep in the profile*/, targetTimePoints); }
+	    				{ result[index] = IntegrateResults.integrateAdditiveRegulation(model, inferenceResults[index], inferenceTasks[index], geneProfiles, initialTime, timeStep, targetTimePoints); }
 	    			);
 	    	return result;
     	} catch(RuntimeException ex) {
@@ -177,12 +177,12 @@ public class RInterface {
     	
     }
     
-    public static double[][] evaluateConstantSynthesisResult(List<GeneProfile<Float>> geneProfiles, NoRegulatorInferenceTask inferenceTasks[], InferenceResult[] inferenceResults, double[] targetTimePoints) {
+    public static double[][] evaluateConstantSynthesisResult(List<GeneProfile<Float>> geneProfiles, NoRegulatorInferenceTask inferenceTasks[], InferenceResult[] inferenceResults, double initialTime, double[] targetTimePoints) {
     	try {
 	    	double[][] result = new double[inferenceTasks.length][];
 	    	IntStream.range(0, inferenceTasks.length)
 	    			.forEach(index -> 
-	    				{ result[index] = IntegrateResults.integrateNoRegulator(inferenceResults[index], inferenceTasks[index], geneProfiles, 0/*initial time*/, targetTimePoints); }
+	    				{ result[index] = IntegrateResults.integrateNoRegulator(inferenceResults[index], inferenceTasks[index], geneProfiles, initialTime, targetTimePoints); }
 	    			);
 	    	return result;
     	} catch(RuntimeException ex) {
