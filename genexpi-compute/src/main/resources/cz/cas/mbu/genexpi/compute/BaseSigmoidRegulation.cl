@@ -88,42 +88,46 @@ void PrepareLocalData(GLOBAL_BASE_PARAMS_DEF, BASE_PARAMS_DEF, GLOBAL_MODEL_SPEC
 {
 	GET_IDS;
 	
-	for(int reg = 0; reg < NUM_REGULATORS; reg++)
-	{
-		CopyProfile(geneProfilesGlobal, numGenes, numTime, regulatorIndicesGlobal[taskID * (NUM_REGULATORS) + reg], regulatorProfiles, NUM_REGULATORS, reg);
-		
-		profileMaxima[reg] = 0;
-		for(int time = 0; time < numTime; time++)
-		{
-			profileMaxima[reg] = max(profileMaxima[reg], REGULATOR_VALUE(reg, time));
-		}
-		
-		if(weightConstraintsGlobal != 0)
-		{
-			weightConstraints[reg] = weightConstraintsGlobal[taskID * (NUM_REGULATORS) + reg];
-		}
-		else 
-		{
-			weightConstraints = 0;
-		}
-	}
+    if(get_local_id(1) == 0)
+    {	
 	
-	for(int wc = 0; wc < NUM_WEIGHT_CONSTRAINTS; wc++) {
-		if(weightConstraintsGlobal != 0)
+		for(int reg = 0; reg < NUM_REGULATORS; reg++)
 		{
-			weightConstraints[wc] = weightConstraintsGlobal[taskID * (NUM_WEIGHT_CONSTRAINTS) + wc];
+			CopyProfile(geneProfilesGlobal, numGenes, numTime, regulatorIndicesGlobal[taskID * (NUM_REGULATORS) + reg], regulatorProfiles, NUM_REGULATORS, reg);
+			
+			profileMaxima[reg] = 0;
+			for(int time = 0; time < numTime; time++)
+			{
+				profileMaxima[reg] = max(profileMaxima[reg], REGULATOR_VALUE(reg, time));
+			}
+			
+			if(weightConstraintsGlobal != 0)
+			{
+				weightConstraints[reg] = weightConstraintsGlobal[taskID * (NUM_REGULATORS) + reg];
+			}
+			else 
+			{
+				weightConstraints = 0;
+			}
 		}
-		else 
-		{
-			weightConstraints = 0;
-		}		
-	}
-	
-	profileMaxima[NUM_REGULATORS] = 0; 
-    for(int time = 0; time < numTime; time++) 
-	{ 
-	  profileMaxima[NUM_REGULATORS] = max(profileMaxima[NUM_REGULATORS], TARGET_VALUE(time));     
-	}
+		
+		for(int wc = 0; wc < NUM_WEIGHT_CONSTRAINTS; wc++) {
+			if(weightConstraintsGlobal != 0)
+			{
+				weightConstraints[wc] = weightConstraintsGlobal[taskID * (NUM_WEIGHT_CONSTRAINTS) + wc];
+			}
+			else 
+			{
+				weightConstraints = 0;
+			}		
+		}
+		
+		profileMaxima[NUM_REGULATORS] = 0; 
+		for(int time = 0; time < numTime; time++) 
+		{ 
+		  profileMaxima[NUM_REGULATORS] = max(profileMaxima[NUM_REGULATORS], TARGET_VALUE(time));     
+		}
+    }
     
     PrepareSpecificLocalData(GLOBAL_BASE_PARAMS_PASS, BASE_PARAMS_PASS, GLOBAL_MODEL_SPECIFIC_PARAMS_PASS, MODEL_SPECIFIC_PARAMS_PASS);
 	
@@ -169,7 +173,7 @@ T_Value ErrorDerivativeDiff(
     GET_IDS;
     
     T_Value error = 0;
-
+    
     REGULARIZATION_INIT;
     
     //Start at one to have 
@@ -202,14 +206,16 @@ T_Value ErrorEuler(
 {
     GET_IDS;
     
-      
-    T_Value error = 0;
-    T_Value valueEstimate = TARGET_VALUE(0);
     
+    T_Value error = 0;
+    //printf("X\n");
+    T_Value valueEstimate = TARGET_VALUE(0);
+    //printf("B\n");
+
+       
     REGULARIZATION_INIT;
     for(int time = 0; time < numTime - 1; time++)
     {
-
 	
         const T_Value regulatorSum = CalculateRegulatoryInput(BASE_PARAMS_PASS, MODEL_SPECIFIC_PARAMS_PASS, time, optimizedParams);
         const T_Value derivativeEstimate = CALCULATE_DERIVATIVE(regulatorSum, valueEstimate);
@@ -224,7 +230,7 @@ T_Value ErrorEuler(
 #else
         valueEstimate += derivativeEstimate; //I have unit timesteps
 #endif
-        
+             
         if(isinf(valueEstimate))
         {
         	return INFINITY;
@@ -236,15 +242,19 @@ T_Value ErrorEuler(
 
         const T_Value diff = valueEstimate - TARGET_VALUE(time + 1);        
         error += ERROR_FROM_DIFF(diff);        
-                              
+                
+        //printf("E2:%f\n", error);
+        //printf("A\n");
     }
-    
+        
+   
     const T_Value regularizationValue = ComputeReguralization( 
     		BASE_PARAMS_PASS,
     		MODEL_SPECIFIC_PARAMS_PASS,
     		REGULARIZATION_PARAMS_PASS,
             optimizedParams
     		);    
+        
     return error + regularizationValue;
 }
 

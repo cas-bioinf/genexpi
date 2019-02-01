@@ -43,7 +43,7 @@ T_Value ComputeSpecificRegularization(
 
 	GET_IDS
 		
-	T_Value __regValue;
+	T_Value __regValue = 0;
 	for(int __regulator = 0; __regulator < NUM_REGULATORS; __regulator++)
 	{ 
 		T_Value w = W_VALUE(__regulator);
