@@ -29,12 +29,16 @@ public class InferenceEngineBuilder<NUMBER_TYPE extends Number> {
 		return new NoRegulatorInferenceEngine<>(elementClass, context, method, errorFunction, lossFunction, useCustomTimeStep, customTimeStep, verbose, numIterations, preventFullOccupation, useFixedSeed, fixedSeed);
 	}
 		
-	public IInferenceEngine<NUMBER_TYPE, AdditiveRegulationInferenceTask> buildAdditiveRegulation(int numRegulators, boolean useConstitutiveExpression, float regularizationWeight) throws IOException {
+	public IInferenceEngine<NUMBER_TYPE, OneWeightPerRegulatorInferenceTask> buildAdditiveRegulation(int numRegulators, boolean useConstitutiveExpression, float regularizationWeight) throws IOException {
 		return new AdditiveRegulationInferenceEngine<>(elementClass, context, method, errorFunction, lossFunction, useCustomTimeStep, customTimeStep, verbose, numIterations, preventFullOccupation, numRegulators, regularizationWeight, useConstitutiveExpression, useFixedSeed, fixedSeed);
 	}
-
+	
 	public IInferenceEngine<NUMBER_TYPE, CooperativeRegulationInferenceTask> buildCooperativeRegulation(boolean useConstitutiveExpression, float regularizationWeight) throws IOException {
 		return new CooperativeRegulationInferenceEngine<>(elementClass, context, method, errorFunction, lossFunction, useCustomTimeStep, customTimeStep, verbose, numIterations, preventFullOccupation, regularizationWeight, useConstitutiveExpression, useFixedSeed, fixedSeed);
+	}
+	public IInferenceEngine<NUMBER_TYPE, OneWeightPerRegulatorInferenceTask> buildTwoSigmoidRegulation(boolean useConstitutiveExpression, float regularizationWeight) throws IOException {
+		
+		return new TwoSigmoidRegulationInferenceEngine<>(elementClass, context, method, errorFunction, lossFunction, useCustomTimeStep, customTimeStep, verbose, numIterations, preventFullOccupation, regularizationWeight, useConstitutiveExpression, useFixedSeed, fixedSeed);
 	}
 		
 	public InferenceEngineBuilder<NUMBER_TYPE> setContext(CLContext context) {

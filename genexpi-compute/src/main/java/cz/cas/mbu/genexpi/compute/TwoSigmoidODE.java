@@ -13,24 +13,29 @@ import org.apache.commons.math3.exception.DimensionMismatchException;
 import org.apache.commons.math3.exception.MaxCountExceededException;
 import org.apache.commons.math3.ode.FirstOrderDifferentialEquations;
 
-public abstract class BaseSigmoidODE implements FirstOrderDifferentialEquations {
+public abstract class TwoSigmoidODE implements FirstOrderDifferentialEquations {
 
-	private final double maxSynthesis;
+	private final double maxSynthesis0;
+	private final double maxSynthesis1;
+	private final double bias0;
+	private final double bias1;
 	private final double decay;
-	private final double bias;
 	
+	private final double weight0;
+	private final double weight1;
+		
 	private final double initialTime;
 	private final double endTime;
 	private final double[] regulatorValuesAtInit;
 	private final double[] regulatorValuesAtEnd;
 	
-	private final BaseDerivativeInferenceTask inferenceTask;
+	private final OneWeightPerRegulatorInferenceTask inferenceTask;
 	private final List<UnivariateFunction> regulatorInterpolators;
 	
-	public BaseSigmoidODE(InferenceModel model, InferenceResult result, BaseDerivativeInferenceTask inferenceTask,
-			List<? extends GeneProfile<?>> geneProfiles, double initialTime, double timeStep) {		
+	public TwoSigmoidODE(InferenceModel model, InferenceResult result, OneWeightPerRegulatorInferenceTask inferenceTask,
+			List<? extends GeneProfile<?>> geneProfiles, double initialTime, double timeStep) {
 		super();
-		if(model.getFamily() != InferenceModel.Family.AdditiveRegulation && model.getFamily() != InferenceModel.Family.CooperativeRegulation)
+		if(model.getFamily() != InferenceModel.Family.TwoSigmoidRegulation)
 		{
 			throw new IllegalArgumentException("Invalid model family (" + model.getFamily().name() + ")");
 		}
@@ -39,11 +44,18 @@ public abstract class BaseSigmoidODE implements FirstOrderDifferentialEquations 
 			throw new UnsupportedOperationException("Constitutive expression not supported yet");
 		}
 		
+		if(inferenceTask.getRegulatorIDs().length != 2) {
+			throw new UnsupportedOperationException("Only exactly two regulators supported");
+		}
+
+		
 		this.initialTime = initialTime;
 		
-		maxSynthesis = result.getParameters()[model.getParameterIndex(InferenceModel.SIGMOID_MAX_SYNTH_PARAM_NAME)];
+		maxSynthesis0 = result.getParameters()[model.getParameterIndex(InferenceModel.SIGMOID_MAX_SYNTH_PARAM_NAME + "_0")];
+		maxSynthesis1 = result.getParameters()[model.getParameterIndex(InferenceModel.SIGMOID_MAX_SYNTH_PARAM_NAME + "_1" )];
+		bias0 = result.getParameters()[model.getParameterIndex(InferenceModel.SIGMOID_BIAS_PARAM_NAME + "_0")];
+		bias1 = result.getParameters()[model.getParameterIndex(InferenceModel.SIGMOID_BIAS_PARAM_NAME + "_1")];
 		decay = result.getParameters()[model.getParameterIndex(InferenceModel.SIGMOID_DECAY_PARAM_NAME)];
-		bias = result.getParameters()[model.getParameterIndex(InferenceModel.SIGMOID_BIAS_PARAM_NAME)];
 		
 		UnivariateInterpolator interpolator = new LinearInterpolator();
 		double[] time = new double[geneProfiles.get(0).getProfile().size()];
@@ -71,6 +83,10 @@ public abstract class BaseSigmoidODE implements FirstOrderDifferentialEquations 
 			regulatorValuesAtEnd[i] = regulatorValues[regulatorValues.length - 1];
 		}
 		
+		
+		weight0 = result.getParameters()[model.getParameterIndex(InferenceModel.getAdditiveRegulatorWeightParamName(0, numRegulators))];
+		weight1 = result.getParameters()[model.getParameterIndex(InferenceModel.getAdditiveRegulatorWeightParamName(1, numRegulators))];
+		
 		this.inferenceTask = inferenceTask;		
 	}
 
@@ -94,13 +110,15 @@ public abstract class BaseSigmoidODE implements FirstOrderDifferentialEquations 
 		return(interpolatedRegValue);
 	}
 
-	protected abstract double computeRegulatoryInput(double t);
 	
 	@Override
 	public void computeDerivatives(double t, double[] y, double[] yDot)
 			throws MaxCountExceededException, DimensionMismatchException {
-		double regulatoryInput = computeRegulatoryInput(t);
-		yDot[0] = (maxSynthesis / (1 + Math.exp(-regulatoryInput -bias))) - decay * y[0];
+		yDot[0] = 
+				(maxSynthesis0 / (1 + Math.exp(-weight0 * getRegulatorValue(0, t) -bias0))) 
+				+ (maxSynthesis1 / (1 + Math.exp(-weight1 * getRegulatorValue(1, t) -bias1))) 
+				- decay * y[0]
+						;
 	}
 	
 }

@@ -2,15 +2,15 @@ package cz.cas.mbu.genexpi.standalone;
 
 import java.util.List;
 
-import cz.cas.mbu.genexpi.compute.AdditiveRegulationInferenceTask;
+import cz.cas.mbu.genexpi.compute.OneWeightPerRegulatorInferenceTask;
 import cz.cas.mbu.genexpi.compute.InferenceResult;
 
-public class AdditiveResultsWriter extends AbstractResultsWriter<AdditiveRegulationInferenceTask> {
+public class OneWeightPerRegulatorResultsWriter extends AbstractResultsWriter<OneWeightPerRegulatorInferenceTask> {
 
 	private final int numRegulators;
 	
 	
-	public AdditiveResultsWriter(int numRegulators) {
+	public OneWeightPerRegulatorResultsWriter(int numRegulators) {
 		super();
 		this.numRegulators = numRegulators;
 	}
@@ -33,7 +33,7 @@ public class AdditiveResultsWriter extends AbstractResultsWriter<AdditiveRegulat
 
 	@Override
 	protected void outputSpecificResult(StringBuilder lineBuilder, List<String> names, List<String> rawColumns,
-			AdditiveRegulationInferenceTask task, InferenceResult result) {
+			OneWeightPerRegulatorInferenceTask task, InferenceResult result) {
 		
 		if(task != null) {
 	        lineBuilder.append(names.get(task.getTargetID()));

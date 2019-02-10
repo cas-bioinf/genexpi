@@ -1,11 +1,11 @@
 package cz.cas.mbu.genexpi.compute;
 
-public class BaseSigmoidInferenceTask {
+public class BaseDerivativeInferenceTask {
 
 	protected final int[] regulatorIDs;
 	protected final int targetID;
 
-	public BaseSigmoidInferenceTask(int[] regulatorIDs, int targetID) {
+	public BaseDerivativeInferenceTask(int[] regulatorIDs, int targetID) {
 		super();
 		this.regulatorIDs = regulatorIDs;
 		this.targetID = targetID;

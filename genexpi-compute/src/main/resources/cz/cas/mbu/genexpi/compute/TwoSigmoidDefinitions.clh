@@ -1,0 +1,20 @@
+#define K1_VALUE_0 PARAMETER_VALUE(0)
+#define K1_VALUE_1 PARAMETER_VALUE(1)
+#define B_VALUE_0 PARAMETER_VALUE(2)
+#define B_VALUE_1 PARAMETER_VALUE(3)
+#define K2_VALUE PARAMETER_VALUE(4)
+
+#define NUM_BASE_PARAMETERS 5
+
+#if NUM_REGULATORS != 2
+  #error For the TwoSigmoid model, NUM_REGULATORS has to be defined and equal to 2
+#endif
+
+typedef struct { T_Value reg0; T_Value reg1; } T_RegulatoryInput;
+
+
+
+#define CALCULATE_DERIVATIVE(regulatorWeighedSum, targetValue)  \
+		( (K1_VALUE_0 / (1 + exp( -((regulatorWeighedSum).reg0) - B_VALUE_0))) /*sigmoid 1*/\
+		+ (K1_VALUE_1 / (1 + exp( -((regulatorWeighedSum).reg1) - B_VALUE_1))) /*sigmoid 2*/\
+        - (K2_VALUE * (targetValue) ) + CONSTITUTIVE_DERIVATIVE_TERM)  /*decay + constitutive*/ 

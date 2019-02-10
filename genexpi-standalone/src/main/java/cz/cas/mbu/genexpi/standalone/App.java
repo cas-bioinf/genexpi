@@ -26,7 +26,7 @@ import com.nativelibs4java.opencl.CLPlatform;
 import com.nativelibs4java.opencl.CLPlatform.DeviceFeature;
 import com.nativelibs4java.opencl.JavaCL;
 
-import cz.cas.mbu.genexpi.compute.AdditiveRegulationInferenceTask;
+import cz.cas.mbu.genexpi.compute.OneWeightPerRegulatorInferenceTask;
 import cz.cas.mbu.genexpi.compute.BaseInferenceEngine;
 import cz.cas.mbu.genexpi.compute.ComputeUtils;
 import cz.cas.mbu.genexpi.compute.CooperativeRegulationInferenceTask;
@@ -158,6 +158,11 @@ public class App {
 				computeCooperativeRegulation(numberType, params, context, profiles, names);
 				break;
 			}
+			case TwoSigmoidRegulation: {
+				guessRegularizationWeightIfNecessary(params, profiles);
+				computeTwoSigmoidRegulation(numberType, params, context, profiles, names);
+				break;
+			}
 			case NoRegulator: {
 				computeNoRegulator(numberType, params, context, profiles, names);
 				break;
@@ -183,11 +188,11 @@ public class App {
 			throws IOException {
 		int numRegulators = params.numRegulators;
        
-        TasksReadResult<AdditiveRegulationInferenceTask> taskReadResult = new AdditiveTasksReader(numRegulators).readTasks(names, params.tasksFile, params.constraintsFile);
+        TasksReadResult<OneWeightPerRegulatorInferenceTask> taskReadResult = new OneWeightPerRegulatorTasksReader(numRegulators).readTasks(names, params.tasksFile, params.constraintsFile);
         
-        List<AdditiveRegulationInferenceTask> inferenceTasks = taskReadResult.getInferenceTasks();      
+        List<OneWeightPerRegulatorInferenceTask> inferenceTasks = taskReadResult.getInferenceTasks();      
 
-        IInferenceEngine<NUMBER_TYPE, AdditiveRegulationInferenceTask> compute = params.getEngineBuilder(numberType)
+        IInferenceEngine<NUMBER_TYPE, OneWeightPerRegulatorInferenceTask> compute = params.getEngineBuilder(numberType)
         		.setContext(context)
         		.buildAdditiveRegulation(numRegulators, params.useConstitutiveExpression, params.regularizationWeight);
         		
@@ -195,7 +200,7 @@ public class App {
         printComputationParams(params, compute);
         List<InferenceResult> results = compute.compute(profiles, inferenceTasks);
 
-        new AdditiveResultsWriter(numRegulators).write(names, taskReadResult, compute, results, params.outputFile);
+        new OneWeightPerRegulatorResultsWriter(numRegulators).write(names, taskReadResult, compute, results, params.outputFile);
 	}	
 	
 	private static <NUMBER_TYPE extends Number> void computeCooperativeRegulation(Class<NUMBER_TYPE> numberType,
@@ -215,6 +220,25 @@ public class App {
         List<InferenceResult> results = compute.compute(profiles, inferenceTasks);
 
         new CooperativeResultsWriter().write(names, taskReadResult, compute, results, params.outputFile);
+	}		
+
+	private static <NUMBER_TYPE extends Number> void computeTwoSigmoidRegulation(Class<NUMBER_TYPE> numberType,
+			Params params, CLContext context, List<GeneProfile<NUMBER_TYPE>> profiles, List<String> names)
+			throws IOException {
+       
+        TasksReadResult<OneWeightPerRegulatorInferenceTask> taskReadResult = new OneWeightPerRegulatorTasksReader(2).readTasks(names, params.tasksFile, params.constraintsFile);
+        
+        List<OneWeightPerRegulatorInferenceTask> inferenceTasks = taskReadResult.getInferenceTasks();      
+
+        IInferenceEngine<NUMBER_TYPE, OneWeightPerRegulatorInferenceTask> compute = params.getEngineBuilder(numberType)
+        		.setContext(context)
+        		.buildTwoSigmoidRegulation(params.useConstitutiveExpression, params.regularizationWeight);
+        		
+        		              
+        printComputationParams(params, compute);
+        List<InferenceResult> results = compute.compute(profiles, inferenceTasks);
+
+        new OneWeightPerRegulatorResultsWriter(2).write(names, taskReadResult, compute, results, params.outputFile);
 	}		
 	
 	private static <NUMBER_TYPE extends Number> void computeNoRegulator(Class<NUMBER_TYPE> numberType, Params params,
@@ -265,7 +289,7 @@ public class App {
 		options.addOption(outputFileOption);
 
 		modelOption = Option.builder("m").hasArg().longOpt("model")
-				.desc("Use given regulatory model. One of [NoRegulator, Additive], default is additive.").build();
+				.desc("Use given regulatory model. One of [NoRegulator, Additive, Cooperative], default is additive.").build();
 		options.addOption(modelOption);
 
 		methodOption = Option.builder().longOpt("method").hasArg()
@@ -416,6 +440,13 @@ public class App {
 				}
 				params.useConstitutiveExpression = (line.hasOption(useConstitutiveOption.getOpt()));
 				params.modelFamily = InferenceModel.Family.CooperativeRegulation;
+			} else if (modelName.equals("TwoSigmoid")) {
+				String numRegulatorsValue = line.getOptionValue(numRegulatorsOption.getOpt());
+				if(numRegulatorsValue != null && !numRegulatorsValue.trim().equals("2")) {
+					inputError("TwoSigmoid model currently supports only exactly two regulators");
+				}
+				params.useConstitutiveExpression = (line.hasOption(useConstitutiveOption.getOpt()));
+				params.modelFamily = InferenceModel.Family.TwoSigmoidRegulation;
 			} else if (modelName.equals("NoRegulator")) {
 				params.modelFamily = InferenceModel.Family.NoRegulator;
 			} else {

@@ -7,7 +7,6 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 
-import cz.cas.mbu.genexpi.compute.AdditiveRegulationInferenceTask;
 import cz.cas.mbu.genexpi.compute.IInferenceEngine;
 import cz.cas.mbu.genexpi.compute.InferenceResult;
 

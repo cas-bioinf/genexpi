@@ -6,7 +6,6 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 
-import cz.cas.mbu.genexpi.compute.AdditiveRegulationInferenceTask;
 import cz.cas.mbu.genexpi.compute.RegulationType;
 
 public abstract class AbstractTasksReader<T> {

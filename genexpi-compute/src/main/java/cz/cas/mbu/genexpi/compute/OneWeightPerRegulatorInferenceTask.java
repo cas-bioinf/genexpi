@@ -9,20 +9,20 @@ package cz.cas.mbu.genexpi.compute;
  *
  * @author MBU
  */
-public class AdditiveRegulationInferenceTask extends BaseSigmoidInferenceTask  {
+public class OneWeightPerRegulatorInferenceTask extends BaseDerivativeInferenceTask  {
     private final RegulationType[] regulationTypes;
     
-	public AdditiveRegulationInferenceTask(int regulatorID, int targetID) {
+	public OneWeightPerRegulatorInferenceTask(int regulatorID, int targetID) {
 		super(new int[] { regulatorID }, targetID);
 		this.regulationTypes = new RegulationType[] {RegulationType.All};
 	}
 	
-	public AdditiveRegulationInferenceTask(int regulatorID, int targetID, RegulationType regulationType) {
+	public OneWeightPerRegulatorInferenceTask(int regulatorID, int targetID, RegulationType regulationType) {
 		super(new int[] { regulatorID }, targetID);
 		this.regulationTypes = new RegulationType[] {regulationType};
 	}
 	
-	public AdditiveRegulationInferenceTask(int[] regulatorIDs, int targetID) {
+	public OneWeightPerRegulatorInferenceTask(int[] regulatorIDs, int targetID) {
 		super(regulatorIDs, targetID);
 		this.regulationTypes = new RegulationType[regulatorIDs.length];
 		for(int i = 0; i < regulatorIDs.length; i++)
@@ -31,7 +31,7 @@ public class AdditiveRegulationInferenceTask extends BaseSigmoidInferenceTask  {
 		}
 	}
 	
-    public AdditiveRegulationInferenceTask(int[] regulatorIDs, int targetID, RegulationType[] regulationTypes) {
+    public OneWeightPerRegulatorInferenceTask(int[] regulatorIDs, int targetID, RegulationType[] regulationTypes) {
 		super(regulatorIDs, targetID);
 		if(regulatorIDs.length != regulationTypes.length)
 		{

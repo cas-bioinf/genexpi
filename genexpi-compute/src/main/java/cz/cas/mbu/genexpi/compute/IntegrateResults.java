@@ -9,7 +9,7 @@ import org.apache.commons.math3.ode.nonstiff.DormandPrince54Integrator;
 
 public class IntegrateResults {
 	public static double[] integrateAdditiveRegulation(InferenceModel model, InferenceResult inferenceResult, 
-			AdditiveRegulationInferenceTask inferenceTask, List<? extends GeneProfile<?>> geneProfiles, double profileInitialTime, double profileTimeStep, double[] targetTimePoints)
+			OneWeightPerRegulatorInferenceTask inferenceTask, List<? extends GeneProfile<?>> geneProfiles, double profileInitialTime, double profileTimeStep, double[] targetTimePoints)
 	{
 		FirstOrderDifferentialEquations equations = new AdditiveRegulationODE(model, inferenceResult, inferenceTask, geneProfiles, profileInitialTime, profileTimeStep);
 		FirstOrderIntegrator integrator = new DormandPrince54Integrator(1e-8, 1, 1e-6, 1e-3);

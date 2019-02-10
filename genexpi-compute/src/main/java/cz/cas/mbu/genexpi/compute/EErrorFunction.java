@@ -10,7 +10,7 @@ package cz.cas.mbu.genexpi.compute;
  * @author MBU
  */
 public enum EErrorFunction {
-    Euler("USE_ERROR_EULER"),RK4("USE_ERROR_RK4"),DerivativeDiff("USE_ERROR_DERIVATIVE_DIFF");
+    Euler("USE_ERROR_EULER"),DerivativeDiff("USE_ERROR_DERIVATIVE_DIFF");
     
     private final String macro;
 

@@ -2,7 +2,6 @@ package cz.cas.mbu.genexpi.standalone;
 
 import java.util.List;
 
-import cz.cas.mbu.genexpi.compute.AdditiveRegulationInferenceTask;
 import cz.cas.mbu.genexpi.compute.CooperativeRegulationInferenceTask;
 import cz.cas.mbu.genexpi.compute.InferenceResult;
 

@@ -17,7 +17,7 @@ public class AdditiveRegulationODE extends BaseSigmoidODE {
 
 	private final double[] weights;
 		
-	public AdditiveRegulationODE(InferenceModel model, InferenceResult result, AdditiveRegulationInferenceTask inferenceTask,
+	public AdditiveRegulationODE(InferenceModel model, InferenceResult result, OneWeightPerRegulatorInferenceTask inferenceTask,
 			List<? extends GeneProfile<?>> geneProfiles, double initialTime, double timeStep) {
 		super(model, result, inferenceTask, geneProfiles, initialTime, timeStep);
 		if(model.getFamily() != InferenceModel.Family.AdditiveRegulation)

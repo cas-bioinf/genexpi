@@ -13,7 +13,7 @@ public class InferenceModel {
 	;
 	*/
 
-	public enum Family {NoRegulator, AdditiveRegulation, CooperativeRegulation};
+	public enum Family {NoRegulator, AdditiveRegulation, CooperativeRegulation, TwoSigmoidRegulation};
 	
 	public static final String NO_REGULATOR_SYNTHESIS_PARAM_NAME = "synthesis";
 	public static final String NO_REGULATOR_DECAY_PARAM_NAME = "decay";
@@ -102,7 +102,33 @@ public class InferenceModel {
 		String description = "Cooperative" + (useConstitutiveExpression ? "-Constitutive" : "");
 		return new InferenceModel(Family.CooperativeRegulation, "CooperativeRegulation", parameters, additionalDefines, description);
 	}
+
+	public static InferenceModel createTwoSigmoidRegulationModel(boolean useConstitutiveExpression)
+	{
+		List<String> parameters = new ArrayList<>();
+		parameters.add(SIGMOID_MAX_SYNTH_PARAM_NAME + "_0");
+		parameters.add(SIGMOID_MAX_SYNTH_PARAM_NAME + "_1");
+		parameters.add(SIGMOID_BIAS_PARAM_NAME + "_0");
+		parameters.add(SIGMOID_BIAS_PARAM_NAME + "_1");
+		parameters.add(SIGMOID_DECAY_PARAM_NAME);
+
+		int numRegulators = 2;
+		for(int i = 0; i < numRegulators; i++)
+		{
+			parameters.add(getAdditiveRegulatorWeightParamName(i, numRegulators));
+		}			
 		
+		List<String[]> additionalDefines = new ArrayList<>();
+		additionalDefines.add(new String[]  {"NUM_REGULATORS", Integer.toString(2)});
+		if(useConstitutiveExpression)
+		{
+			parameters.add(SIGMOID_CONSTITUTIVE_PARAM_NAME);
+			additionalDefines.add(new String[] {"USE_CONSTITUTIVE_EXPRESSION", ""});
+		}
+		String description = "TwoSigmoid" + (useConstitutiveExpression ? "-Constitutive" : "");
+		return new InferenceModel(Family.TwoSigmoidRegulation, "TwoSigmoidRegulation", parameters, additionalDefines, description);
+	}
+	
 	
 	private InferenceModel(Family family, String kernelName, List<String> parameters,
 			List<String[]> additionalDefines, String description) {
@@ -140,10 +166,13 @@ public class InferenceModel {
 	{
 		switch(family) {
 			case AdditiveRegulation: {
-				return new String[] { "BaseSigmoidDefinitions.clh", "AdditiveRegulation.cl", "BaseSigmoidRegulation.cl" };
+				return new String[] { "BaseDerivativeDefinitions.clh", "BaseSigmoidDefinitions.clh", "SigmoidTools.cl", "AdditiveRegulation.cl", "BaseSigmoidRegulation.cl", "BaseDerivativeRegulation.cl"};
 			}
 			case CooperativeRegulation: {
-				return new String[] { "BaseSigmoidDefinitions.clh", "CooperativeRegulation.cl", "BaseSigmoidRegulation.cl" };				
+				return new String[] { "BaseDerivativeDefinitions.clh", "BaseSigmoidDefinitions.clh", "CooperativeRegulation.cl", "BaseSigmoidRegulation.cl", "BaseDerivativeRegulation.cl" };				
+			}
+			case TwoSigmoidRegulation: {
+				return new String[] { "BaseDerivativeDefinitions.clh", "TwoSigmoidDefinitions.clh",  "SigmoidTools.cl", "TwoSigmoidRegulation.cl", "BaseDerivativeRegulation.cl" };				
 			}
 			default: {
 				return new String[] { kernelName + ".cl" };				

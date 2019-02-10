@@ -10,14 +10,14 @@ import com.nativelibs4java.opencl.CLEvent;
 import com.nativelibs4java.opencl.CLQueue;
 import com.nativelibs4java.opencl.LocalSize;
 
-public abstract class BaseSigmoidInferenceEngine<NUMBER_TYPE extends Number, TASK_TYPE extends BaseSigmoidInferenceTask> extends BaseInferenceEngine<NUMBER_TYPE, TASK_TYPE>{
+public abstract class BaseDerivativeInferenceEngine<NUMBER_TYPE extends Number, TASK_TYPE extends BaseDerivativeInferenceTask> extends BaseInferenceEngine<NUMBER_TYPE, TASK_TYPE>{
 	
 	protected final int numRegulators;
 	protected final float regularizationWeight; 
 	
 	
 	
-	public BaseSigmoidInferenceEngine(Class<NUMBER_TYPE> elementClass, CLContext context, InferenceModel model,
+	public BaseDerivativeInferenceEngine(Class<NUMBER_TYPE> elementClass, CLContext context, InferenceModel model,
 			EMethod method, EErrorFunction errorFunction, ELossFunction lossFunction, boolean useCustomTimeStep,
 			Float customTimeStep, boolean verbose, int numIterations, boolean preventFullOccupation, int numRegulators,
 			float regularizationWeight, boolean useFixedSeed, long fixedSeed) throws IOException {

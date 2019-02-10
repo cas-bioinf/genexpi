@@ -5,7 +5,7 @@ import java.util.List;
 
 import com.nativelibs4java.opencl.CLContext;
 
-public class CooperativeRegulationInferenceEngine<NUMBER_TYPE extends Number> extends BaseSigmoidInferenceEngine<NUMBER_TYPE, CooperativeRegulationInferenceTask>{
+public class CooperativeRegulationInferenceEngine<NUMBER_TYPE extends Number> extends BaseDerivativeInferenceEngine<NUMBER_TYPE, CooperativeRegulationInferenceTask>{
 
 	
 	

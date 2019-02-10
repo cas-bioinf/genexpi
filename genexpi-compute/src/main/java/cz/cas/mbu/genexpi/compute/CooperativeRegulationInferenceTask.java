@@ -9,7 +9,7 @@ package cz.cas.mbu.genexpi.compute;
  *
  * @author MBU
  */
-public class CooperativeRegulationInferenceTask extends BaseSigmoidInferenceTask  {
+public class CooperativeRegulationInferenceTask extends BaseDerivativeInferenceTask  {
     private final RegulationType regulationType;
     
 	public CooperativeRegulationInferenceTask(int regulator1ID, int regulator2ID, int targetID) {
