@@ -75,7 +75,7 @@ public abstract class AbstractTasksReader<T> {
 	            int profileIndex = names.indexOf(fields[column]);
 	            if(profileIndex < 0)
 	            {
-	            	String error = "Didn't find profile " + fields[1] + " in the names file. ";
+	            	String error = "Didn't find profile " + fields[column] + " in the names file. ";
 	            	errorBuilder.append(error);
 	                columnsOK = false;
 	            }

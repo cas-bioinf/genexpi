@@ -16,8 +16,7 @@ public class TwoSigmoidRegulationInferenceEngine<NUMBER_TYPE extends Number> ext
 				InferenceModel.createTwoSigmoidRegulationModel(useConstitutiveExpression), 
 				method, errorFunction, lossFunction, useCustomTimeStep, customTimeStep, verbose,
 				numIterations, preventFullOccupation, 2 /*numRegulators*/, regularizationWeight, useConstitutiveExpression,
-				useFixedSeed, fixedSeed);
-		// TODO Auto-generated constructor stub
+				useFixedSeed, fixedSeed);		
 	}
 
 	
